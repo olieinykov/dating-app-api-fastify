@@ -1,5 +1,5 @@
 import { Type, Static, Parameters } from '@sinclair/typebox'
-import { PaginationSchema } from '../../shared/schemas'
+import { PaginationSchema } from '../../shared/schemas.js'
 
 export const CreateGiftSchema = {
   tags: ['Gifts'],

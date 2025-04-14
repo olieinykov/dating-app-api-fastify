@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { db } from "../../db";
-import { models } from "../../db/schema";
+import { db } from "../../db/index.js";
+import { models } from "../../db/schema/index.js";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import {
     CreateModelType,

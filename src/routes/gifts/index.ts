@@ -6,7 +6,7 @@ import {
   DeleteGiftSchema,
   UpdateGiftSchema,
   GetOneGiftSchema
-} from "./schemas";
+} from "./schemas.js";
 
 const routes = async (fastify: FastifyInstance) => {
   fastify.post('/', {

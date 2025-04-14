@@ -1,4 +1,4 @@
-import { supabase } from '../../services/supabase'
+import { supabase } from '../../services/supabase.js'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { LoginBodyType } from './schemas.js'
 import {CookieSerializeOptions} from "@fastify/cookie";

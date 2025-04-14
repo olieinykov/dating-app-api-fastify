@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { TelegramRegisterSchemaBodyType } from './schemas.js'
-import { db } from "../../db";
-import { profiles } from "../../db/schema";
+import { db } from "../../db/index.js";
+import { profiles } from "../../db/schema/index.js";
 
 export const register = async (
   request: FastifyRequest<TelegramRegisterSchemaBodyType>,

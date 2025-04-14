@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { db } from "../../db";
-import { gifts } from "../../db/schema";
+import { db } from "../../db/index.js";
+import { gifts } from "../../db/schema/index.js";
 import {and, asc, desc, eq, ilike, or, sql} from "drizzle-orm";
 import {
     CreateGiftType,

@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { me } from './handlers.js'
-import { MeSchema } from "./schemas";
+import { MeSchema } from "./schemas.js";
 
 const routes = async (fastify: FastifyInstance) => {
   fastify.get('/', {

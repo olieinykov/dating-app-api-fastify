@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { uploadFile } from './handlers.js'
-import { UploadFileSchema } from "./schemas";
+import { UploadFileSchema } from "./schemas.js";
 import multipart from '@fastify/multipart';
 
 const routes = async (fastify: FastifyInstance) => {

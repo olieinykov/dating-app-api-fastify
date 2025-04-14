@@ -6,7 +6,7 @@ import {
   DeleteModelSchema,
   UpdateModelSchema,
   GetOneModelSchema
-} from "./schemas";
+} from "./schemas.js";
 
 const routes = async (fastify: FastifyInstance) => {
   fastify.post('/', {

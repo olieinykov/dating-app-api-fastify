@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { getAllUsers, getOneUser, deleteUser, createUser, updateUser } from './handlers.js'
-import { CreateUserSchema, GetOneUserSchema, DeleteUserSchema, GetAllUsersSchema, UpdateUsersSchema } from "./schemas";
+import { CreateUserSchema, GetOneUserSchema, DeleteUserSchema, GetAllUsersSchema, UpdateUsersSchema } from "./schemas.js";
 
 const routes = async (fastify: FastifyInstance) => {
   fastify.post('/', {

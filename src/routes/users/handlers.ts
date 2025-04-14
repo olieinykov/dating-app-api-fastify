@@ -1,8 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { db } from "../../db";
-import {models, profiles} from "../../db/schema";
+import { db } from "../../db/index.js";
+import { profiles } from "../../db/schema/index.js";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
-import { CreateUserType, DeleteUserType, GetAllUsersType, GetOneUserType, UpdateUsersType } from "./schemas";
+import { CreateUserType, DeleteUserType, GetAllUsersType, GetOneUserType, UpdateUsersType } from "./schemas.js";
 
 export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, reply: FastifyReply) => {
     try {

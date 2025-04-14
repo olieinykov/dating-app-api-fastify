@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { supabase } from '../../services/supabase.js';
-import { db } from "../../db";
+import { db } from "../../db/index.js";
 
 export const me = async (
   request: FastifyRequest,
