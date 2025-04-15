@@ -32,7 +32,7 @@ async function initialize() {
   await fastify.register(filesRoutes, { prefix: '/api/files' })
 
   try {
-    await fastify.listen({ port: env.server.port })
+    await fastify.listen({ port: env.server.port, host: env.server.host })
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)

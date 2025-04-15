@@ -12,7 +12,8 @@ const env = {
     key: process.env.SUPABASE_ANON_KEY
   },
   server: {
-    port: Number(process.env.PORT) || 3000
+    port: Number(process.env.PORT) || 3000,
+    host: process.env.HOST || 'localhost',
   }
 } as const
 
