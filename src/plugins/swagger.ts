@@ -16,7 +16,7 @@ async function swaggerPlugin(fastify: any) {
                 { name: 'Gifts', description: 'Gifts management' },
                 { name: 'Models', description: 'Model management' },
                 { name: 'Files', description: 'Files management' },
-                { name: 'Me', description: 'Current user management' },
+                { name: 'Profile', description: 'Profile management' },
                 { name: 'Telegram', description: 'Telegram bot integration' },
             ],
         }

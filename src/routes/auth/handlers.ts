@@ -1,6 +1,6 @@
 import { supabase } from '../../services/supabase.js'
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { LoginBodyType } from './schemas.js'
+import {LoginBodyType} from './schemas.js'
 import {CookieSerializeOptions} from "@fastify/cookie";
 
 const cookiesConfig: CookieSerializeOptions = {
@@ -23,8 +23,9 @@ export const login = async (
 
     if (error || !authData) {
       reply.code(400).send({
-        status: 'error',
-        message: error?.message,
+        success: false,
+        error: (error as Error)?.message,
+        message: 'Please check if the credentials are valid'
       });
     }
 
@@ -38,11 +39,14 @@ export const login = async (
       maxAge: 24 * 60 * 60 * 1000,
     });
 
-    reply.code(200);
+    reply.code(200).send({
+      success: true,
+      message: 'Welcome to amorium'
+    });
   } catch (error) {
       reply.code(401).send({
         success: false,
-        error: 'User creation failed'
+        message: 'Please check if the credentials are valid'
       })
   }
 }
@@ -54,6 +58,9 @@ export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
 
     return reply.code(200);
   } catch (error) {
-    reply.code(401).send({ message: "Error" })
+    reply.code(401).send({
+      success: false,
+      message: "Failed to logout"
+    })
   }
 };

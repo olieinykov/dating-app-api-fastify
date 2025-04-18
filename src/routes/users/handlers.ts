@@ -29,8 +29,7 @@ export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, repl
         if (search.trim()) {
             whereClauses.push(
                 or(
-                    ilike(profiles.firstName, `%${search}%`),
-                    ilike(profiles.about, `%${search}%`)
+                    ilike(profiles.name, `%${search}%`),
                 )
             );
         }

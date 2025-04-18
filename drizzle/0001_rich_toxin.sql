@@ -1,1 +1,0 @@
-ALTER TABLE "profiles" ALTER COLUMN "telegram_id" DROP NOT NULL;

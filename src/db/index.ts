@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import * as schema from './schema/index.js'; // путь к твоим таблицам, например profiles
+import * as schema from './schema/index.js';
 
-const queryClient = postgres(process.env.DATABASE_URL!); // добавь "!" если уверен, что env точно есть
+const queryClient = postgres(process.env.DATABASE_URL!);
 
 export const db = drizzle(queryClient, { schema });

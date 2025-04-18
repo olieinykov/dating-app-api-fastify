@@ -5,7 +5,7 @@ import corsPlugin from './plugins/cors.js'
 import cookiesPlugin from './plugins/cookies.js'
 import swaggerPlugin from './plugins/swagger.js'
 import authRoutes from './routes/auth/index.js'
-import meRoutes from './routes/me/index.js'
+import profileRoutes from './routes/profile/index.js'
 import telegramRoutes from './routes/telegram/index.js'
 import usersRoutes from './routes/users/index.js'
 import modelsRoutes from './routes/models/index.js'
@@ -24,7 +24,7 @@ async function initialize() {
   await fastify.register(swaggerPlugin);
 
   await fastify.register(authRoutes, { prefix: '/api/auth' })
-  await fastify.register(meRoutes, { prefix: '/api/me' })
+  await fastify.register(profileRoutes, { prefix: '/api/profile' })
   await fastify.register(telegramRoutes, { prefix: '/api/telegram/users' })
   await fastify.register(usersRoutes, { prefix: '/api/users' })
   await fastify.register(modelsRoutes, { prefix: '/api/models' })
