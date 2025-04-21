@@ -5,6 +5,13 @@ import { FastifyInstance } from 'fastify';
 async function corsPlugin(fastify: FastifyInstance) {
   await fastify.register(cors, {
     origin: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Content-Length', 'X-Kuma-Revision'],
+    credentials: true,
+    maxAge: 86400,
+    preflightContinue: false,
+    optionsSuccessStatus: 204
   });
 }
 
