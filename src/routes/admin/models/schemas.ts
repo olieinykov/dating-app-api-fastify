@@ -1,8 +1,8 @@
 import { Type, Static } from '@sinclair/typebox'
-import { PaginationSchema } from '../../shared/schemas.js'
+import { PaginationSchema } from '../../../shared/schemas.js'
 
 export const CreateModelSchema = {
-  tags: ['Models'],
+  tags: ['Admin / Models'],
   body: Type.Object({
     name: Type.String({ minLength: 1 }),
     country: Type.String({ minLength: 1 }),
@@ -16,7 +16,7 @@ export type CreateModelType = {
 };
 
 export const UpdateModelSchema = {
-  tags: ['Models'],
+  tags: ['Admin / Models'],
   parameters: Type.Object({
     modelId: Type.Integer(),
   }),
@@ -34,7 +34,7 @@ export type UpdateModelType = {
 };
 
 export const GetAllModelsSchema = {
-  tags: ['Models'],
+  tags: ['Admin / Models'],
   querystring: PaginationSchema,
 }
 export type GetAllModelsType = {
@@ -42,7 +42,7 @@ export type GetAllModelsType = {
 }
 
 export const GetOneModelSchema = {
-  tags: ['Models'],
+  tags: ['Admin / Models'],
   parameters: Type.Object({
     modelId: Type.Integer(),
   }),
@@ -52,7 +52,7 @@ export type GetOneModelType = {
 };
 
 export const DeleteModelSchema = {
-  tags: ['Models'],
+  tags: ['Admin / Models'],
   parameters: Type.Object({
     modelId: Type.Integer(),
   }),

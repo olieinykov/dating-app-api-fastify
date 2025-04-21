@@ -11,13 +11,14 @@ async function swaggerPlugin(fastify: any) {
                 version: '0.0.1',
             },
             tags: [
-                { name: 'Auth', description: 'Authentication related endpoints' },
-                { name: 'Users', description: 'User management' },
-                { name: 'Gifts', description: 'Gifts management' },
-                { name: 'Models', description: 'Model management' },
                 { name: 'Files', description: 'Files management' },
-                { name: 'Profile', description: 'Profile management' },
                 { name: 'Telegram', description: 'Telegram bot integration' },
+                { name: 'Admin / Auth', description: 'Authentication related endpoints' },
+                { name: 'Admin / Users', description: 'User management' },
+                { name: 'Admin / Gifts', description: 'Gifts management' },
+                { name: 'Admin / Models', description: 'Model management' },
+                { name: 'App / Auth', description: 'Profile management' },
+                { name: 'App / Profile', description: 'Profile management' },
             ],
         }
     });

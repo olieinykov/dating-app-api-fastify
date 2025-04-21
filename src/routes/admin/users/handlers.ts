@@ -1,18 +1,13 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { db } from "../../db/index.js";
-import { models } from "../../db/schema/index.js";
+import { db } from "../../../db/index.js";
+import { profiles } from "../../../db/schema/index.js";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
-import {
-    CreateModelType,
-    DeleteModelType,
-    GetAllModelsType,
-    GetOneModelType,
-     UpdateModelType
-} from "./schemas";
+import { CreateUserType, DeleteUserType, GetAllUsersType, GetOneUserType, UpdateUsersType } from "./schemas.js";
 
-export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, reply: FastifyReply) => {
+export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, reply: FastifyReply) => {
     try {
         const {
+            role,
             search = '',
             page = 1,
             pageSize = 10,
@@ -20,26 +15,29 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
             sortOrder = 'desc',
         } = request.query;
 
-        const sortBy = models[sortField as keyof typeof models];
+        const sortBy = profiles[sortField as keyof typeof profiles];
         const currentPage = Math.max(1, Number(page));
         const limit = Math.min(100, Math.max(1, Number(pageSize)));
         const offset = (currentPage - 1) * limit;
         const whereClauses = [];
+        
 
+        if (role) {
+            whereClauses.push(eq(profiles.role, role));
+        }
 
         if (search.trim()) {
             whereClauses.push(
                 or(
-                    ilike(models.name, `%${search}%`),
-                    ilike(models.description, `%${search}%`)
+                    ilike(profiles.name, `%${search}%`),
                 )
             );
         }
 
         const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
-        const data = await db
+        const users = await db
             .select()
-            .from(models)
+            .from(profiles)
             .where(whereCondition)
             .orderBy(
                 sortOrder === 'asc'
@@ -51,11 +49,11 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
             .limit(limit)
             .offset(offset);
 
-        const total = await db.$count(models);
+        const total = await db.$count(profiles);
 
         reply.send({
             status: 'success',
-            data: data,
+            data: users,
             pagination: {
                 page: currentPage,
                 pageSize: limit,
@@ -71,10 +69,10 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
     }
 };
 
-export const getOneModel = async (request: FastifyRequest<GetOneModelType>, reply: FastifyReply) => {
+export const getOneUser = async (request: FastifyRequest<GetOneUserType>, reply: FastifyReply) => {
     try {
-        const data = await db.query.models.findFirst({
-            where: eq(models.id, request.params.modelId),
+        const data = await db.query.profiles.findFirst({
+            where: eq(profiles.id, request.params.userId),
         })
 
         console.log("data", data);
@@ -87,7 +85,7 @@ export const getOneModel = async (request: FastifyRequest<GetOneModelType>, repl
         } else {
             reply.status(404).send({
                 status: 'error',
-                error: `No model found with id: ${request.params.modelId}`
+                error: `No user found with id: ${request.params.userId}`
             });
         }
     } catch (error) {
@@ -98,9 +96,10 @@ export const getOneModel = async (request: FastifyRequest<GetOneModelType>, repl
     }
 };
 
-export const deleteModel = async (request: FastifyRequest<DeleteModelType>, reply: FastifyReply) => {
+export const deleteUser = async (request: FastifyRequest<DeleteUserType>, reply: FastifyReply) => {
     try {
-        const data = await db.delete(models).where(eq(models.id, request.params.modelId)).returning();
+        const data = await db.delete(profiles).where(eq(profiles.id, request.params.userId)).returning();
+        console.log("data", data);
 
         if (data?.[0]) {
             reply.send({
@@ -110,7 +109,7 @@ export const deleteModel = async (request: FastifyRequest<DeleteModelType>, repl
         } else {
             reply.code(404).send({
                 status: 'error',
-                error: `No model found with id: ${request.params.modelId}`
+                error: `No user found with id: ${request.params.userId}`
             });
         }
     } catch (error) {
@@ -121,9 +120,14 @@ export const deleteModel = async (request: FastifyRequest<DeleteModelType>, repl
     }
 };
 
-export const createModel = async (request: FastifyRequest<CreateModelType>, reply: FastifyReply) => {
+export const createUser = async (request: FastifyRequest<CreateUserType>, reply: FastifyReply) => {
     try {
-        const data = await db.insert(models).values(request.body as any).returning();
+        const payload = {
+            ...request.body,
+            role: request.body.role || "chatter"
+        }
+
+        const data = await db.insert(profiles).values(payload as any).returning();
         reply.send({
             status: 'success',
             data: data[0]
@@ -136,12 +140,11 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
     }
 };
 
-export const updateModel = async (request: FastifyRequest<UpdateModelType>, reply: FastifyReply) => {
+export const updateUser = async (request: FastifyRequest<UpdateUsersType>, reply: FastifyReply) => {
     try {
-        console.log()
-        const data = await db.update(models)
+        const data = await db.update(profiles)
             .set(request.body as any)
-            .where(eq(models.id, request.params.modelId))
+            .where(eq(profiles.id, request.params.userId))
             .returning();
 
         reply.send({

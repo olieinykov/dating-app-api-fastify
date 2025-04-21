@@ -1,9 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { isValid, parse } from "@telegram-apps/init-data-node";
-import env from "../../config/env.js";
-import { db } from "../../db/index.js";
+import env from "../../../config/env.js";
+import { db } from "../../../db/index.js";
 import { eq } from "drizzle-orm";
-import { profiles, profilesPhotos, profilesPreferences, profilesTelegram } from "../../db/schema/index.js";
+import { profiles, profilesPhotos, profilesPreferences, profilesTelegram } from "../../../db/schema/index.js";
 import {ActivateProfileSchemaType, LoginSchemaType, RegisterSchemaBodyType} from "./schemas.js";
 
 export const login = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
@@ -23,7 +23,6 @@ export const login = async (request: FastifyRequest<LoginSchemaType>, reply: Fas
     });
   }
 
-  // const telegramId = parse(initData).user?.id;
   const telegram = parse(initData).user;
 
   if (!telegram?.id) {

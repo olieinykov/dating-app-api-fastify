@@ -1,8 +1,8 @@
 import { Type, Static, Parameters } from '@sinclair/typebox'
-import { PaginationSchema } from '../../shared/schemas.js'
+import { PaginationSchema } from '../../../shared/schemas.js'
 
 export const CreateGiftSchema = {
-  tags: ['Gifts'],
+  tags: ['Admin / Gifts'],
   body: Type.Object({
     title: Type.String({ minLength: 1}),
     price: Type.Number({ exclusiveMinimum: 0 }),
@@ -17,7 +17,7 @@ export type CreateGiftType = {
 };
 
 export const UpdateGiftSchema = {
-  tags: ['Gifts'],
+  tags: ['Admin / Gifts'],
   parameters: Type.Object({
     giftId: Type.Integer(),
   }),
@@ -35,7 +35,7 @@ export type UpdateGiftType = {
 };
 
 export const GetAllGiftsSchema = {
-  tags: ['Gifts'],
+  tags: ['Admin / Gifts'],
   querystring: PaginationSchema,
 }
 export type GetAllGiftsType = {
@@ -43,7 +43,7 @@ export type GetAllGiftsType = {
 }
 
 export const GetOneGiftSchema = {
-  tags: ['Gifts'],
+  tags: ['Admin / Gifts'],
   parameters: Type.Object({
     giftId: Type.Integer(),
   }),
@@ -53,7 +53,7 @@ export type GetOneGiftType = {
 };
 
 export const DeleteGiftSchema = {
-  tags: ['Gifts'],
+  tags: ['Admin / Gifts'],
   parameters: Type.Object({
     giftId: Type.Integer(),
   }),

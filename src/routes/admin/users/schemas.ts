@@ -1,8 +1,8 @@
 import { Type, Static } from '@sinclair/typebox'
-import { PaginationSchema } from '../../shared/schemas.js'
+import { PaginationSchema } from '../../../shared/schemas.js'
 
 export const CreateUserSchema = {
-  tags: ['Users'],
+  tags: ['Admin / Users'],
   body: Type.Object({
     email: Type.String(),
     firstName: Type.String(),
@@ -20,7 +20,7 @@ export type CreateUserType = {
 };
 
 export const UpdateUsersSchema = {
-  tags: ['Users'],
+  tags: ['Admin / Users'],
   parameters: Type.Object({
     userId: Type.Integer(),
   }),
@@ -32,7 +32,7 @@ export type UpdateUsersType = {
 };
 
 export const GetAllUsersSchema = {
-  tags: ['Users'],
+  tags: ['Admin / Users'],
   querystring: Type.Intersect([PaginationSchema, Type.Object({
     role: Type.String()
   })]),
@@ -42,7 +42,7 @@ export type GetAllUsersType = {
 }
 
 export const GetOneUserSchema = {
-  tags: ['Users'],
+  tags: ['Admin / Users'],
   parameters: Type.Object({
     userId: Type.Integer(),
   })
@@ -52,7 +52,7 @@ export type GetOneUserType = {
 }
 
 export const DeleteUserSchema = {
-  tags: ['Users'],
+  tags: ['Admin / Users'],
   parameters: Type.Object({
     userId: Type.Integer(),
   })

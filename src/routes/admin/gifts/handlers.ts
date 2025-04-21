@@ -1,13 +1,18 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { db } from "../../db/index.js";
-import { profiles } from "../../db/schema/index.js";
-import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
-import { CreateUserType, DeleteUserType, GetAllUsersType, GetOneUserType, UpdateUsersType } from "./schemas.js";
+import { db } from "../../../db/index.js";
+import { gifts } from "../../../db/schema/index.js";
+import {and, asc, desc, eq, ilike, or, sql} from "drizzle-orm";
+import {
+    CreateGiftType,
+    DeleteGiftType,
+    GetAllGiftsType,
+    GetOneGiftType,
+    UpdateGiftType
+} from "./schemas";
 
-export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, reply: FastifyReply) => {
+export const getAllGifts = async (request: FastifyRequest<GetAllGiftsType>, reply: FastifyReply) => {
     try {
         const {
-            role,
             search = '',
             page = 1,
             pageSize = 10,
@@ -15,30 +20,17 @@ export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, repl
             sortOrder = 'desc',
         } = request.query;
 
-        const sortBy = profiles[sortField as keyof typeof profiles];
+        console.log("request.query", request.query)
+
+        const sortBy = gifts[sortField as keyof typeof gifts]
         const currentPage = Math.max(1, Number(page));
         const limit = Math.min(100, Math.max(1, Number(pageSize)));
         const offset = (currentPage - 1) * limit;
-        const whereClauses = [];
-        
 
-        if (role) {
-            whereClauses.push(eq(profiles.role, role));
-        }
-
-        if (search.trim()) {
-            whereClauses.push(
-                or(
-                    ilike(profiles.name, `%${search}%`),
-                )
-            );
-        }
-
-        const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
-        const users = await db
+        const data = await db
             .select()
-            .from(profiles)
-            .where(whereCondition)
+            .from(gifts)
+            .where(ilike(gifts.title, `%${search}%`))
             .orderBy(
                 sortOrder === 'asc'
                 // @ts-ignore
@@ -49,11 +41,11 @@ export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, repl
             .limit(limit)
             .offset(offset);
 
-        const total = await db.$count(profiles);
+        const total = await db.$count(gifts);
 
         reply.send({
             status: 'success',
-            data: users,
+            data: data,
             pagination: {
                 page: currentPage,
                 pageSize: limit,
@@ -69,13 +61,11 @@ export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, repl
     }
 };
 
-export const getOneUser = async (request: FastifyRequest<GetOneUserType>, reply: FastifyReply) => {
+export const getOneGift = async (request: FastifyRequest<GetOneGiftType>, reply: FastifyReply) => {
     try {
-        const data = await db.query.profiles.findFirst({
-            where: eq(profiles.id, request.params.userId),
+        const data = await db.query.gifts.findFirst({
+            where: eq(gifts.id, request.params.giftId),
         })
-
-        console.log("data", data);
 
         if (data) {
             reply.send({
@@ -85,7 +75,7 @@ export const getOneUser = async (request: FastifyRequest<GetOneUserType>, reply:
         } else {
             reply.status(404).send({
                 status: 'error',
-                error: `No user found with id: ${request.params.userId}`
+                error: `No gift found with id: ${request.params.giftId}`
             });
         }
     } catch (error) {
@@ -96,10 +86,9 @@ export const getOneUser = async (request: FastifyRequest<GetOneUserType>, reply:
     }
 };
 
-export const deleteUser = async (request: FastifyRequest<DeleteUserType>, reply: FastifyReply) => {
+export const deleteGift = async (request: FastifyRequest<DeleteGiftType>, reply: FastifyReply) => {
     try {
-        const data = await db.delete(profiles).where(eq(profiles.id, request.params.userId)).returning();
-        console.log("data", data);
+        const data = await db.delete(gifts).where(eq(gifts.id, request.params.giftId)).returning();
 
         if (data?.[0]) {
             reply.send({
@@ -109,7 +98,7 @@ export const deleteUser = async (request: FastifyRequest<DeleteUserType>, reply:
         } else {
             reply.code(404).send({
                 status: 'error',
-                error: `No user found with id: ${request.params.userId}`
+                error: `No gift found with id: ${request.params.giftId}`
             });
         }
     } catch (error) {
@@ -120,31 +109,27 @@ export const deleteUser = async (request: FastifyRequest<DeleteUserType>, reply:
     }
 };
 
-export const createUser = async (request: FastifyRequest<CreateUserType>, reply: FastifyReply) => {
+export const createGift = async (request: FastifyRequest<CreateGiftType>, reply: FastifyReply) => {
     try {
-        const payload = {
-            ...request.body,
-            role: request.body.role || "user"
-        }
-
-        const data = await db.insert(profiles).values(payload as any).returning();
+        const data = await db.insert(gifts).values(request.body as any).returning();
         reply.send({
             status: 'success',
             data: data[0]
         });
     } catch (error) {
+        console.log("error", error);
         reply.status(400).send({
             status: 'error',
-            error: (error as Error)?.message
+            error: error
         });
     }
 };
 
-export const updateUser = async (request: FastifyRequest<UpdateUsersType>, reply: FastifyReply) => {
+export const updateGift = async (request: FastifyRequest<UpdateGiftType>, reply: FastifyReply) => {
     try {
-        const data = await db.update(profiles)
+        const data = await db.update(gifts)
             .set(request.body as any)
-            .where(eq(profiles.id, request.params.userId))
+            .where(eq(gifts.id, request.params.giftId))
             .returning();
 
         reply.send({

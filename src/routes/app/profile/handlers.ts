@@ -1,10 +1,10 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { db } from "../../db/index.js";
+import { db } from "../../../db/index.js";
 import {
   GetProfileSchemaType,
   UpdateProfileSchemaType,
-} from "./schemas";
-import { profiles, profilesPhotos, profilesPreferences } from "../../db/schema/index.js";
+} from "./schemas.js";
+import { profiles, profilesPhotos, profilesPreferences } from "../../../db/schema/index.js";
 import { eq } from "drizzle-orm";
 
 export const getProfile = async (
@@ -117,7 +117,7 @@ export const updateProfile = async (
         .returning();
 
       let profilePhotos = undefined;
-      if (photos?.length) {
+      if (photos !== undefined) {
         await tx
           .delete(profilesPhotos)
           .where(eq(profilesPhotos.profileId, request.params.profileId));
@@ -140,7 +140,7 @@ export const updateProfile = async (
       };
     });
 
-    return reply.code(200).send(result);
+    reply.code(200).send(result);
   } catch (error) {
     reply.code(400).send({
       success: false,

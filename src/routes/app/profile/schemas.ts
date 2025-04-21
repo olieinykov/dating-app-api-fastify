@@ -1,35 +1,25 @@
-import { Type, Static, Object, Integer, String, Optional, Enum, Array, Union, Literal } from '@sinclair/typebox'
+import { Static, Object, Literal, String, Array, Integer, Optional, Enum, Union } from "@sinclair/typebox";
 
-export const LoginSchema = {
-  tags: ['Auth'],
-  body: Type.Object({
-    initData: Type.String({ minLength: 1 })
-  })
+export const GetProfileSchema = {
+  tags: ['App / Profile'],
+  parameters: Object({
+    profileId: Integer(),
+  }),
+}
+export type GetProfileSchemaType = {
+  Params: Static<typeof GetProfileSchema.parameters>;
 };
-export type LoginSchemaType = {
-  Body: Static<typeof LoginSchema.body>
-}
 
-export const RegisterSchema = {
-  tags: ['Auth'],
-  body: Type.Object({
-    initData: Type.String({ minLength: 1 })
-  })
-}
-export type RegisterSchemaBodyType = {
-  Body: Static<typeof RegisterSchema.body>
-}
-
-export const ActivateProfileSchema = {
-  tags: ['Profile'],
+export const UpdateProfileSchema = {
+  tags: ['App / Profile'],
   parameters: Object({
     profileId: Integer(),
   }),
   body: Object({
-    name: String(),
+    name: Optional(String()),
     about: Optional(String()),
-    dateOfBirth: String({ format: 'date' }),
-    gender: Enum({ male: 'male', female: 'female' }),
+    dateOfBirth: Optional(String({ format: 'date' })),
+    gender: Optional(Enum({ male: 'male', female: 'female' })),
     hobbies: Optional(Array(String())),
     city: Optional(String()),
     paramsAge: Optional(Union([
@@ -66,7 +56,8 @@ export const ActivateProfileSchema = {
     ),
   })
 };
-export type ActivateProfileSchemaType = {
-  Body: Static<typeof ActivateProfileSchema.body>;
-  Params: Static<typeof ActivateProfileSchema.parameters>;
+
+export type UpdateProfileSchemaType = {
+  Body: Static<typeof UpdateProfileSchema.body>;
+  Params: Static<typeof UpdateProfileSchema.parameters>;
 };

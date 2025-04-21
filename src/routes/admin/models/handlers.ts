@@ -1,16 +1,16 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { db } from "../../db/index.js";
-import { gifts } from "../../db/schema/index.js";
-import {and, asc, desc, eq, ilike, or, sql} from "drizzle-orm";
+import { db } from "../../../db/index.js";
+import { models } from "../../../db/schema/index.js";
+import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import {
-    CreateGiftType,
-    DeleteGiftType,
-    GetAllGiftsType,
-    GetOneGiftType,
-    UpdateGiftType
+    CreateModelType,
+    DeleteModelType,
+    GetAllModelsType,
+    GetOneModelType,
+     UpdateModelType
 } from "./schemas";
 
-export const getAllGifts = async (request: FastifyRequest<GetAllGiftsType>, reply: FastifyReply) => {
+export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, reply: FastifyReply) => {
     try {
         const {
             search = '',
@@ -20,17 +20,27 @@ export const getAllGifts = async (request: FastifyRequest<GetAllGiftsType>, repl
             sortOrder = 'desc',
         } = request.query;
 
-        console.log("request.query", request.query)
-
-        const sortBy = gifts[sortField as keyof typeof gifts]
+        const sortBy = models[sortField as keyof typeof models];
         const currentPage = Math.max(1, Number(page));
         const limit = Math.min(100, Math.max(1, Number(pageSize)));
         const offset = (currentPage - 1) * limit;
+        const whereClauses = [];
 
+
+        if (search.trim()) {
+            whereClauses.push(
+                or(
+                    ilike(models.name, `%${search}%`),
+                    ilike(models.description, `%${search}%`)
+                )
+            );
+        }
+
+        const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
         const data = await db
             .select()
-            .from(gifts)
-            .where(ilike(gifts.title, `%${search}%`))
+            .from(models)
+            .where(whereCondition)
             .orderBy(
                 sortOrder === 'asc'
                 // @ts-ignore
@@ -41,7 +51,7 @@ export const getAllGifts = async (request: FastifyRequest<GetAllGiftsType>, repl
             .limit(limit)
             .offset(offset);
 
-        const total = await db.$count(gifts);
+        const total = await db.$count(models);
 
         reply.send({
             status: 'success',
@@ -61,11 +71,13 @@ export const getAllGifts = async (request: FastifyRequest<GetAllGiftsType>, repl
     }
 };
 
-export const getOneGift = async (request: FastifyRequest<GetOneGiftType>, reply: FastifyReply) => {
+export const getOneModel = async (request: FastifyRequest<GetOneModelType>, reply: FastifyReply) => {
     try {
-        const data = await db.query.gifts.findFirst({
-            where: eq(gifts.id, request.params.giftId),
+        const data = await db.query.models.findFirst({
+            where: eq(models.id, request.params.modelId),
         })
+
+        console.log("data", data);
 
         if (data) {
             reply.send({
@@ -75,7 +87,7 @@ export const getOneGift = async (request: FastifyRequest<GetOneGiftType>, reply:
         } else {
             reply.status(404).send({
                 status: 'error',
-                error: `No gift found with id: ${request.params.giftId}`
+                error: `No model found with id: ${request.params.modelId}`
             });
         }
     } catch (error) {
@@ -86,9 +98,9 @@ export const getOneGift = async (request: FastifyRequest<GetOneGiftType>, reply:
     }
 };
 
-export const deleteGift = async (request: FastifyRequest<DeleteGiftType>, reply: FastifyReply) => {
+export const deleteModel = async (request: FastifyRequest<DeleteModelType>, reply: FastifyReply) => {
     try {
-        const data = await db.delete(gifts).where(eq(gifts.id, request.params.giftId)).returning();
+        const data = await db.delete(models).where(eq(models.id, request.params.modelId)).returning();
 
         if (data?.[0]) {
             reply.send({
@@ -98,7 +110,7 @@ export const deleteGift = async (request: FastifyRequest<DeleteGiftType>, reply:
         } else {
             reply.code(404).send({
                 status: 'error',
-                error: `No gift found with id: ${request.params.giftId}`
+                error: `No model found with id: ${request.params.modelId}`
             });
         }
     } catch (error) {
@@ -109,27 +121,27 @@ export const deleteGift = async (request: FastifyRequest<DeleteGiftType>, reply:
     }
 };
 
-export const createGift = async (request: FastifyRequest<CreateGiftType>, reply: FastifyReply) => {
+export const createModel = async (request: FastifyRequest<CreateModelType>, reply: FastifyReply) => {
     try {
-        const data = await db.insert(gifts).values(request.body as any).returning();
+        const data = await db.insert(models).values(request.body as any).returning();
         reply.send({
             status: 'success',
             data: data[0]
         });
     } catch (error) {
-        console.log("error", error);
         reply.status(400).send({
             status: 'error',
-            error: error
+            error: (error as Error)?.message
         });
     }
 };
 
-export const updateGift = async (request: FastifyRequest<UpdateGiftType>, reply: FastifyReply) => {
+export const updateModel = async (request: FastifyRequest<UpdateModelType>, reply: FastifyReply) => {
     try {
-        const data = await db.update(gifts)
+        console.log()
+        const data = await db.update(models)
             .set(request.body as any)
-            .where(eq(gifts.id, request.params.giftId))
+            .where(eq(models.id, request.params.modelId))
             .returning();
 
         reply.send({
