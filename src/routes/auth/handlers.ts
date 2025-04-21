@@ -23,9 +23,10 @@ export const login = async (request: FastifyRequest<LoginSchemaType>, reply: Fas
     });
   }
 
-  const telegramId = parse(initData).user?.id;
+  // const telegramId = parse(initData).user?.id;
+  const telegram = parse(initData).user;
 
-  if (!telegramId) {
+  if (!telegram?.id) {
     reply.code(200).send({
       success: false,
       data: {
@@ -35,14 +36,37 @@ export const login = async (request: FastifyRequest<LoginSchemaType>, reply: Fas
   }
 
   const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.telegramId, telegramId as number),
+    where: eq(profiles.telegramId, telegram?.id as number),
   });
 
   if (!profile) {
+    const result = await db.transaction(async (tx) => {
+      const [telegramData] = await tx.insert(profilesTelegram).values({
+        firstName: telegram?.first_name,
+        lastName: telegram?.last_name,
+        telegramName: telegram?.username,
+        languageCode: telegram?.language_code,
+        telegramId: telegram?.id,
+      }).returning();
+
+      const [profileData] = await tx.insert(profiles).values({
+        role: 'user',
+        name: telegramData.telegramName,
+        telegramId: telegramData.telegramId,
+      }).returning();
+
+      await tx.insert(profilesPreferences).values({
+        profileId: profileData.id
+      }).returning();
+
+      return profileData;
+    });
+
     reply.code(200).send({
-      success: false,
+      success: true,
       data: {
-        authStatus: "USER_NOT_REGISTERED"
+        authStatus: "USER_REGISTERED_NOT_ACTIVATED",
+        user: result,
       }
     });
   }
