@@ -1,16 +1,21 @@
 import { FastifyInstance } from 'fastify'
-import { login, logout } from './handlers.js'
-import { LoginSchema, LogoutSchema } from './schemas.js'
+import { login, register, activateProfile } from './handlers.js'
+import { ActivateProfileSchema, LoginSchema, RegisterSchema } from './schemas.js'
 
 const authRoutes = async (fastify: FastifyInstance) => {
-  fastify.post('/logout', {
-    handler: logout,
-    schema: LogoutSchema,
-  })
-
   fastify.post('/login', {
     schema: LoginSchema,
     handler: login
+  })
+
+  fastify.post('/register', {
+    schema: RegisterSchema,
+    handler: register
+  })
+
+  fastify.post('/activate/:profileId', {
+    schema: ActivateProfileSchema,
+    handler: activateProfile
   })
 }
 

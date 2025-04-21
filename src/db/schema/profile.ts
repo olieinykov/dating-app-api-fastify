@@ -6,7 +6,7 @@ export const profiles = pgTable('profiles', {
   userId: uuid('user_id'),
   name: varchar('name', { length: 30 }),
   email: text('email').unique(),
-  telegramId: integer('telegram_id').references(() => profilesTelegram.id),
+  telegramId: integer('telegram_id').references(() => profilesTelegram.telegramId),
   role: text('role').notNull(),
   avatar: text('avatar'),
   bannedAt: timestamp('banned_at'),

@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { TelegramRegisterSchemaBodyType } from './schemas.js'
 import { db } from "../../db/index.js";
-import {profilesTelegram, profiles, profilesPreferences} from "../../db/schema/index.js";
+import { profilesTelegram, profiles, profilesPreferences } from "../../db/schema/index.js";
 
 export const register = async (
   request: FastifyRequest<TelegramRegisterSchemaBodyType>,
@@ -16,7 +16,7 @@ export const register = async (
       const [profileData] = await tx.insert(profiles).values({
         role: 'user',
         name: request.body.telegramName,
-        telegramId: telegramData.id,
+        telegramId: telegramData.telegramId,
       }).returning();
 
       await tx.insert(profilesPreferences).values({
