@@ -15,7 +15,7 @@ export const login = async (request: FastifyRequest<LoginSchemaType>, reply: Fas
   );
 
   if (!isInitDataValid) {
-    reply.code(400).send({
+    reply.code(200).send({
       success: false,
       data: {
         authStatus: "TG_INIT_DATA_INVALID"
@@ -26,7 +26,7 @@ export const login = async (request: FastifyRequest<LoginSchemaType>, reply: Fas
   const telegramId = parse(initData).user?.id;
 
   if (!telegramId) {
-    reply.code(400).send({
+    reply.code(200).send({
       success: false,
       data: {
         authStatus: "TG_INIT_DATA_INVALID"
@@ -39,7 +39,7 @@ export const login = async (request: FastifyRequest<LoginSchemaType>, reply: Fas
   });
 
   if (!profile) {
-    reply.code(400).send({
+    reply.code(200).send({
       success: false,
       data: {
         authStatus: "USER_NOT_REGISTERED"
@@ -48,8 +48,8 @@ export const login = async (request: FastifyRequest<LoginSchemaType>, reply: Fas
   }
 
   if (profile && !profile.activatedAt) {
-    reply.code(400).send({
-      success: false,
+    reply.code(200).send({
+      success: true,
       data: {
         authStatus: "USER_REGISTERED_NOT_ACTIVATED",
         user: profile,
@@ -66,8 +66,6 @@ export const login = async (request: FastifyRequest<LoginSchemaType>, reply: Fas
       }
     });
   }
-
-  reply.code(200);
 };
 
 
