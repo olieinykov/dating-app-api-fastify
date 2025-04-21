@@ -69,6 +69,8 @@ export const login = async (request: FastifyRequest<LoginSchemaType>, reply: Fas
         user: result,
       }
     });
+
+    return;
   }
 
   if (profile && !profile.activatedAt) {
