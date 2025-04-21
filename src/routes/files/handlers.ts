@@ -42,7 +42,9 @@ export const uploadFile = async (request: FastifyRequest<UploadFileType>, reply:
 
         reply.send({
             status: 'success',
-            data: uploadedFileData
+            data: {
+                url: uploadedFileData.publicUrl
+            }
         });
     } catch (error) {
         console.log("error", error);
