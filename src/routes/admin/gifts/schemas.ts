@@ -1,4 +1,4 @@
-import { Type, Static, Parameters } from '@sinclair/typebox'
+import { Type, Static } from '@sinclair/typebox'
 import { PaginationSchema } from '../../../shared/schemas.js'
 
 export const CreateGiftSchema = {
@@ -7,7 +7,7 @@ export const CreateGiftSchema = {
     title: Type.String({ minLength: 1}),
     price: Type.Number({ exclusiveMinimum: 0 }),
     image: Type.String({ format: 'uri' }),
-    description: Type.String(),
+    createdBy: Type.Integer({ minimum: 1 }),
     restrictedCountries: Type.Optional(Type.Array(Type.String())),
     isActive: Type.Boolean({ default: true }),
   }),

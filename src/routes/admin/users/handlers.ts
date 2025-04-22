@@ -3,6 +3,7 @@ import { db } from "../../../db/index.js";
 import { profiles } from "../../../db/schema/index.js";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import { CreateUserType, DeleteUserType, GetAllUsersType, GetOneUserType, UpdateUsersType } from "./schemas.js";
+import {supabase} from "../../../services/supabase";
 
 export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, reply: FastifyReply) => {
     try {
@@ -127,7 +128,23 @@ export const createUser = async (request: FastifyRequest<CreateUserType>, reply:
             role: request.body.role || "chatter"
         }
 
-        const data = await db.insert(profiles).values(payload as any).returning();
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: request.body.email,
+            password: request.body.password,
+        });
+
+        if (authError) {
+            return reply.code(400).send({
+                status: 'error',
+                message: authError.message
+            });
+        }
+
+        const data = await db.insert(profiles).values({
+            ...payload,
+            userId: authData.user?.id,
+
+        }).returning();
         reply.send({
             status: 'success',
             data: data[0]

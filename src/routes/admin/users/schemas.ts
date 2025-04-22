@@ -5,8 +5,9 @@ export const CreateUserSchema = {
   tags: ['Admin / Users'],
   body: Type.Object({
     email: Type.String(),
-    firstName: Type.String(),
-    lastName: Type.String(),
+    password: Type.String(),
+    name: Type.String(),
+    // lastName: Type.String(),
     role: Type.String(),
     avatar: Type.Optional(Type.String()),
     about: Type.Optional(Type.String()),
@@ -24,7 +25,16 @@ export const UpdateUsersSchema = {
   parameters: Type.Object({
     userId: Type.Integer(),
   }),
-  body: CreateUserSchema.body,
+  body: Type.Object({
+    name: Type.String(),
+    // lastName: Type.String(),
+    // role: Type.String(),
+    avatar: Type.Optional(Type.String()),
+    about: Type.Optional(Type.String()),
+    country: Type.Optional(Type.String()),
+    city: Type.Optional(Type.String()),
+    languageCode: Type.Optional(Type.String()),
+  })
 };
 export type UpdateUsersType = {
   Body: Static<typeof UpdateUsersSchema.body>;

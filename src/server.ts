@@ -15,6 +15,7 @@ import adminUsersRoutes from './routes/admin/users/index.js'
 import adminModelsRoutes from './routes/admin/models/index.js'
 import adminGiftsRoutes from './routes/admin/gifts/index.js'
 import adminAuthRoutes from './routes/admin/auth/index.js'
+import adminMeRoutes from './routes/admin/me/index.js'
 
 const fastify = Fastify({
   logger: true
@@ -34,6 +35,7 @@ async function initialize() {
   await fastify.register(adminUsersRoutes, { prefix: '/api/admin/users' })
   await fastify.register(adminModelsRoutes, { prefix: '/api/admin/models' })
   await fastify.register(adminGiftsRoutes, { prefix: '/api/admin/gifts' })
+  await fastify.register(adminMeRoutes, { prefix: '/api/admin' })
 
   await fastify.register(filesRoutes, { prefix: '/api/files' })
   await fastify.register(telegramRoutes, { prefix: '/api/telegram/users' })
