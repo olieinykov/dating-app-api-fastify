@@ -1,9 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { db } from "../../../db/index.js";
-import { profiles } from "../../../db/schema/index.js";
+import {profiles, profilesPreferences} from "../../../db/schema/index.js";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import { CreateUserType, DeleteUserType, GetAllUsersType, GetOneUserType, UpdateUsersType } from "./schemas.js";
-import {supabase} from "../../../services/supabase.js";
+import { supabase } from "../../../services/supabase.js";
 
 export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, reply: FastifyReply) => {
     try {
@@ -21,7 +21,7 @@ export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, repl
         const limit = Math.min(100, Math.max(1, Number(pageSize)));
         const offset = (currentPage - 1) * limit;
         const whereClauses = [];
-        
+
 
         if (role) {
             whereClauses.push(eq(profiles.role, role));
@@ -37,8 +37,22 @@ export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, repl
 
         const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
         const users = await db
-            .select()
+            .select({
+                id: profiles.id,
+                userId:  profiles.userId,
+                name:  profiles.name,
+                email:  profiles.email,
+                telegramId: profiles.telegramId,
+                role:  profiles.role,
+                avatar: profiles.avatar,
+                bannedAt: profiles.bannedAt,
+                activatedAt:  profiles.activatedAt,
+                createdAt:  profiles.createdAt,
+                updatedAt:  profiles.updatedAt,
+                city: profilesPreferences.city,
+            })
             .from(profiles)
+            .leftJoin(profilesPreferences, eq(profilesPreferences.profileId, profiles.id))
             .where(whereCondition)
             .orderBy(
                 sortOrder === 'asc'
