@@ -5,7 +5,7 @@ export const gifts = pgTable('gifts', {
   id: serial('id').primaryKey(),
   title: text('title').notNull(),
   price: integer('price'),
-  image: integer('image'),
+  image: text('image'),
   createdBy: bigint('created_by', { mode: 'number' })
     .notNull()
     .references(() => profiles.id),
