@@ -3,7 +3,7 @@ import { db } from "../../../db/index.js";
 import { profiles } from "../../../db/schema/index.js";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import { CreateUserType, DeleteUserType, GetAllUsersType, GetOneUserType, UpdateUsersType } from "./schemas.js";
-import {supabase} from "../../../services/supabase";
+import {supabase} from "../../../services/supabase.js";
 
 export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, reply: FastifyReply) => {
     try {

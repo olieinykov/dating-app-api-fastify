@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { db } from "../../../db/index.js";
 import { gifts } from "../../../db/schema/index.js";
-import {and, asc, desc, eq, ilike, or, sql} from "drizzle-orm";
+import { asc, desc, eq, ilike } from "drizzle-orm";
 import {
     CreateGiftType,
     DeleteGiftType,
@@ -19,8 +19,6 @@ export const getAllGifts = async (request: FastifyRequest<GetAllGiftsType>, repl
             sortField = 'createdAt',
             sortOrder = 'desc',
         } = request.query;
-
-        console.log("request.query", request.query)
 
         const sortBy = gifts[sortField as keyof typeof gifts]
         const currentPage = Math.max(1, Number(page));
