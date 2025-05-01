@@ -1,15 +1,18 @@
 import { FastifyInstance } from 'fastify'
 import { getProfile, updateProfile } from './handlers.js'
 import { GetProfileSchema, UpdateProfileSchema } from "./schemas.js";
+import { userAuthenticated } from "../../../middleware/userAuthenticated";
 
 const routes = async (fastify: FastifyInstance) => {
-  fastify.get('/:profileId', {
+  fastify.get('/', {
     schema: GetProfileSchema,
+    preHandler: [userAuthenticated],
     handler: getProfile
   })
 
-  fastify.put('/:profileId', {
+  fastify.put('/', {
     schema: UpdateProfileSchema,
+    preHandler: [userAuthenticated],
     handler: updateProfile
   })
 }

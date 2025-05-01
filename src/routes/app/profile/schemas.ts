@@ -2,19 +2,10 @@ import { Static, Object, Literal, String, Array, Integer, Optional, Enum, Union 
 
 export const GetProfileSchema = {
   tags: ['App / Profile'],
-  parameters: Object({
-    profileId: Integer(),
-  }),
 }
-export type GetProfileSchemaType = {
-  Params: Static<typeof GetProfileSchema.parameters>;
-};
 
 export const UpdateProfileSchema = {
   tags: ['App / Profile'],
-  parameters: Object({
-    profileId: Integer(),
-  }),
   body: Object({
     name: Optional(String()),
     about: Optional(String()),
@@ -59,5 +50,4 @@ export const UpdateProfileSchema = {
 
 export type UpdateProfileSchemaType = {
   Body: Static<typeof UpdateProfileSchema.body>;
-  Params: Static<typeof UpdateProfileSchema.parameters>;
 };

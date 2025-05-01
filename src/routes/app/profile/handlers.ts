@@ -1,41 +1,30 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../../db/index.js";
-import {
-  GetProfileSchemaType,
-  UpdateProfileSchemaType,
-} from "./schemas.js";
+import { UpdateProfileSchemaType } from "./schemas.js";
 import { profiles, profilesPhotos, profilesPreferences } from "../../../db/schema/index.js";
 import { eq } from "drizzle-orm";
 
 export const getProfile = async (
-  request: FastifyRequest<GetProfileSchemaType>,
+  request: FastifyRequest,
   reply: FastifyReply
 ) => {
   try {
-    if (!request.params.profileId) {
-      return reply.code(404).send({
-        success: false,
-        message: "Profile not found",
-      });
-    }
+    const userId = request.user?.id
 
     const [profileData] = await db
       .select()
       .from(profiles)
-      .where(eq(profiles.id, request.params.profileId))
+      .where(eq(profiles.userId, userId))
       .limit(1);
 
     if (!profileData) {
-      return reply.code(404).send({
-        success: false,
-        message: "Profile not found",
-      });
+        throw new Error();
     }
 
     const [profileDetails] = await db
       .select()
       .from(profilesPreferences)
-      .where(eq(profilesPreferences.profileId, request.params.profileId))
+      .where(eq(profilesPreferences.profileId, profileData.id))
       .limit(1);
 
     const photos = await db
@@ -45,7 +34,7 @@ export const getProfile = async (
         order: profilesPhotos.order,
       })
       .from(profilesPhotos)
-      .where(eq(profilesPhotos.profileId, request.params.profileId));
+      .where(eq(profilesPhotos.profileId, profileData.id));
 
     reply.code(200).send({
       ...profileData,
@@ -67,24 +56,22 @@ export const updateProfile = async (
   reply: FastifyReply
 ) => {
   try {
+    const userId = request.user?.id
     const [existingProfile] = await db
       .select()
       .from(profiles)
-      .where(eq(profiles.id, request.params.profileId))
+      .where(eq(profiles.userId, userId))
       .limit(1);
 
     if (!existingProfile) {
-      reply.code(404).send({
-        success: false,
-        message: `There is no user with id = ${request.params.profileId}`,
-      });
+        throw new Error();
     }
 
     const result = await db.transaction(async (tx) => {
       const photos = request.body.photos
         ?.map((photo) => ({
           url: photo.url,
-          profileId: request.params.profileId,
+          profileId: existingProfile.id,
           order: photo.order,
         }))
         ?.sort((a, b) => a.order - b.order);
@@ -96,7 +83,7 @@ export const updateProfile = async (
           avatar: photos?.[0]?.url,
           activatedAt: new Date(),
         })
-        .where(eq(profiles.id, request.params.profileId))
+        .where(eq(profiles.id, existingProfile.id))
         .returning();
 
       const [profileDetails] = await db
@@ -113,14 +100,14 @@ export const updateProfile = async (
           paramsHairColor: request.body.paramsHairColor,
           paramsBodyType: request.body.paramsBodyType,
         })
-        .where(eq(profilesPreferences.profileId, request.params.profileId))
+        .where(eq(profilesPreferences.profileId, existingProfile.id))
         .returning();
 
       let profilePhotos = undefined;
       if (photos !== undefined) {
         await tx
           .delete(profilesPhotos)
-          .where(eq(profilesPhotos.profileId, request.params.profileId));
+          .where(eq(profilesPhotos.profileId, existingProfile.id));
         profilePhotos = await tx
           .insert(profilesPhotos)
           .values(photos)

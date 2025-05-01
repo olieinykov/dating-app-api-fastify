@@ -4,76 +4,27 @@ import env from "../../../config/env.js";
 import { db } from "../../../db/index.js";
 import { eq } from "drizzle-orm";
 import { profiles, profilesPhotos, profilesPreferences, profilesTelegram } from "../../../db/schema/index.js";
-import {ActivateProfileSchemaType, LoginSchemaType, RegisterSchemaBodyType} from "./schemas.js";
+import { ActivateProfileSchemaType, LoginSchemaType } from "./schemas.js";
+import {supabase, supabaseAdmin} from "../../../services/supabase";
+import {CookieSerializeOptions} from "@fastify/cookie";
 
-export const login = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
-  const { initData } = request.body;
+export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
+  const isInitDataValid = isValid(request.body.initData, env.telegram.botToken!);
+  const telegram = isInitDataValid ? parse(request.body.initData).user : null;
 
-  const isInitDataValid = isValid(
-      initData,
-      env.telegram.botToken!
-  );
-
-  if (!isInitDataValid) {
-    reply.code(200).send({
-      success: false,
-      data: {
-        authStatus: "TG_INIT_DATA_INVALID"
-      }
-    });
+  if (!isInitDataValid || !telegram?.id) {
+    throw new Error("Failed to handle telegram data")
   }
 
-  const telegram = parse(initData).user;
-
-  if (!telegram?.id) {
-    reply.code(200).send({
-      success: false,
-      data: {
-        authStatus: "TG_INIT_DATA_INVALID"
-      }
-    });
-  }
+  const email = `${telegram.id}.mock@amorium.com`;
+  const password = "TEST_MOCK_PASSWORD";
 
   const profile = await db.query.profiles.findFirst({
     where: eq(profiles.telegramId, telegram?.id as number),
   });
 
-  if (!profile) {
-    const result = await db.transaction(async (tx) => {
-      const [telegramData] = await tx.insert(profilesTelegram).values({
-        firstName: telegram?.first_name,
-        lastName: telegram?.last_name,
-        telegramName: telegram?.username,
-        languageCode: telegram?.language_code,
-        telegramId: telegram?.id,
-      }).returning();
-
-      const [profileData] = await tx.insert(profiles).values({
-        role: 'user',
-        name: telegramData.telegramName,
-        telegramId: telegramData.telegramId,
-      }).returning();
-
-      await tx.insert(profilesPreferences).values({
-        profileId: profileData.id
-      }).returning();
-
-      return profileData;
-    });
-
-    reply.code(200).send({
-      success: true,
-      data: {
-        authStatus: "USER_REGISTERED_NOT_ACTIVATED",
-        user: result,
-      }
-    });
-
-    return;
-  }
-
   if (profile && !profile.activatedAt) {
-    reply.code(200).send({
+    return reply.code(200).send({
       success: true,
       data: {
         authStatus: "USER_REGISTERED_NOT_ACTIVATED",
@@ -83,7 +34,29 @@ export const login = async (request: FastifyRequest<LoginSchemaType>, reply: Fas
   }
 
   if (profile && profile.activatedAt) {
-    reply.code(200).send({
+    const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError || !sessionData.session) {
+      return reply.status(401).send({ success: false, error: "USER_ACTIVATED_LOGIN_FAILED" });
+    }
+
+    const accessToken = sessionData.session.access_token;
+    const refreshToken = sessionData.session.refresh_token;
+
+    const cookieOptions: CookieSerializeOptions = {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    };
+
+    reply
+        .setCookie('access_token', accessToken, { ...cookieOptions, maxAge: 60 * 60 })
+        .setCookie('refresh_token', refreshToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 30 });
+    return reply.code(200).send({
       success: true,
       data: {
         authStatus: "USER_AUTHENTICATED",
@@ -91,69 +64,66 @@ export const login = async (request: FastifyRequest<LoginSchemaType>, reply: Fas
       }
     });
   }
+
+
+  if (!profile) {
+    const { data: createdUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        telegram_id: telegram.id,
+      }
+    })
+
+    if (createUserError) {
+      return reply.status(500).send({ success: false, error: createUserError.message })
+    }
+    try {
+      const result = await db.transaction(async (tx) => {
+        const [telegramData] = await tx.insert(profilesTelegram).values({
+          firstName: telegram?.first_name,
+          lastName: telegram?.last_name,
+          telegramName: telegram?.username,
+          languageCode: telegram?.language_code,
+          telegramId: telegram?.id,
+        }).returning();
+
+        const [profileData] = await tx.insert(profiles).values({
+          role: 'user',
+          name: telegramData.telegramName,
+          userId: createdUser.user?.id,
+          telegramId: telegramData.telegramId,
+        }).returning();
+
+        await tx.insert(profilesPreferences).values({
+          profileId: profileData.id
+        }).returning();
+
+        return profileData;
+      });
+
+      return reply.code(200).send({
+        success: true,
+        data: {
+          authStatus: "USER_REGISTERED_NOT_ACTIVATED",
+          user: result,
+        }
+      });
+    } catch (error) {
+      await supabaseAdmin.auth.admin.deleteUser(createdUser.user?.id!);
+      return reply.code(200).send({
+        success: false,
+        data: {
+          success: false,
+          message: "Failed to handle login",
+          error,
+        }
+      });
+    }
+  }
 };
 
-
-
-export const register = async (
-    request: FastifyRequest<RegisterSchemaBodyType>,
-    reply: FastifyReply
-) => {
-  try {
-    const isInitDataValid = isValid(
-        request.body.initData,
-        env.telegram.botToken!
-    );
-
-    if (!isInitDataValid) {
-      reply.code(400).send({
-        success: false,
-      });
-    }
-
-    const telegramUser = parse(request.body.initData)?.user;
-
-    if (!telegramUser) {
-      reply.code(400).send({
-        success: false,
-      });
-    }
-
-    const result = await db.transaction(async (tx) => {
-      const [telegramData] = await tx.insert(profilesTelegram).values({
-        firstName: telegramUser?.first_name,
-        lastName: telegramUser?.last_name,
-        telegramName: telegramUser?.username,
-        languageCode: telegramUser?.language_code,
-        telegramId: telegramUser?.id,
-      }).returning();
-
-      const [profileData] = await tx.insert(profiles).values({
-        role: 'user',
-        name: telegramData.telegramName,
-        telegramId: telegramData.telegramId,
-      }).returning();
-
-      await tx.insert(profilesPreferences).values({
-        profileId: profileData.id
-      }).returning();
-
-      return profileData;
-    });
-
-    reply.code(200).send({
-      success: true,
-      data: result,
-      message: 'User has been created'
-    });
-  } catch (error) {
-    reply.code(400).send({
-      success: false,
-      error: (error as Error)?.message,
-      message: 'Failed to create a new user'
-    })
-  }
-}
 
 export const activateProfile = async (
     request: FastifyRequest<ActivateProfileSchemaType>,
