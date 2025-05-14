@@ -1,5 +1,5 @@
 import { pgTable, serial, varchar, text, timestamp, uuid, integer } from 'drizzle-orm/pg-core'
-import { profilesTelegram } from "./profile_telegram";
+import { profilesTelegram } from "./profile_telegram.js";
 
 export const profiles = pgTable('profiles', {
   id: serial('id').primaryKey(),

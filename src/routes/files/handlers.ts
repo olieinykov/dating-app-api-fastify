@@ -2,8 +2,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { supabase } from "../../services/supabase.js";
 import { UploadFileType } from "./schemas.js";
-import { db } from "../../db";
-import { files } from '../../db/schema';
+import { db } from "../../db/index.js";
+import { files } from '../../db/schema/index.js';
 
 
 export const uploadFile = async (request: FastifyRequest<UploadFileType>, reply: FastifyReply) => {

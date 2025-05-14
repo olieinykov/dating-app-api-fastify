@@ -8,7 +8,7 @@ import {
     GetAllGiftsType,
     GetOneGiftType,
     UpdateGiftType
-} from "./schemas";
+} from "./schemas.js";
 
 export const getAllGifts = async (request: FastifyRequest<GetAllGiftsType>, reply: FastifyReply) => {
     try {

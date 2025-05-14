@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { models } from "../../../db/schema";
-import { db } from "../../../db";
-import { GetModelsByPreferencesSchemaType } from "./schemas";
+import { models } from "../../../db/schema/index.js";
+import { db } from "../../../db/index.js";
+import { GetModelsByPreferencesSchemaType } from "./schemas.js";
 
 export const getModelsByPreferences = async (request: FastifyRequest<GetModelsByPreferencesSchemaType>, reply: FastifyReply) => {
     try {

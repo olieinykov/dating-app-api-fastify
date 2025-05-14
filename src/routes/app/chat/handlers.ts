@@ -4,9 +4,9 @@ import {
     CreateChatSchemaBodyType,
     GetAllChatsSchemaType,
     GetChatEntriesSchemaType
-} from './schemas'
-import { db } from "../../../db";
-import { chat_entries, chats, models, profiles, files, chat_entry_files, chat_participants } from "../../../db/schema";
+} from './schemas.js'
+import { db } from "../../../db/index.js";
+import { chat_entries, chats, models, profiles, files, chat_entry_files, chat_participants } from "../../../db/schema/index.js";
 import {and, desc, eq, inArray, ne, sql} from "drizzle-orm";
 
 export const createChat = async (

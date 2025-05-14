@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
-import { createChat, getChatEntries, getAllChats, createChatEntry } from './handlers'
-import { CreateChatEntrySchema, CreateChatSchema, GetChatEntriesSchema, GetAllChatsSchema } from './schemas'
-import { userAuthenticated } from "../../../middleware/userAuthenticated";
+import { createChat, getChatEntries, getAllChats, createChatEntry } from './handlers.js'
+import { CreateChatEntrySchema, CreateChatSchema, GetChatEntriesSchema, GetAllChatsSchema } from './schemas.js'
+import { userAuthenticated } from "../../../middleware/userAuthenticated.js";
 
 const routes = async (fastify: FastifyInstance) => {
   fastify.post('/', {

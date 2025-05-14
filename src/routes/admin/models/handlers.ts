@@ -9,8 +9,8 @@ import {
     GetAllModelsType,
     GetOneModelType,
     UpdateModelType
-} from "./schemas";
-import { supabase } from "../../../services/supabase";
+} from "./schemas.js";
+import { supabase } from "../../../services/supabase.js";
 
 export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, reply: FastifyReply) => {
     try {
