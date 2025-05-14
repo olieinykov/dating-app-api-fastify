@@ -11,7 +11,6 @@ export const chat_entries = pgTable('chat_entries', {
     body: text('body'),
     chatId: integer('chat_id').references(() => chats.id),
     type: chatTypeEnum("type").notNull(),
-    // attachments: text('attachments'),
     profileId: integer('profiles_id').references(() => profiles.id),
     modelId: integer('model_id').references(() => models.id),
     createdAt: timestamp('created_at',).defaultNow(),

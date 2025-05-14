@@ -1,8 +1,8 @@
 import { relations } from 'drizzle-orm'
-import { profiles } from './profile.js'
-import { models } from './model.js'
-import { gifts } from './gift.js'
-import { modelGifts } from './model-gift.js'
+import { profiles } from './profile'
+import { models } from './model'
+import { gifts } from './gift'
+import { modelGifts } from './model_gift'
 
 export const profilesRelations = relations(profiles, ({ many }) => ({
   models: many(models),

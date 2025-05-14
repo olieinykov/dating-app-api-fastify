@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
+import { v4 as uuidv4 } from 'uuid';
 import { db } from "../../../db/index.js";
 import { models } from "../../../db/schema/index.js";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
@@ -7,8 +8,9 @@ import {
     DeleteModelType,
     GetAllModelsType,
     GetOneModelType,
-     UpdateModelType
+    UpdateModelType
 } from "./schemas";
+import { supabase } from "../../../services/supabase";
 
 export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, reply: FastifyReply) => {
     try {
@@ -123,7 +125,24 @@ export const deleteModel = async (request: FastifyRequest<DeleteModelType>, repl
 
 export const createModel = async (request: FastifyRequest<CreateModelType>, reply: FastifyReply) => {
     try {
-        const data = await db.insert(models).values(request.body as any).returning();
+
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: `${uuidv4()}@amorium-model.com`,
+            password: "MOCKED_PASSWORD",
+        });
+
+        if (authError) {
+            return reply.code(400).send({
+                status: 'error',
+                message: authError.message
+            });
+        }
+
+        const data = await db.insert(models).values({
+            ...request.body,
+            userId: authData.user?.id,
+        }).returning();
+
         reply.send({
             status: 'success',
             data: data[0]

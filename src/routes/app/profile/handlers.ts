@@ -9,12 +9,12 @@ export const getProfile = async (
   reply: FastifyReply
 ) => {
   try {
-    const userId = request.user?.id
+    const profileId = request.profileId;
 
     const [profileData] = await db
       .select()
       .from(profiles)
-      .where(eq(profiles.userId, userId))
+      .where(eq(profiles.id, profileId))
       .limit(1);
 
     if (!profileData) {
@@ -56,11 +56,11 @@ export const updateProfile = async (
   reply: FastifyReply
 ) => {
   try {
-    const userId = request.user?.id
+    const profileId = request.profileId;
     const [existingProfile] = await db
       .select()
       .from(profiles)
-      .where(eq(profiles.userId, userId))
+      .where(eq(profiles.id, profileId))
       .limit(1);
 
     if (!existingProfile) {

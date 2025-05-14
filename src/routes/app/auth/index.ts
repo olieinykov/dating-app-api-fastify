@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { activateProfile, createOrLogin } from './handlers.js'
-import { ActivateProfileSchema, LoginSchema, RegisterSchema } from './schemas.js'
+import { ActivateProfileSchema, LoginSchema } from './schemas.js'
 
 const authRoutes = async (fastify: FastifyInstance) => {
   fastify.post('/login', {
