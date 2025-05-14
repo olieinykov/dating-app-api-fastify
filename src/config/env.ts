@@ -10,7 +10,7 @@ const env = {
   supabase: {
     url: process.env.SUPABASE_URL,
     key: process.env.SUPABASE_ANON_KEY,
-    adminKey: process.env.SUPABASE_ROLE_KEY,
+    adminKey: process.env.SUPABASE_ADMIN_KEY,
   },
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN,
