@@ -140,7 +140,7 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
 
         const data = await db.insert(models).values({
             ...request.body,
-            userId: authData.user?.id,
+            userId: authData.user?.id as string,
         }).returning();
 
         reply.send({

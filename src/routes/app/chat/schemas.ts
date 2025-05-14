@@ -24,7 +24,7 @@ export const GetAllChatsSchema = {
 }
 export type GetAllChatsSchemaType = {
   Params: Static<typeof GetChatEntriesSchema.parameters>;
-  Query: Static<typeof GetChatEntriesSchema.querystring>;
+  Querystring: Static<typeof GetChatEntriesSchema.querystring>;
 }
 
 export const GetChatEntriesSchema = {
@@ -40,7 +40,7 @@ export const GetChatEntriesSchema = {
 
 export type GetChatEntriesSchemaType = {
   Params: Static<typeof GetChatEntriesSchema.parameters>;
-  Query: Static<typeof GetChatEntriesSchema.querystring>;
+  Querystring: Static<typeof GetChatEntriesSchema.querystring>;
 }
 
 export const CreateChatEntrySchema = {

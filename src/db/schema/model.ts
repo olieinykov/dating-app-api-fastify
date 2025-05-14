@@ -1,25 +1,20 @@
-import {pgTable, bigint, text, timestamp, serial, integer} from 'drizzle-orm/pg-core'
+import { pgTable, bigint, text, timestamp, serial, integer } from 'drizzle-orm/pg-core'
 import { profiles } from './profile'
 import { uuid } from "drizzle-orm/pg-core";
-import { pgEnum } from "drizzle-orm/pg-core";
-
-export const genderEnum = pgEnum('gender', ['male', 'female']);
-export const bustSizeEnum = pgEnum('params_bust_size', ['AA-A', 'B-C', 'D-E', 'F+']);
-export const hairColorEnum = pgEnum('params_hair_color', ['blonde', 'brunette', 'brown-haired', 'redhead']);
-export const bodyTypeEnum = pgEnum('params_body_type', ['athletic', 'curvy', 'slim']);
+import { genderEnum, paramsBodyTypeEnum, paramsBustSizeEnum, paramsHairColorEnum } from "./profile_preferences";
 
 export const models = pgTable('models', {
   id: serial('id').primaryKey(),
-  userId: uuid('user_id'),
+  userId: uuid('user_id').notNull(),
   name: text('name').notNull(),
   country: text('country').notNull(),
   avatar: text('avatar'),
   description: text('description'),
   age: integer('age').notNull(),
   gender: genderEnum('gender').notNull(),
-  bustSize: bustSizeEnum('bust_size').notNull(),
-  hairColor: hairColorEnum('hair_color').notNull(),
-  bodyType: bodyTypeEnum('body_type').notNull(),
+  bustSize: paramsBustSizeEnum('bust_size').notNull(),
+  hairColor: paramsHairColorEnum('hair_color').notNull(),
+  bodyType: paramsBodyTypeEnum('body_type').notNull(),
   createdBy: bigint('created_by', { mode: 'number' })
     .notNull()
     .references(() => profiles.id),

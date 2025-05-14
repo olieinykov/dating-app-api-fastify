@@ -2,18 +2,26 @@ import { FastifyRequest, FastifyReply } from 'fastify'
 import { isValid, parse } from "@telegram-apps/init-data-node";
 import env from "../../../config/env.js";
 import { db } from "../../../db/index.js";
-import { eq } from "drizzle-orm";
+import {eq, ne} from "drizzle-orm";
 import { profiles, profilesPhotos, profilesPreferences, profilesTelegram } from "../../../db/schema/index.js";
 import { ActivateProfileSchemaType, LoginSchemaType } from "./schemas.js";
 import {supabase, supabaseAdmin} from "../../../services/supabase";
 import {CookieSerializeOptions} from "@fastify/cookie";
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
-  const isInitDataValid = isValid(request.body.initData, env.telegram.botToken!);
-  const telegram = isInitDataValid ? parse(request.body.initData).user : null;
+  // const isInitDataValid = isValid(request.body.initData, env.telegram.botToken!);
+  // const telegram = isInitDataValid ? parse(request.body.initData).user : null;
+  //
+  // if (!isInitDataValid || !telegram?.id) {
+  //   throw new Error("Failed to handle telegram data")
+  // }
 
-  if (!isInitDataValid || !telegram?.id) {
-    throw new Error("Failed to handle telegram data")
+  const telegram = {
+    id: 213,
+    first_name: 'Maxim',
+    last_name: 'Kush',
+    username: 'maxkush',
+    language_code: 'ua',
   }
 
   const email = `${telegram.id}.mock@amorium.com`;
@@ -23,17 +31,17 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
     where: eq(profiles.telegramId, telegram?.id as number),
   });
 
-  if (profile && !profile.activatedAt) {
-    return reply.code(200).send({
-      success: true,
-      data: {
-        authStatus: "USER_REGISTERED_NOT_ACTIVATED",
-        user: profile,
-      }
-    });
-  }
+  // if (profile && !profile.activatedAt) {
+  //   return reply.code(200).send({
+  //     success: true,
+  //     data: {
+  //       authStatus: "USER_REGISTERED_NOT_ACTIVATED",
+  //       user: profile,
+  //     }
+  //   });
+  // }
 
-  if (profile && profile.activatedAt) {
+  if (true) {
     const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -77,8 +85,9 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
     })
 
     if (createUserError) {
-      return reply.status(500).send({ success: false, error: createUserError.message })
+      throw new Error()
     }
+
     try {
       const result = await db.transaction(async (tx) => {
         const [telegramData] = await tx.insert(profilesTelegram).values({

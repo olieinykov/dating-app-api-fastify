@@ -4,11 +4,35 @@ import { PaginationSchema } from '../../../shared/schemas.js'
 export const CreateModelSchema = {
   tags: ['Admin / Models'],
   body: Type.Object({
+    userId: Type.String({ format: 'uuid' }),
     name: Type.String({ minLength: 1 }),
     country: Type.String({ minLength: 1 }),
-    avatar: Type.String({ format: 'uri' }),
-    about: Type.String(),
+    avatar: Type.Optional(Type.String({ format: 'uri' })),
+    description: Type.Optional(Type.String()),
+    age: Type.Integer({ minimum: 1 }),
+    gender: Type.Enum({
+      male: 'male',
+      female: 'female',
+    }),  // тип enum для пола
+    bustSize: Type.Enum({
+      'AA-A': 'AA-A',
+      'B-C': 'B-C',
+      'D-E': 'D-E',
+      'F+': 'F+',
+    }),
+    hairColor: Type.Enum({
+      blonde: 'blonde',
+      brunette: 'brunette',
+      'brown-haired': 'brown-haired',
+      redhead: 'redhead',
+    }),
+    bodyType: Type.Enum({
+      athletic: 'athletic',
+      curvy: 'curvy',
+      slim: 'slim',
+    }),
     createdBy: Type.Integer({ minimum: 1 }),
+    deletedBy: Type.Optional(Type.Integer()),
   }),
 };
 export type CreateModelType = {

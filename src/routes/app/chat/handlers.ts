@@ -16,16 +16,42 @@ export const createChat = async (
   try {
     const profileUserId = request.userId;
     const [model] = await db.select().from(models).where(eq(models.id,  request.body.modelId));
-    console.log("profileUserId", profileUserId);
-    console.log("model", model.userId);
+
+      const participantsA = await db
+          .select({ chatId: chat_participants.chatId })
+          .from(chat_participants)
+          .where(eq(chat_participants.userId, profileUserId as string));
+
+      const chatIdsA = participantsA.map((p) => p.chatId);
+      if (chatIdsA.length > 0) {
+          const existingChat: Array<{ chatId: number }> = await db
+              .select({ chatId: chat_participants.chatId })
+              .from(chat_participants)
+              .where(
+                  and(
+                      inArray(chat_participants.chatId, chatIdsA),
+                      eq(chat_participants.userId, model.userId)
+                  )
+              )
+              .limit(1);
+
+          if (!!existingChat?.length) {
+              return reply.code(200).send({
+                  success: false,
+                  message: "Chat already exists",
+              });
+          }
+      }
 
     const data = await db.transaction(async (tx) => {
         const [chat] = await tx.insert(chats).values({}).returning();
 
-          await tx.insert(chat_participants).values([
-              { chatId: chat.id, userId: profileUserId },
-              { chatId: chat.id, userId: model.userId },
-          ]);
+        const participants: { chatId: number; userId: string }[] = [
+            { chatId: chat.id, userId: profileUserId as string },
+            { chatId: chat.id, userId: model.userId as string },
+        ];
+
+        await tx.insert(chat_participants).values(participants);
 
         return chat;
     });
@@ -48,15 +74,17 @@ export const getAllChats = async (
     reply: FastifyReply
 ) => {
     try {
+        const page = request.query.page ?? 1;
+        const pageSize =  request.query.pageSize ?? 10;
         const userId = request.userId;
-        const currentPage = Math.max(1, Number(request.query.page));
-        const limit = Math.min(100, Math.max(1, Number(request.query.pageSize)));
+        const currentPage = Math.max(1, page);
+        const limit = Math.min(100, Math.max(1, pageSize));
         const offset = (currentPage - 1) * limit;
 
         const userChatIds = await db
             .select({ chatId: chat_participants.chatId })
             .from(chat_participants)
-            .where(eq(chat_participants.userId, userId))
+            .where(eq(chat_participants.userId, userId as string))
             .limit(limit)
             .offset(offset);
 
@@ -140,21 +168,15 @@ export const getAllChats = async (
             filesByEntryId.set(f.chatEntryId, list);
         }
 
-        const lastMessageMap = new Map<number, {
-            id: number;
-            body: string;
-            senderId: string;
-            createdAt: Date;
-            includeFile?: boolean;
-        }>();
+        const lastMessageMap = new Map();
 
-        for (const m of lastMessages) {
-            lastMessageMap.set(m.chatId, {
-                id: m.id,
-                body: m.body,
-                senderId: m.senderId,
-                createdAt: m.createdAt,
-                includeFile: filesByEntryId.has(m.id),
+        for (const message of lastMessages) {
+            lastMessageMap.set(message.chatId, {
+                id: message.id,
+                body: message.body,
+                senderId: message.senderId,
+                createdAt: message.createdAt,
+                includeFile: filesByEntryId.has(message.id),
             });
         }
 
@@ -174,7 +196,7 @@ export const getAllChats = async (
         const [{ count: total }] = await db
             .select({ count: sql<number>`COUNT(*)` })
             .from(chat_participants)
-            .where(eq(chat_participants.userId, userId));
+            .where(eq(chat_participants.userId, userId as string));
 
         reply.code(200).send({
             success: true,
@@ -224,7 +246,7 @@ export const createChatEntry = async (
             }
 
             return {
-                entry,
+                ...entry,
                 attachments
             }
         });
@@ -247,8 +269,10 @@ export const getChatEntries = async (
     reply: FastifyReply
 ) => {
     try {
-        const currentPage = Math.max(1, Number(request.query.page));
-        const limit = Math.min(100, Math.max(1, Number(request.query.pageSize)));
+        const page = request.query?.page ?? 1;
+        const pageSize = request.query?.pageSize ?? 10;
+        const currentPage = Math.max(1, page);
+        const limit = Math.min(100, Math.max(1, pageSize));
         const offset = (currentPage - 1) * limit;
 
         const entries = await db
@@ -284,6 +308,10 @@ export const getChatEntries = async (
             const sender = fromModel ?? fromProfile;
             const entryFiles =
                 filesList?.filter(file => file.chatEntryId === entry.id)?.map(file => file.file)
+
+            if (!sender) {
+                throw new Error();
+            }
 
             return {
                 ...message,
