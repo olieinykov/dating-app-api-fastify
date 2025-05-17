@@ -4,8 +4,8 @@ import { db} from "../db/index.js";
 import { profiles } from "../db/schema/index.js";
 import { eq } from "drizzle-orm";
 
-export const userAuthenticated = async (request: FastifyRequest, reply: FastifyReply) => {
-    const accessToken = request.cookies.userAccessToken;
+export const adminAuthenticated = async (request: FastifyRequest, reply: FastifyReply) => {
+    const accessToken = request.cookies.adminAccessToken;
 
     if (!accessToken) {
         return reply.status(401).send({ success: false, message: 'Access denied' });
@@ -21,8 +21,9 @@ export const userAuthenticated = async (request: FastifyRequest, reply: FastifyR
         where: eq(profiles.userId, data.user.id),
     });
 
+
     if (!profile) {
-        return reply.status(403).send({ success: false, message: 'Profile not found' });
+        return reply.status(403).send({ success: false, message: 'User not found' });
     }
 
 

@@ -28,12 +28,12 @@ export const login = async (
       });
     }
 
-    reply.setCookie('access_token', authData?.session?.access_token!, {
+    reply.setCookie('adminAccessToken', authData?.session?.access_token!, {
       ...cookiesConfig,
       maxAge: 10 * 60 * 1000,
     });
 
-    reply.setCookie('refresh_token', authData?.session?.refresh_token!, {
+    reply.setCookie('adminRefreshToken', authData?.session?.refresh_token!, {
       ...cookiesConfig,
       maxAge: 24 * 60 * 60 * 1000,
     });
@@ -47,8 +47,8 @@ export const login = async (
 }
 
 export const logout = async (request: FastifyRequest<LoginBodyType>, reply: FastifyReply) => {
-  reply.clearCookie('access_token');
-  reply.clearCookie('refresh_token');
+  reply.clearCookie('adminAccessToken');
+  reply.clearCookie('adminRefreshToken');
 
   return reply.code(200);
 };

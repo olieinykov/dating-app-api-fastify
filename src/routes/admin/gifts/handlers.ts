@@ -86,7 +86,15 @@ export const getOneGift = async (request: FastifyRequest<GetOneGiftType>, reply:
 
 export const deleteGift = async (request: FastifyRequest<DeleteGiftType>, reply: FastifyReply) => {
     try {
-        const data = await db.delete(gifts).where(eq(gifts.id, request.params.giftId)).returning();
+        const currentUserId = request.userId;
+
+        const data = await db.update(gifts)
+            .set({
+                deletedBy: currentUserId
+            })
+            .where(eq(gifts.id, request.params.giftId))
+            .returning();
+
 
         if (data?.[0]) {
             reply.send({
@@ -109,7 +117,11 @@ export const deleteGift = async (request: FastifyRequest<DeleteGiftType>, reply:
 
 export const createGift = async (request: FastifyRequest<CreateGiftType>, reply: FastifyReply) => {
     try {
-        const data = await db.insert(gifts).values(request.body as any).returning();
+        const currentUserId = request.userId;
+        const data = await db.insert(gifts).values({
+            ...request.body,
+            createdBy: currentUserId,
+        }).returning();
         reply.send({
             status: 'success',
             data: data[0]

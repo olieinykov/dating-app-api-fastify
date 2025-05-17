@@ -7,26 +7,32 @@ import {
   UpdateModelSchema,
   GetOneModelSchema
 } from "./schemas.js";
+import {adminAuthenticated} from "../../../middleware/adminAuthenticated";
 
 const routes = async (fastify: FastifyInstance) => {
   fastify.post('/', {
     schema: CreateModelSchema,
+    preHandler: [adminAuthenticated],
     handler: createModel
   })
   fastify.put('/:modelId', {
     schema: UpdateModelSchema,
+    preHandler: [adminAuthenticated],
     handler: updateModel
   })
   fastify.get('/', {
     schema: GetAllModelsSchema,
+    preHandler: [adminAuthenticated],
     handler: getAllModels
   })
   fastify.get('/:modelId', {
     schema: GetOneModelSchema,
+    preHandler: [adminAuthenticated],
     handler: getOneModel
   })
   fastify.delete('/:modelId', {
     schema: DeleteModelSchema,
+    preHandler: [adminAuthenticated],
     handler: deleteModel
   })
 }

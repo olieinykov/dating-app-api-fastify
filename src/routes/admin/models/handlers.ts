@@ -102,7 +102,14 @@ export const getOneModel = async (request: FastifyRequest<GetOneModelType>, repl
 
 export const deleteModel = async (request: FastifyRequest<DeleteModelType>, reply: FastifyReply) => {
     try {
-        const data = await db.delete(models).where(eq(models.id, request.params.modelId)).returning();
+        const currentUserId = request.userId;
+        const data = await db.update(models)
+            .set({
+                deletedBy: currentUserId,
+            })
+            .where(eq(models.id, request.params.modelId))
+            .returning();
+
 
         if (data?.[0]) {
             reply.send({
@@ -125,7 +132,7 @@ export const deleteModel = async (request: FastifyRequest<DeleteModelType>, repl
 
 export const createModel = async (request: FastifyRequest<CreateModelType>, reply: FastifyReply) => {
     try {
-
+        const currentUserId = request.userId;
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: `${uuidv4()}@amorium-model.com`,
             password: "MOCKED_PASSWORD",
@@ -141,6 +148,7 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
         const data = await db.insert(models).values({
             ...request.body,
             userId: authData.user?.id as string,
+            createdBy: currentUserId,
         }).returning();
 
         reply.send({
@@ -157,7 +165,6 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
 
 export const updateModel = async (request: FastifyRequest<UpdateModelType>, reply: FastifyReply) => {
     try {
-        console.log()
         const data = await db.update(models)
             .set(request.body as any)
             .where(eq(models.id, request.params.modelId))

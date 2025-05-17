@@ -31,8 +31,6 @@ export const CreateModelSchema = {
       curvy: 'curvy',
       slim: 'slim',
     }),
-    createdBy: Type.Integer({ minimum: 1 }),
-    deletedBy: Type.Optional(Type.Integer()),
   }),
 };
 export type CreateModelType = {

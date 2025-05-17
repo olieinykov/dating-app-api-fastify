@@ -10,8 +10,10 @@ export const gifts = pgTable('gifts', {
       .notNull()
       .references(() => files.id),
   createdBy: bigint('created_by', { mode: 'number' })
-    .notNull()
-    .references(() => profiles.id),
+      .notNull()
+      .references(() => profiles.id),
+  deletedBy: bigint('deleted_by', { mode: 'number' })
+      .references(() => profiles.id),
   createdAt: timestamp('created_at',).defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }) 
