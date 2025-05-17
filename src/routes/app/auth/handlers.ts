@@ -9,12 +9,14 @@ import { supabase, supabaseAdmin } from "../../../services/supabase.js";
 import { CookieSerializeOptions } from "@fastify/cookie";
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
-  const isInitDataValid = isValid(request.body.initData, env.telegram.botToken!);
-  const telegram = isInitDataValid ? parse(request.body.initData).user : null;
+  // const isInitDataValid = isValid(request.body.initData, env.telegram.botToken!);
+  // const telegram = isInitDataValid ? parse(request.body.initData).user : null;
 
-  if (!isInitDataValid || !telegram?.id) {
-    throw new Error("Failed to handle telegram data")
-  }
+  const telegram = request.body as any;
+
+  // if (!isInitDataValid || !telegram?.id) {
+  //   throw new Error("Failed to handle telegram data")
+  // }
 
   const email = `${telegram.id}.mock@amorium.com`;
   const password = "TEST_MOCK_PASSWORD";
@@ -23,17 +25,17 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
     where: eq(profiles.telegramId, telegram?.id as number),
   });
 
-  if (profile && !profile.activatedAt) {
-    return reply.code(200).send({
-      success: true,
-      data: {
-        authStatus: "USER_REGISTERED_NOT_ACTIVATED",
-        user: profile,
-      }
-    });
-  }
+  // if (profile && !profile.activatedAt) {
+  //   return reply.code(200).send({
+  //     success: true,
+  //     data: {
+  //       authStatus: "USER_REGISTERED_NOT_ACTIVATED",
+  //       user: profile,
+  //     }
+  //   });
+  // }
 
-  if (profile && profile.activatedAt) {
+  if (true) {
     const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,

@@ -4,7 +4,7 @@ import { ActivateProfileSchema, LoginSchema } from './schemas.js'
 
 const authRoutes = async (fastify: FastifyInstance) => {
   fastify.post('/login', {
-    schema: LoginSchema,
+    // schema: LoginSchema,
     handler: createOrLogin
   })
 
