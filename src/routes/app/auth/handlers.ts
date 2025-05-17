@@ -51,8 +51,9 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
     const cookieOptions: CookieSerializeOptions = {
       path: '/',
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      // secure: process.env.NODE_ENV === 'production',
+      secure: true,
+      sameSite: 'none',
     };
 
     reply
