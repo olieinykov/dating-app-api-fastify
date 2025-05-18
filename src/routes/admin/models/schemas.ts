@@ -4,7 +4,6 @@ import { PaginationSchema } from '../../../shared/schemas.js'
 export const CreateModelSchema = {
   tags: ['Admin / Models'],
   body: Type.Object({
-    userId: Type.String({ format: 'uuid' }),
     name: Type.String({ minLength: 1 }),
     country: Type.String({ minLength: 1 }),
     avatar: Type.Optional(Type.String({ format: 'uri' })),
