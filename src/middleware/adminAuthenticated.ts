@@ -26,6 +26,10 @@ export const adminAuthenticated = async (request: FastifyRequest, reply: Fastify
         return reply.status(403).send({ success: false, message: 'User not found' });
     }
 
+    if (profile?.deactivatedAt) {
+        return reply.status(403).send({ success: false, message: 'User deactivated' });
+    }
+
 
     request.profileId = profile.id;
     request.userId = data.user.id;

@@ -1,8 +1,8 @@
 import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
-import { profiles } from "./profile.js";
-import { models } from "./model.js";
+import { profiles } from "./profile";
+import { models } from "./model";
 import { pgEnum } from "drizzle-orm/pg-core";
-import { chats } from "./chat.js";
+import { chats } from "./chat";
 
 export const chatTypeEnum = pgEnum("message_type", ["text"]);
 

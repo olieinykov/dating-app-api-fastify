@@ -9,6 +9,7 @@ import {
     GetOneGiftType,
     UpdateGiftType
 } from "./schemas.js";
+import { gift_actions } from "../../../db/schema/gift_action";
 
 export const getAllGifts = async (request: FastifyRequest<GetAllGiftsType>, reply: FastifyReply) => {
     try {
@@ -42,7 +43,7 @@ export const getAllGifts = async (request: FastifyRequest<GetAllGiftsType>, repl
         const total = await db.$count(gifts);
 
         reply.send({
-            status: 'success',
+            success: true,
             data: data,
             pagination: {
                 page: currentPage,
@@ -53,7 +54,7 @@ export const getAllGifts = async (request: FastifyRequest<GetAllGiftsType>, repl
         });
     } catch (error) {
         reply.status(400).send({
-            status: 'error',
+            success: false,
             error: (error as Error)?.message
         });
     }
@@ -67,18 +68,18 @@ export const getOneGift = async (request: FastifyRequest<GetOneGiftType>, reply:
 
         if (data) {
             reply.send({
-                status: 'success',
+                success: true,
                 data: data,
             });
         } else {
             reply.status(404).send({
-                status: 'error',
+                success: false,
                 error: `No gift found with id: ${request.params.giftId}`
             });
         }
     } catch (error) {
         reply.status(400).send({
-            status: 'error',
+            success: false,
             error: (error as Error)?.message
         });
     }
@@ -87,29 +88,34 @@ export const getOneGift = async (request: FastifyRequest<GetOneGiftType>, reply:
 export const deleteGift = async (request: FastifyRequest<DeleteGiftType>, reply: FastifyReply) => {
     try {
         const currentUserId = request.userId;
+        const result = await db.transaction(async (tx) => {
+            const [updatedGift] = await tx.update(gifts)
+                .set({
+                    deactivatedAt: new Date(),
+                })
+                .where(eq(gifts.id, request.params.giftId))
+                .returning();
 
-        const data = await db.update(gifts)
-            .set({
-                deletedBy: currentUserId
-            })
-            .where(eq(gifts.id, request.params.giftId))
-            .returning();
+            if (!updatedGift) {
+                throw new Error(`No gift found with id: ${request.params.giftId}`);
+            }
 
-
-        if (data?.[0]) {
-            reply.send({
-                status: 'success',
-                data: data,
+            await tx.insert(gift_actions).values({
+                authorUserId: currentUserId,
+                actionGiftId: request.params.giftId,
+                actionType: "delete",
             });
-        } else {
-            reply.code(404).send({
-                status: 'error',
-                error: `No gift found with id: ${request.params.giftId}`
-            });
-        }
+
+            return updatedGift;
+        });
+
+        reply.send({
+            success: true,
+            data: result,
+        });
     } catch (error) {
         reply.status(400).send({
-            status: 'error',
+            success: false,
             error: (error as Error)?.message
         });
     }
@@ -118,18 +124,26 @@ export const deleteGift = async (request: FastifyRequest<DeleteGiftType>, reply:
 export const createGift = async (request: FastifyRequest<CreateGiftType>, reply: FastifyReply) => {
     try {
         const currentUserId = request.userId;
-        const data = await db.insert(gifts).values({
-            ...request.body,
-            createdBy: currentUserId,
-        }).returning();
+        const result = await db.transaction(async (tx) => {
+            const [createdGift] = await db.insert(gifts).values({
+                ...request.body,
+            }).returning();
+
+            await tx.insert(gift_actions).values({
+                authorUserId: currentUserId,
+                actionGiftId: createdGift.id,
+                actionType: "create",
+            });
+            return createdGift;
+        });
+
         reply.send({
-            status: 'success',
-            data: data[0]
+            success: true,
+            data: result
         });
     } catch (error) {
-        console.log("error", error);
         reply.status(400).send({
-            status: 'error',
+            success: false,
             error: error
         });
     }
@@ -137,18 +151,28 @@ export const createGift = async (request: FastifyRequest<CreateGiftType>, reply:
 
 export const updateGift = async (request: FastifyRequest<UpdateGiftType>, reply: FastifyReply) => {
     try {
-        const data = await db.update(gifts)
-            .set(request.body as any)
-            .where(eq(gifts.id, request.params.giftId))
-            .returning();
+        const currentUserId = request.userId;
+        const result = await db.transaction(async (tx) => {
+            const [updatedGift] = await db.update(gifts)
+                .set(request.body as any)
+                .where(eq(gifts.id, request.params.giftId))
+                .returning();
+
+            await tx.insert(gift_actions).values({
+                authorUserId: currentUserId,
+                actionGiftId: updatedGift.id,
+                actionType: "update",
+            });
+            return updatedGift;
+        });
 
         reply.send({
-            status: 'success',
-            data: data[0]
+            success: true,
+            data: result,
         });
     } catch (error) {
         reply.status(400).send({
-            status: 'error',
+            success: false,
             error: (error as Error)?.message
         });
     }

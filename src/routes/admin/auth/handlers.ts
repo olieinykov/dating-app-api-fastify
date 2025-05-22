@@ -5,8 +5,9 @@ import {CookieSerializeOptions} from "@fastify/cookie";
 
 const cookiesConfig: CookieSerializeOptions = {
   httpOnly: true,
-  secure: true,
-  sameSite: 'strict',
+  secure: false,
+  sameSite: 'lax',
+  path: '/',
 }
 
 export const login = async (

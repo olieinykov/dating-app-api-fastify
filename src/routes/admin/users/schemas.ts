@@ -7,13 +7,12 @@ export const CreateUserSchema = {
     email: Type.String(),
     password: Type.String(),
     name: Type.String(),
-    // lastName: Type.String(),
     role: Type.String(),
     avatar: Type.Optional(Type.String()),
-    about: Type.Optional(Type.String()),
-    country: Type.Optional(Type.String()),
-    city: Type.Optional(Type.String()),
-    languageCode: Type.Optional(Type.String()),
+    // about: Type.Optional(Type.String()),
+    // country: Type.Optional(Type.String()),
+    // city: Type.Optional(Type.String()),
+    // languageCode: Type.Optional(Type.String()),
   })
 };
 export type CreateUserType = {
@@ -30,10 +29,10 @@ export const UpdateUsersSchema = {
     // lastName: Type.String(),
     // role: Type.String(),
     avatar: Type.Optional(Type.String()),
-    about: Type.Optional(Type.String()),
-    country: Type.Optional(Type.String()),
-    city: Type.Optional(Type.String()),
-    languageCode: Type.Optional(Type.String()),
+    // about: Type.Optional(Type.String()),
+    // country: Type.Optional(Type.String()),
+    // city: Type.Optional(Type.String()),
+    // languageCode: Type.Optional(Type.String()),
   })
 };
 export type UpdateUsersType = {

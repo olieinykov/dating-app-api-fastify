@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { v4 as uuidv4 } from 'uuid';
 import { db } from "../../../db/index.js";
-import { models } from "../../../db/schema/index.js";
+import { gifts, models } from "../../../db/schema/index.js";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import {
     CreateModelType,
@@ -11,6 +11,7 @@ import {
     UpdateModelType
 } from "./schemas.js";
 import { supabase } from "../../../services/supabase.js";
+import {models_actions} from "../../../db/schema/model_action";
 
 export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, reply: FastifyReply) => {
     try {
@@ -56,7 +57,7 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
         const total = await db.$count(models);
 
         reply.send({
-            status: 'success',
+            success: true,
             data: data,
             pagination: {
                 page: currentPage,
@@ -67,7 +68,7 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
         });
     } catch (error) {
         reply.status(400).send({
-            status: 'error',
+            success: false,
             error: (error as Error)?.message
         });
     }
@@ -79,22 +80,20 @@ export const getOneModel = async (request: FastifyRequest<GetOneModelType>, repl
             where: eq(models.id, request.params.modelId),
         })
 
-        console.log("data", data);
-
         if (data) {
             reply.send({
-                status: 'success',
+                success: true,
                 data: data,
             });
         } else {
             reply.status(404).send({
-                status: 'error',
+                success: false,
                 error: `No model found with id: ${request.params.modelId}`
             });
         }
     } catch (error) {
         reply.status(400).send({
-            status: 'error',
+            success: false,
             error: (error as Error)?.message
         });
     }
@@ -103,28 +102,35 @@ export const getOneModel = async (request: FastifyRequest<GetOneModelType>, repl
 export const deleteModel = async (request: FastifyRequest<DeleteModelType>, reply: FastifyReply) => {
     try {
         const currentUserId = request.userId;
-        const data = await db.update(models)
-            .set({
-                deletedBy: currentUserId,
-            })
-            .where(eq(models.id, request.params.modelId))
-            .returning();
+        const result = await db.transaction(async (tx) => {
+            const [updatedModel] = await tx.update(gifts)
+                .set({
+                    deactivatedAt: new Date(),
+                })
+                .where(eq(gifts.id, request.params.modelId))
+                .returning();
 
+            if (!updatedModel) {
+                throw new Error(`No model found with id: ${request.params.modelId}`);
+            }
 
-        if (data?.[0]) {
-            reply.send({
-                status: 'success',
-                data: data,
+            await tx.insert(models_actions).values({
+                authorUserId: currentUserId,
+                actionGiftId: updatedModel.id,
+                actionType: "delete",
             });
-        } else {
-            reply.code(404).send({
-                status: 'error',
-                error: `No model found with id: ${request.params.modelId}`
-            });
-        }
+
+            return updatedModel;
+        });
+
+        reply.send({
+            success: true,
+            data: result,
+        });
+
     } catch (error) {
         reply.status(400).send({
-            status: 'error',
+            success: false,
             error: (error as Error)?.message
         });
     }
@@ -140,24 +146,33 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
 
         if (authError) {
             return reply.code(400).send({
-                status: 'error',
+                success: false,
                 message: authError.message
             });
         }
 
-        const data = await db.insert(models).values({
-            ...request.body,
-            userId: authData.user?.id as string,
-            createdBy: currentUserId,
-        }).returning();
+        const result = await db.transaction(async (tx) => {
+            const [createdModel] = await db.insert(models).values({
+                ...request.body,
+                userId: authData.user?.id as string,
+            }).returning();
+
+
+            await tx.insert(models_actions).values({
+                authorUserId: currentUserId,
+                actionGiftId: createdModel.id,
+                actionType: "create",
+            });
+            return createdModel;
+        });
 
         reply.send({
-            status: 'success',
-            data: data[0]
+            success: true,
+            data: result
         });
     } catch (error) {
         reply.status(400).send({
-            status: 'error',
+            success: false,
             error: (error as Error)?.message
         });
     }
@@ -165,18 +180,29 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
 
 export const updateModel = async (request: FastifyRequest<UpdateModelType>, reply: FastifyReply) => {
     try {
-        const data = await db.update(models)
-            .set(request.body as any)
-            .where(eq(models.id, request.params.modelId))
-            .returning();
+        const currentUserId = request.userId;
+        const result = await db.transaction(async (tx) => {
+            const [updatedModel] = await db.update(models)
+                .set(request.body as any)
+                .where(eq(models.id, request.params.modelId))
+                .returning();
+
+
+            await tx.insert(models_actions).values({
+                authorUserId: currentUserId,
+                actionGiftId: updatedModel.id,
+                actionType: "update",
+            });
+            return updatedModel;
+        });
 
         reply.send({
-            status: 'success',
-            data: data[0]
+            success: true,
+            data: result
         });
     } catch (error) {
         reply.status(400).send({
-            status: 'error',
+            success: false,
             error: (error as Error)?.message
         });
     }

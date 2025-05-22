@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { getMe } from './handlers.js'
 import { MeSchema } from './schemas.js'
-import {adminAuthenticated} from "../../../middleware/adminAuthenticated";
+import { adminAuthenticated } from "../../../middleware/adminAuthenticated";
 
 const authRoutes = async (fastify: FastifyInstance) => {
   fastify.get('/me', {

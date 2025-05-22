@@ -4,8 +4,8 @@ import { FastifyInstance } from 'fastify';
 
 async function corsPlugin(fastify: FastifyInstance) {
   await fastify.register(cors, {
-    // origin: true,
-    origin: 'http://localhost:3000',
+    origin: true,
+    // origin: 'http://localhost:5173',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     exposedHeaders: ['Content-Length', 'X-Kuma-Revision'],

@@ -1,19 +1,14 @@
-import {pgTable, bigint, text, timestamp, serial, integer, uuid} from 'drizzle-orm/pg-core'
-import { profiles } from './profile.js'
-import {files} from "./file.js";
+import {pgTable, text, timestamp, serial, integer, uuid} from 'drizzle-orm/pg-core'
+import {files} from "./file";
 
 export const gifts = pgTable('gifts', {
   id: serial('id').primaryKey(),
   title: text('title').notNull(),
   price: integer('price'),
-  imageId: uuid('image_id')
-      .notNull()
-      .references(() => files.id),
-  createdBy: bigint('created_by', { mode: 'number' })
-      .notNull()
-      .references(() => profiles.id),
-  deletedBy: bigint('deleted_by', { mode: 'number' })
-      .references(() => profiles.id),
+  avatarFileId: uuid('avatar_file_id')
+      .references(() => files.id, { onDelete: 'cascade' }),
+      // .notNull(),
+  deactivatedAt: timestamp('deactivated_at'),
   createdAt: timestamp('created_at',).defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }) 
