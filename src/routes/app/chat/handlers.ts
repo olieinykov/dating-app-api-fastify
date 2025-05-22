@@ -180,7 +180,6 @@ export const getAllChats = async (
             });
         }
 
-        // Сортируем chatIds по дате последнего сообщения (убывание)
         const sortedChatIds = [...chatIds].sort((a, b) => {
             const aDate = lastMessageMap.get(a)?.createdAt?.getTime() ?? 0;
             const bDate = lastMessageMap.get(b)?.createdAt?.getTime() ?? 0;
@@ -237,12 +236,16 @@ export const createChatEntry = async (
             let attachments = undefined;
 
             if (fileIds?.length) {
-                attachments = await tx.insert(chat_entry_files).values(
+                await tx.insert(chat_entry_files).values(
                     fileIds.map((fileId) => ({
                         chatEntryId: entry.id,
                         fileId,
                     }))
                 ).returning();
+
+                 attachments = await db.select()
+                    .from(files)
+                    .where(inArray(files.id, fileIds));
             }
 
             return {
