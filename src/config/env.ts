@@ -12,6 +12,9 @@ const env = {
     key: process.env.SUPABASE_ANON_KEY!,
     adminKey: process.env.SUPABASE_ROLE_KEY!,
   },
+  ably: {
+    token: process.env.ABLY_ROOT_TOKEN,
+  },
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN!,
   },

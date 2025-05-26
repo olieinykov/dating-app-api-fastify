@@ -100,11 +100,11 @@ export const deleteGift = async (request: FastifyRequest<DeleteGiftType>, reply:
                 throw new Error(`No gift found with id: ${request.params.giftId}`);
             }
 
-            await tx.insert(gift_actions).values({
-                authorUserId: currentUserId,
-                actionGiftId: request.params.giftId,
-                actionType: "delete",
-            });
+            // await tx.insert(gift_actions).values({
+            //     authorUserId: currentUserId,
+            //     actionGiftId: request.params.giftId,
+            //     actionType: "delete",
+            // });
 
             return updatedGift;
         });
@@ -129,11 +129,11 @@ export const createGift = async (request: FastifyRequest<CreateGiftType>, reply:
                 ...request.body,
             }).returning();
 
-            await tx.insert(gift_actions).values({
-                authorUserId: currentUserId,
-                actionGiftId: createdGift.id,
-                actionType: "create",
-            });
+            // await tx.insert(gift_actions).values({
+            //     authorUserId: currentUserId,
+            //     actionGiftId: createdGift.id,
+            //     actionType: "create",
+            // });
             return createdGift;
         });
 
@@ -158,11 +158,11 @@ export const updateGift = async (request: FastifyRequest<UpdateGiftType>, reply:
                 .where(eq(gifts.id, request.params.giftId))
                 .returning();
 
-            await tx.insert(gift_actions).values({
-                authorUserId: currentUserId,
-                actionGiftId: updatedGift.id,
-                actionType: "update",
-            });
+            // await tx.insert(gift_actions).values({
+            //     authorUserId: currentUserId,
+            //     actionGiftId: updatedGift.id,
+            //     actionType: "update",
+            // });
             return updatedGift;
         });
 

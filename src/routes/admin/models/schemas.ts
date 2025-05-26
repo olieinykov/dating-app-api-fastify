@@ -6,7 +6,7 @@ export const CreateModelSchema = {
   body: Type.Object({
     name: Type.String({ minLength: 1 }),
     country: Type.String({ minLength: 1 }),
-    avatar: Type.Optional(Type.String({ format: 'uri' })),
+    avatarFileId: Type.String(),
     description: Type.Optional(Type.String()),
     age: Type.Integer({ minimum: 1 }),
     gender: Type.Enum({

@@ -1,90 +1,20 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
-import {
-    CreateChatEntrySchemaType,
-    CreateChatSchemaBodyType,
-    GetAllChatsSchemaType,
-    GetChatEntriesSchemaType
-} from './schemas.js'
+import { FastifyRequest, FastifyReply } from 'fastify'
 import { db } from "../../../db/index.js";
-import { chat_entries, chats, models, profiles, files, chat_entry_files, chat_participants } from "../../../db/schema/index.js";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import ablyClient from '../../../services/ably.js'
+import { models, chat_participants, profiles, chat_entries, chat_entry_files, files } from "../../../db/schema/index.js";
+import { and, eq, inArray, sql} from "drizzle-orm";
+import {
+    GetAllModelsType,
+    CreateChatEntrySchemaType
+} from "./schemas.js";
+import ablyClient from "../../../services/ably.js";
 
-export const createChat = async (
-  request: FastifyRequest<CreateChatSchemaBodyType>,
-  reply: FastifyReply
-) => {
-  try {
-    const profileUserId = request.userId;
-    const [model] = await db.select().from(models).where(eq(models.id,  request.body.modelId));
-
-      const participantsA = await db
-          .select({ chatId: chat_participants.chatId })
-          .from(chat_participants)
-          .where(eq(chat_participants.userId, profileUserId as string));
-
-      const chatIdsA = participantsA.map((p) => p.chatId);
-      if (chatIdsA.length > 0) {
-          const existingChat: Array<{ chatId: number }> = await db
-              .select({ chatId: chat_participants.chatId })
-              .from(chat_participants)
-              .where(
-                  and(
-                      inArray(chat_participants.chatId, chatIdsA),
-                      eq(chat_participants.userId, model.userId)
-                  )
-              )
-              .limit(1);
-
-          if (!!existingChat?.length) {
-              return reply.code(200).send({
-                  success: false,
-                  message: "Chat already exists",
-              });
-          }
-      }
-
-    const data = await db.transaction(async (tx) => {
-        const [chat] = await tx.insert(chats).values({}).returning();
-
-        const participants: { chatId: number; userId: string }[] = [
-            { chatId: chat.id, userId: profileUserId as string },
-            { chatId: chat.id, userId: model.userId as string },
-        ];
-
-        await tx.insert(chat_participants).values(participants);
-
-        return chat;
-    });
-
-    if (data) {
-        const userChannel = ablyClient.channels.get(`user-events:${profileUserId}`);
-        const adminChannel = ablyClient.channels.get(`admin-events`);
-        await userChannel.publish('channel-created', data);
-        await adminChannel.publish('channel-created', data);
-    }
-
-    reply.code(200).send({
-      success: true,
-      data,
-    });
-  } catch (error) {
-      reply.code(400).send({
-        success: false,
-        error: (error as Error)?.message,
-        message: 'Failed to create a new chat'
-      })
-  }
-}
-
-export const getAllChats = async (
-    request: FastifyRequest<GetAllChatsSchemaType>,
-    reply: FastifyReply
-) => {
+export const getModelsChats = async (request: FastifyRequest<GetAllModelsType>, reply: FastifyReply) => {
     try {
+        const [model] = await db.select().from(models).where(eq(models.id, request.params.modelId));
+        const userId = model.userId;
+
         const page = request.query.page ?? 1;
         const pageSize =  request.query.pageSize ?? 10;
-        const userId = request.userId;
         const currentPage = Math.max(1, page);
         const limit = Math.min(100, Math.max(1, pageSize));
         const offset = (currentPage - 1) * limit;
@@ -134,7 +64,6 @@ export const getAllChats = async (
             }
             participantMap.set(p.chatId, list);
         }
-
 
         const lastEntrySubquery = db
             .select({
@@ -227,7 +156,6 @@ export const getAllChats = async (
     }
 };
 
-
 export const createChatEntry = async (
     request: FastifyRequest<CreateChatEntrySchemaType>,
     reply: FastifyReply
@@ -239,7 +167,7 @@ export const createChatEntry = async (
             const [entry] = await tx.insert(chat_entries).values({
                 type: 'text',
                 body: request.body.body,
-                senderId: request.userId as string,
+                senderId: request.body.fromModelId as string,
                 chatId: request.params.chatId,
             }).returning();
 
@@ -253,7 +181,7 @@ export const createChatEntry = async (
                     }))
                 ).returning();
 
-                 attachments = await db.select()
+                attachments = await db.select()
                     .from(files)
                     .where(inArray(files.id, fileIds));
             }
@@ -265,7 +193,7 @@ export const createChatEntry = async (
         });
 
         if (data) {
-            const usersChannel = ablyClient.channels.get(`user-events:${request.userId}`);
+            const usersChannel = ablyClient.channels.get(`user-events:${request.body.participantId}`);
             const adminChannel = ablyClient.channels.get(`admin-events`);
             await usersChannel.publish('entry-created', data);
             await adminChannel.publish('entry-created', data);
@@ -280,89 +208,6 @@ export const createChatEntry = async (
             success: false,
             error: (error as Error)?.message,
             message: 'Failed to create a new chat'
-        })
-    }
-}
-
-export const getChatEntries = async (
-    request: FastifyRequest<GetChatEntriesSchemaType>,
-    reply: FastifyReply
-) => {
-    try {
-        const page = request.query?.page ?? 1;
-        const pageSize = request.query?.pageSize ?? 10;
-        const currentPage = Math.max(1, page);
-        const limit = Math.min(100, Math.max(1, pageSize));
-        const offset = (currentPage - 1) * limit;
-
-        const entries = await db
-            .select({
-                id: chat_entries.id,
-                body: chat_entries.body,
-                chatId: chat_entries.chatId,
-                createdAt: chat_entries.createdAt,
-                updatedAt: chat_entries.updatedAt,
-                fromProfile: profiles,
-                fromModel: models,
-            })
-            .from(chat_entries)
-            .where(eq(chat_entries.chatId, request.params.chatId))
-            .leftJoin(profiles, eq(chat_entries.senderId, profiles.userId))
-            .leftJoin(models, eq(chat_entries.senderId, models.userId))
-            .orderBy(desc(chat_entries.createdAt))
-            .limit(limit)
-            .offset(offset);
-
-        const entriesIds = (entries || []).map(entry => entry.id);
-
-        const filesList = await db.select({
-            chatEntryId: chat_entry_files.chatEntryId,
-            file: files,
-        })
-            .from(chat_entry_files)
-            .leftJoin(files, eq(chat_entry_files.fileId, files.id))
-            .where(inArray(chat_entry_files.chatEntryId, entriesIds));
-
-        const entriesWithFiles = (entries || []).map(entry => {
-            const { fromModel, fromProfile, ...message } = entry;
-            const sender = fromModel ?? fromProfile;
-            const entryFiles =
-                filesList?.filter(file => file.chatEntryId === entry.id)?.map(file => file.file)
-
-            if (!sender) {
-                throw new Error();
-            }
-
-            return {
-                ...message,
-                files: entryFiles,
-                sender: {
-                    id: sender.id,
-                    name: sender.name,
-                }
-            };
-        });
-
-
-        const [{ count: total }] = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(chat_entries)
-            .where(eq(chat_entries.chatId, request.params.chatId));
-
-        reply.code(200).send({
-            success: true,
-            data: entriesWithFiles,
-            pagination: {
-                page: currentPage,
-                pageSize: limit,
-                total,
-                totalPages: Math.ceil(total / limit)
-            }
-        });
-    } catch (error) {
-        reply.code(400).send({
-            success: false,
-            error: (error as Error)?.message,
         })
     }
 }

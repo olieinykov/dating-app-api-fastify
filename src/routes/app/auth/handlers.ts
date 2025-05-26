@@ -9,13 +9,7 @@ import { supabase, supabaseAdmin } from "../../../services/supabase.js";
 import { CookieSerializeOptions } from "@fastify/cookie";
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
-  const telegram = {
-    id: 214,
-    first_name: 'Maxim1',
-    last_name: 'Kush1',
-    username: 'maxkush',
-    language_code: 'ua',
-  }
+  const telegram = request.body;
 
   const email = `${telegram.id}.mock@amorium.com`;
   const password = "TEST_MOCK_PASSWORD";

@@ -1,6 +1,6 @@
 import { Type, Static } from '@sinclair/typebox'
 export const UploadFileSchema = {
-  tags: ['Files'],
+  tags: ['App / Files'],
   body: Type.Any(),
 };
 

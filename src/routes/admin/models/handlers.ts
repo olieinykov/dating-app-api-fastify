@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { v4 as uuidv4 } from 'uuid';
 import { db } from "../../../db/index.js";
-import { gifts, models } from "../../../db/schema/index.js";
+import {gifts, models, files} from "../../../db/schema/index.js";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import {
     CreateModelType,
@@ -11,7 +11,7 @@ import {
     UpdateModelType
 } from "./schemas.js";
 import { supabase } from "../../../services/supabase.js";
-import {models_actions} from "../../../db/schema/model_action";
+import { models_actions } from "../../../db/schema/model_action";
 
 export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, reply: FastifyReply) => {
     try {
@@ -41,9 +41,22 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
 
         const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
         const data = await db
-            .select()
+            .select({
+                id: models.id,
+                age: models.age,
+                avatar: files.url,
+                bodyType: models.bodyType,
+                bustSize:  models.bustSize,
+                country: models.country,
+                description: models.description,
+                gender: models.gender,
+                hairColor: models.hairColor,
+                name: models.name,
+                userId: models.userId,
+            })
             .from(models)
             .where(whereCondition)
+            .leftJoin(files, eq(files.id, models.avatarFileId))
             .orderBy(
                 sortOrder === 'asc'
                 // @ts-ignore
@@ -114,11 +127,11 @@ export const deleteModel = async (request: FastifyRequest<DeleteModelType>, repl
                 throw new Error(`No model found with id: ${request.params.modelId}`);
             }
 
-            await tx.insert(models_actions).values({
-                authorUserId: currentUserId,
-                actionGiftId: updatedModel.id,
-                actionType: "delete",
-            });
+            // await tx.insert(models_actions).values({
+            //     authorUserId: currentUserId,
+            //     actionGiftId: updatedModel.id,
+            //     actionType: "delete",
+            // });
 
             return updatedModel;
         });
@@ -158,11 +171,11 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
             }).returning();
 
 
-            await tx.insert(models_actions).values({
-                authorUserId: currentUserId,
-                actionGiftId: createdModel.id,
-                actionType: "create",
-            });
+            // await tx.insert(models_actions).values({
+            //     authorUserId: currentUserId,
+            //     actionGiftId: createdModel.id,
+            //     actionType: "create",
+            // });
             return createdModel;
         });
 
@@ -188,11 +201,11 @@ export const updateModel = async (request: FastifyRequest<UpdateModelType>, repl
                 .returning();
 
 
-            await tx.insert(models_actions).values({
-                authorUserId: currentUserId,
-                actionGiftId: updatedModel.id,
-                actionType: "update",
-            });
+            // await tx.insert(models_actions).values({
+            //     authorUserId: currentUserId,
+            //     actionGiftId: updatedModel.id,
+            //     actionType: "update",
+            // });
             return updatedModel;
         });
 

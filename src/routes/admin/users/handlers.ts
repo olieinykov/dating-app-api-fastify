@@ -17,6 +17,10 @@ export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, repl
             sortOrder = 'desc',
         } = request.query;
 
+        type UserRole = "admin" | "chatter" | "user";
+
+        const allowedRoles: UserRole[] = ["admin", "chatter", "user"];
+
         const sortBy = profiles[sortField as keyof typeof profiles];
         const currentPage = Math.max(1, Number(page));
         const limit = Math.min(100, Math.max(1, Number(pageSize)));
@@ -24,8 +28,8 @@ export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, repl
         const whereClauses = [];
 
 
-        if (role) {
-            whereClauses.push(eq(profiles.role, role));
+        if (role && allowedRoles.includes(role as UserRole)) {
+            whereClauses.push(eq(profiles.role, role as UserRole));
         }
 
         // if (search.trim()) {
@@ -125,11 +129,11 @@ export const deleteUser = async (request: FastifyRequest<DeleteUserType>, reply:
                 throw new Error(`No profile found with id: ${request.params.userId}`);
             }
 
-            await tx.insert(profile_actions).values({
-                authorUserId: currentUserId,
-                actionGiftId: updatedProfile.id,
-                actionType: "delete",
-            });
+            // await tx.insert(profile_actions).values({
+            //     authorUserId: currentUserId,
+            //     actionGiftId: updatedProfile.id,
+            //     actionType: "delete",
+            // });
 
             return updatedProfile;
         });
@@ -203,11 +207,11 @@ export const updateUser = async (request: FastifyRequest<UpdateUsersType>, reply
                 .where(eq(profiles.id, request.params.userId))
                 .returning();
 
-            await tx.insert(profile_actions).values({
-                authorUserId: currentUserId,
-                actionGiftId: updatedUser.id,
-                actionType: "update",
-            });
+            // await tx.insert(profile_actions).values({
+            //     authorUserId: currentUserId,
+            //     actionGiftId: updatedUser.id,
+            //     actionType: "update",
+            // });
             return updatedUser;
         });
 

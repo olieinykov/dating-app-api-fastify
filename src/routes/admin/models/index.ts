@@ -7,7 +7,7 @@ import {
   UpdateModelSchema,
   GetOneModelSchema
 } from "./schemas.js";
-import {adminAuthenticated} from "../../../middleware/adminAuthenticated";
+import {adminAuthenticated} from "../../../middleware/adminAuthenticated.js";
 
 const routes = async (fastify: FastifyInstance) => {
   fastify.post('/', {

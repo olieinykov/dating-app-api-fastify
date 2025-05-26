@@ -1,7 +1,7 @@
 import { pgTable, text, timestamp, serial, integer } from 'drizzle-orm/pg-core'
 import { uuid } from "drizzle-orm/pg-core";
-import { genderEnum, paramsBodyTypeEnum, paramsBustSizeEnum, paramsHairColorEnum } from "./profile_preferences";
-import { files } from "./file";
+import { genderEnum, paramsBodyTypeEnum, paramsBustSizeEnum, paramsHairColorEnum } from "./profile_preferences.js";
+import { files } from "./file.js";
 
 export const models = pgTable('models', {
   id: serial('id').primaryKey(),

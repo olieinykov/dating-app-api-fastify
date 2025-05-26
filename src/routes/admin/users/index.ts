@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { getAllUsers, getOneUser, deleteUser, createUser, updateUser } from './handlers.js'
 import { CreateUserSchema, GetOneUserSchema, DeleteUserSchema, GetAllUsersSchema, UpdateUsersSchema } from "./schemas.js";
-import {adminAuthenticated} from "../../../middleware/adminAuthenticated";
+import {adminAuthenticated} from "../../../middleware/adminAuthenticated.js";
 
 const routes = async (fastify: FastifyInstance) => {
   fastify.post('/', {

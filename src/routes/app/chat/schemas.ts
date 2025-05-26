@@ -13,9 +13,6 @@ export type CreateChatSchemaBodyType = {
 
 export const GetAllChatsSchema = {
   tags: ['Chat'],
-  parameters: Type.Object({
-    chatId: Type.Integer(),
-  }),
   querystring: Type.Object({
     search: Type.Optional(Type.String()),
     page: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
@@ -23,7 +20,6 @@ export const GetAllChatsSchema = {
   }),
 }
 export type GetAllChatsSchemaType = {
-  Params: Static<typeof GetChatEntriesSchema.parameters>;
   Querystring: Static<typeof GetChatEntriesSchema.querystring>;
 }
 
@@ -51,7 +47,6 @@ export const CreateChatEntrySchema = {
   body: Type.Object({
     body: Optional(Type.String()),
     attachmentIds: Optional(Type.Array(Type.String())),
-    fromModelId: Optional(Type.Number()),
   })
 }
 
