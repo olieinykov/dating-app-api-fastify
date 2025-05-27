@@ -39,7 +39,7 @@ export const UpdateProfileSchema = {
     photos: Optional(
         Array(
             Object({
-              url: String({ format: 'uri' }),
+              fileId: String(),
               order: Integer(),
             }),
             { maxItems: 3 }

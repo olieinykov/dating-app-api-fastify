@@ -11,6 +11,8 @@ import { CookieSerializeOptions } from "@fastify/cookie";
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
   const telegram = request.body;
 
+  console.log("telegram", telegram)
+
   const email = `${telegram.id}.mock@amorium.com`;
   const password = "TEST_MOCK_PASSWORD";
 
@@ -144,7 +146,7 @@ export const activateProfile = async (
     const result = await db.transaction(async (tx) => {
       const photos = request.body.photos
           ?.map((photo) => ({
-            url: photo.url,
+            fileId: photo.fileId,
             profileId: request.params.profileId,
             order: photo.order,
           }))
@@ -154,7 +156,7 @@ export const activateProfile = async (
           .update(profiles)
           .set({
             name: request.body.name,
-            avatar: photos?.[0]?.url,
+            avatarFileId: photos?.[0]?.fileId,
             activatedAt: new Date(),
           })
           .where(eq(profiles.id, request.params.profileId))
@@ -188,7 +190,7 @@ export const activateProfile = async (
             .returning({
               id: profilesPhotos.id,
               order: profilesPhotos.order,
-              url: profilesPhotos.url,
+              fileId: profilesPhotos.fileId,
             });
       }
 

@@ -1,6 +1,4 @@
 import { integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
-import { profiles } from "./profile";
-import { models } from "./model";
 import { pgEnum } from "drizzle-orm/pg-core";
 import { chats } from "./chat.js";
 import {uuid} from "drizzle-orm/pg-core";

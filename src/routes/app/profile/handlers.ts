@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../../db/index.js";
 import { UpdateProfileSchemaType } from "./schemas.js";
-import { profiles, profilesPhotos, profilesPreferences } from "../../../db/schema/index.js";
+import {files, models, profiles, profilesPhotos, profilesPreferences} from "../../../db/schema/index.js";
 import { eq } from "drizzle-orm";
 
 export const getProfile = async (
@@ -30,11 +30,12 @@ export const getProfile = async (
     const photos = await db
       .select({
         id: profilesPhotos.id,
-        url: profilesPhotos.url,
+        url: files.url,
         order: profilesPhotos.order,
       })
       .from(profilesPhotos)
-      .where(eq(profilesPhotos.profileId, profileData.id));
+      .where(eq(profilesPhotos.profileId, profileData.id))
+      .leftJoin(files, eq(files.id, profilesPhotos.fileId))
 
     reply.code(200).send({
       ...profileData,
@@ -74,7 +75,7 @@ export const updateProfile = async (
     const result = await db.transaction(async (tx) => {
       const photos = request.body.photos
         ?.map((photo) => ({
-          url: photo.url,
+          fileId: photo.fileId,
           profileId: existingProfile.id,
           order: photo.order,
         }))
@@ -84,7 +85,7 @@ export const updateProfile = async (
         .update(profiles)
         .set({
           name: request.body.name,
-          avatar: photos?.[0]?.url,
+          avatarFileId: photos?.[0]?.fileId,
           activatedAt: new Date(),
         })
         .where(eq(profiles.id, existingProfile.id))
@@ -118,7 +119,7 @@ export const updateProfile = async (
           .returning({
             id: profilesPhotos.id,
             order: profilesPhotos.order,
-            url: profilesPhotos.url,
+            fileId: profilesPhotos.fileId,
           });
       }
 

@@ -12,9 +12,9 @@ export const profiles = pgTable('profiles', {
   telegramId: integer('telegram_id').references(() => profilesTelegram.telegramId),
   // role: userRoleEnum('role'),
   role: text('role'),
-  avatar: text('avatar'),
-  // avatarFileId: uuid('avatar_file_id')
-  //     .references(() => files.id, { onDelete: 'cascade' }),
+  // avatar: text('avatar'),
+  avatarFileId: uuid('avatar_file_id')
+      .references(() => files.id, { onDelete: 'cascade' }),
   activatedAt: timestamp('activated_at', { mode: 'date'} ),
   deactivatedAt: timestamp('deactivated_at'),
   createdAt: timestamp('created_at',).defaultNow(),

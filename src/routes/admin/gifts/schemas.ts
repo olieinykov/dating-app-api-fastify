@@ -6,7 +6,7 @@ export const CreateGiftSchema = {
   body: Type.Object({
     title: Type.String({ minLength: 1}),
     price: Type.Number({ exclusiveMinimum: 0 }),
-    image: Type.String({ format: 'uri' }),
+    avatarFileId: Type.String(),
     createdBy: Type.Integer({ minimum: 1 }),
     restrictedCountries: Type.Optional(Type.Array(Type.String())),
     isActive: Type.Boolean({ default: true }),
@@ -24,7 +24,7 @@ export const UpdateGiftSchema = {
   body: Type.Partial(Type.Object({
     name: Type.String({ minLength: 1 }),
     price: Type.Number({ exclusiveMinimum: 0 }),
-    image: Type.String({ format: 'uri' }),
+    avatarFileId: Type.String(),
     restrictedCountries: Type.Array(Type.String()),
     isActive: Type.Boolean({ default: true }),
   })),

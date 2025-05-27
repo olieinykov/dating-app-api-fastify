@@ -11,7 +11,7 @@ import {
     UpdateModelType
 } from "./schemas.js";
 import { supabase } from "../../../services/supabase.js";
-import { models_actions } from "../../../db/schema/model_action";
+// import { models_actions } from "../../../db/schema/model_action";
 
 export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, reply: FastifyReply) => {
     try {
