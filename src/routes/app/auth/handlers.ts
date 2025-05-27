@@ -45,15 +45,14 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
 
     const cookieOptions: CookieSerializeOptions = {
       path: '/',
-      httpOnly: true,
-      // secure: process.env.NODE_ENV === 'production',
-      secure: true,
       sameSite: 'none',
+      httpOnly: true,
+      secure: false,
     };
 
     reply
         .setCookie('userAccessToken', accessToken, { ...cookieOptions, maxAge: 60 * 60 })
-        .setCookie('adminRefreshToken', refreshToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 30 });
+        .setCookie('userRefreshToken', refreshToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 30 });
     return reply.code(200).send({
       success: true,
       data: {

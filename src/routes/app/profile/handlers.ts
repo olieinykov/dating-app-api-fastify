@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../../db/index.js";
 import { UpdateProfileSchemaType } from "./schemas.js";
-import {files, models, profiles, profilesPhotos, profilesPreferences} from "../../../db/schema/index.js";
+import { files, profiles, profilesPhotos, profilesPreferences } from "../../../db/schema/index.js";
 import { eq } from "drizzle-orm";
 
 export const getProfile = async (
