@@ -47,7 +47,7 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
       path: '/',
       sameSite: 'none',
       httpOnly: true,
-      secure: false,
+      secure: true,
     };
 
     reply

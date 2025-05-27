@@ -5,7 +5,7 @@ import {CookieSerializeOptions} from "@fastify/cookie";
 
 const cookiesConfig: CookieSerializeOptions = {
   httpOnly: true,
-  secure: false,
+  secure: true,
   sameSite: 'lax',
   path: '/',
 }
