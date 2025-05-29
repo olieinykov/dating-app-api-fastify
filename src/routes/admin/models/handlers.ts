@@ -104,16 +104,6 @@ export const getOneModel = async (request: FastifyRequest<GetOneModelType>, repl
                 deactivatedAt: models.deactivatedAt,
                 createdAt: models.createdAt,
                 updatedAt: models.updatedAt,
-                photos: [
-                    {
-                        id: '51100b39-19a2-4f02-8f74-a5b2879ce322',
-                        url: 'https://avbstfhignbxstnlfsef.supabase.co/storage/v1/object/public/uploads/9615b7bd-bb10-4e5c-a9a6-a06fb23fea57-pexels-maiconfotografo-15417324.jpg'
-                    },
-                    {
-                        id: 'b4b48581-f60f-4fe4-8127-f705c660beca',
-                        url: 'https://avbstfhignbxstnlfsef.supabase.co/storage/v1/object/public/uploads/6f905d38-d822-49c6-a016-b7c6c1309629-pexels-soldiervip-1391498.jpg'
-                    },
-                ]
             })
             .from(models)
             .where(eq(models.id, request.params.modelId))
@@ -123,7 +113,19 @@ export const getOneModel = async (request: FastifyRequest<GetOneModelType>, repl
         if (model) {
             reply.send({
                 success: true,
-                data: model,
+                data: {
+                    ...model,
+                    photos: [
+                        {
+                            id: '51100b39-19a2-4f02-8f74-a5b2879ce322',
+                            url: 'https://avbstfhignbxstnlfsef.supabase.co/storage/v1/object/public/uploads/9615b7bd-bb10-4e5c-a9a6-a06fb23fea57-pexels-maiconfotografo-15417324.jpg'
+                        },
+                        {
+                            id: 'b4b48581-f60f-4fe4-8127-f705c660beca',
+                            url: 'https://avbstfhignbxstnlfsef.supabase.co/storage/v1/object/public/uploads/6f905d38-d822-49c6-a016-b7c6c1309629-pexels-soldiervip-1391498.jpg'
+                        },
+                    ]
+                },
             });
         } else {
             reply.status(404).send({
