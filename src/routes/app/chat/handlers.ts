@@ -122,14 +122,14 @@ export const getAllChats = async (
             .leftJoin(files, eq(files.id, models.avatarFileId))
             .where(inArray(chat_participants.chatId, chatIds));
 
-        const participantMap = new Map<number, Array<{ id: string, modelName: string, avatar?: string }>>();
+        const participantMap = new Map<number, Array<{ id: string, name: string, avatar?: string }>>();
         for (const p of participants) {
             const list = participantMap.get(p.chatId) ?? [];
             if (p.userId !== userId) {
                 list.push({
                     id: p.userId,
-                    name: p.modelName,
-                    avatar: p.modelAvatar,
+                    name: p.modelName!,
+                    avatar: p.modelAvatar!,
                 });
             }
             participantMap.set(p.chatId, list);
