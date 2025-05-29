@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { v4 as uuidv4 } from 'uuid';
 import { db } from "../../../db/index.js";
-import {gifts, models, files} from "../../../db/schema/index.js";
+import { gifts, models, files } from "../../../db/schema/index.js";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import {
     CreateModelType,
@@ -89,14 +89,32 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
 
 export const getOneModel = async (request: FastifyRequest<GetOneModelType>, reply: FastifyReply) => {
     try {
-        const data = await db.query.models.findFirst({
-            where: eq(models.id, request.params.modelId),
-        })
+        const [model] = await db
+            .select({
+                id: models.id,
+                userId: models.userId,
+                name: models.name,
+                country: models.country,
+                avatar: files.url,
+                description: models.description,
+                age: models.age,
+                gender: models.gender,
+                bustSize: models.bustSize,
+                hairColor: models.hairColor,
+                bodyType: models.bodyType,
+                deactivatedAt: models.deactivatedAt,
+                createdAt: models.createdAt,
+                updatedAt: models.updatedAt,
+            })
+            .from(models)
+            .where(eq(models.id, request.params.modelId))
+            .leftJoin(files, eq(files.id, models.avatarFileId))
+            .limit(1);
 
-        if (data) {
+        if (model) {
             reply.send({
                 success: true,
-                data: data,
+                data: model,
             });
         } else {
             reply.status(404).send({

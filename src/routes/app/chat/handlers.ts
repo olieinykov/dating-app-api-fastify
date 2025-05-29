@@ -114,22 +114,22 @@ export const getAllChats = async (
             .select({
                 chatId: chat_participants.chatId,
                 userId: chat_participants.userId,
-                profile: profiles,
-                model: models,
+                modelName: models.name,
+                modelAvatar: files.url,
             })
             .from(chat_participants)
-            .leftJoin(profiles, eq(chat_participants.userId, profiles.userId))
             .leftJoin(models, eq(chat_participants.userId, models.userId))
+            .leftJoin(files, eq(files.id, models.avatarFileId))
             .where(inArray(chat_participants.chatId, chatIds));
 
-        const participantMap = new Map<number, Array<{ id: string, name: string, avatar?: string }>>();
+        const participantMap = new Map<number, Array<{ id: string, modelName: string, avatar?: string }>>();
         for (const p of participants) {
             const list = participantMap.get(p.chatId) ?? [];
             if (p.userId !== userId) {
                 list.push({
                     id: p.userId,
-                    name: p.profile?.name ?? p.model?.name ?? 'Unknown',
-                    // avatar: p.profile?.avatar ?? p.model?.avatar,
+                    name: p.modelName,
+                    avatar: p.modelAvatar,
                 });
             }
             participantMap.set(p.chatId, list);
@@ -258,8 +258,24 @@ export const createChatEntry = async (
                     .where(inArray(files.id, fileIds));
             }
 
+            const [entryWithSender] = await tx
+                .select({
+                    id: chat_entries.id,
+                    type: chat_entries.type,
+                    body: chat_entries.body,
+                    createdAt: chat_entries.createdAt,
+                    chatId: chat_entries.chatId,
+                    sender: {
+                        id: profiles.id,
+                        name: profiles.name,
+                    },
+                })
+                .from(chat_entries)
+                .leftJoin(profiles, eq(chat_entries.senderId, profiles.userId))
+                .where(eq(chat_entries.id, entry.id));
+
             return {
-                ...entry,
+                ...entryWithSender,
                 attachments
             }
         });
@@ -335,7 +351,7 @@ export const getChatEntries = async (
 
             return {
                 ...message,
-                files: entryFiles,
+                attachments: entryFiles,
                 sender: {
                     id: sender.id,
                     name: sender.name,

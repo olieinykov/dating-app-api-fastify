@@ -193,7 +193,7 @@ export const createChatEntry = async (
         });
 
         if (data) {
-            const usersChannel = ablyClient.channels.get(`user-events:${request.body.participantId}`);
+            const usersChannel = ablyClient.channels.get(`user-events:${request.body.fromModelId}`);
             const adminChannel = ablyClient.channels.get(`admin-events`);
             await usersChannel.publish('entry-created', data);
             await adminChannel.publish('entry-created', data);
