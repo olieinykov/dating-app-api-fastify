@@ -47,6 +47,7 @@ export const CreateChatEntrySchema = {
   body: Type.Object({
     body: Optional(Type.String()),
     attachmentIds: Optional(Type.Array(Type.String())),
+    localEntryId: Type.String(),
   })
 }
 

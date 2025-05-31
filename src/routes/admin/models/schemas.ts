@@ -1,4 +1,4 @@
-import { Type, Static } from '@sinclair/typebox'
+import { Type, Static, Array, Object, String, Boolean } from '@sinclair/typebox'
 import { PaginationSchema } from '../../../shared/schemas.js'
 
 export const CreateModelSchema = {
@@ -6,7 +6,6 @@ export const CreateModelSchema = {
   body: Type.Object({
     name: Type.String({ minLength: 1 }),
     country: Type.String({ minLength: 1 }),
-    avatarFileId: Type.String(),
     description: Type.Optional(Type.String()),
     age: Type.Integer({ minimum: 1 }),
     gender: Type.Enum({
@@ -30,6 +29,13 @@ export const CreateModelSchema = {
       curvy: 'curvy',
       slim: 'slim',
     }),
+    photos: Array(
+        Object({
+          fileId: String(),
+          isAvatar: Boolean(),
+        }),
+        { maxItems: 3 }
+    ),
   }),
 };
 export type CreateModelType = {
@@ -46,6 +52,13 @@ export const UpdateModelSchema = {
     geo: Type.String({ minLength: 1 }),
     avatar: Type.String({ format: 'uri' }),
     about: Type.String(),
+    photos: Array(
+        Object({
+          fileId: String(),
+          isAvatar: Boolean(),
+        }),
+        { maxItems: 3 }
+    ),
   })),
 
 };

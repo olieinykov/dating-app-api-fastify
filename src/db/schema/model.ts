@@ -1,17 +1,14 @@
 import { pgTable, text, timestamp, serial, integer } from 'drizzle-orm/pg-core'
 import { uuid } from "drizzle-orm/pg-core";
 import { genderEnum, paramsBodyTypeEnum, paramsBustSizeEnum, paramsHairColorEnum } from "./profile_preferences.js";
-import { files } from "./file.js";
 
 export const models = pgTable('models', {
   id: serial('id').primaryKey(),
   userId: uuid('user_id').notNull(),
-  name: text('name').notNull(),
+  name: text('name').notNull().unique(),
   country: text('country').notNull(),
-  avatarFileId: uuid('avatar_file_id')
-      .references(() => files.id, { onDelete: 'cascade' })
-      .notNull(),
   description: text('description'),
+  avatar: text('avatar'),
   age: integer('age').notNull(),
   gender: genderEnum('gender').notNull(),
   bustSize: paramsBustSizeEnum('bust_size').notNull(),

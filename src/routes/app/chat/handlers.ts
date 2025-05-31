@@ -115,11 +115,10 @@ export const getAllChats = async (
                 chatId: chat_participants.chatId,
                 userId: chat_participants.userId,
                 modelName: models.name,
-                modelAvatar: files.url,
+                modelAvatar: models.avatar,
             })
             .from(chat_participants)
             .leftJoin(models, eq(chat_participants.userId, models.userId))
-            .leftJoin(files, eq(files.id, models.avatarFileId))
             .where(inArray(chat_participants.chatId, chatIds));
 
         const participantMap = new Map<number, Array<{ id: string, name: string, avatar?: string }>>();
@@ -233,21 +232,21 @@ export const createChatEntry = async (
     reply: FastifyReply
 ) => {
     try {
+        const { localEntryId, attachmentIds, ...payload } = request.body;
         const data = await db.transaction(async (tx) => {
-            const fileIds = request.body?.attachmentIds;
 
             const [entry] = await tx.insert(chat_entries).values({
                 type: 'text',
-                body: request.body.body,
+                body: payload.body,
                 senderId: request.userId as string,
                 chatId: request.params.chatId,
             }).returning();
 
             let attachments = undefined;
 
-            if (fileIds?.length) {
+            if (attachmentIds?.length) {
                 await tx.insert(chat_entry_files).values(
-                    fileIds.map((fileId) => ({
+                    attachmentIds.map((fileId) => ({
                         chatEntryId: entry.id,
                         fileId,
                     }))
@@ -255,7 +254,7 @@ export const createChatEntry = async (
 
                  attachments = await db.select()
                     .from(files)
-                    .where(inArray(files.id, fileIds));
+                    .where(inArray(files.id, attachmentIds));
             }
 
             const [entryWithSender] = await tx
@@ -283,8 +282,9 @@ export const createChatEntry = async (
         if (data) {
             const usersChannel = ablyClient.channels.get(`user-events:${request.userId}`);
             const adminChannel = ablyClient.channels.get(`admin-events`);
-            await usersChannel.publish('entry-created', data);
-            await adminChannel.publish('entry-created', data);
+            const eventData = { ...data, localEntryId }
+            await usersChannel.publish('entry-created', eventData);
+            await adminChannel.publish('entry-created', eventData);
         }
 
         reply.code(200).send({

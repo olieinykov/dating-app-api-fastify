@@ -1,12 +1,11 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { isValid, parse } from "@telegram-apps/init-data-node";
-import env from "../../../config/env.js";
 import { db } from "../../../db/index.js";
 import { eq } from "drizzle-orm";
-import { profiles, profilesPhotos, profilesPreferences, profilesTelegram } from "../../../db/schema/index.js";
+import { profiles, profiles_photos, profilesPreferences, profilesTelegram } from "../../../db/schema/index.js";
 import { ActivateProfileSchemaType, LoginSchemaType } from "./schemas.js";
 import { supabase, supabaseAdmin } from "../../../services/supabase.js";
 import { CookieSerializeOptions } from "@fastify/cookie";
+import {updateProfilePhotos} from "../../../utils/files/files.js";
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
   const telegram = request.body;
@@ -128,6 +127,8 @@ export const activateProfile = async (
     reply: FastifyReply
 ) => {
   try {
+    const { photos, ...payload } = request.body;
+
     const [existingProfile] = await db
         .select()
         .from(profiles)
@@ -135,63 +136,42 @@ export const activateProfile = async (
         .limit(1);
 
     if (!existingProfile) {
-      reply.code(404).send({
-        success: false,
-        message: `There is no user with id = ${request.params.profileId}`,
-      });
-      return;
+      throw new Error();
     }
 
     const result = await db.transaction(async (tx) => {
-      const photos = request.body.photos
-          ?.map((photo) => ({
-            fileId: photo.fileId,
-            profileId: request.params.profileId,
-            order: photo.order,
-          }))
-          ?.sort((a, b) => a.order - b.order);
+      let profilePhotos = undefined;
+
+      if (photos?.length) {
+        profilePhotos = await updateProfilePhotos(tx, existingProfile.id, photos);
+      }
 
       const [profileData] = await db
           .update(profiles)
           .set({
-            name: request.body.name,
-            avatarFileId: photos?.[0]?.fileId,
+            name: payload.name,
+            avatar: profilePhotos?.find(photo => photo?.isAvatar === true)?.url,
             activatedAt: new Date(),
           })
-          .where(eq(profiles.id, request.params.profileId))
+          .where(eq(profiles.id, existingProfile.id))
           .returning();
 
       const [profileDetails] = await db
           .update(profilesPreferences)
           .set({
-            about: request.body.about,
-            profileId: request.params.profileId,
-            dateOfBirth: request.body.dateOfBirth,
-            gender: request.body.gender,
-            hobbies: request.body.hobbies,
-            city: request.body.city,
-            paramsAge: request.body.paramsAge,
-            paramsBustSize: request.body.paramsBustSize,
-            paramsHairColor: request.body.paramsHairColor,
-            paramsBodyType: request.body.paramsBodyType,
+            about: payload.about,
+            // profileId: request.params.profileId,
+            dateOfBirth: payload.dateOfBirth,
+            gender: payload.gender,
+            hobbies: payload.hobbies,
+            city: payload.city,
+            paramsAge: payload.paramsAge,
+            paramsBustSize: payload.paramsBustSize,
+            paramsHairColor: payload.paramsHairColor,
+            paramsBodyType: payload.paramsBodyType,
           })
-          .where(eq(profilesPreferences.profileId, request.params.profileId))
+          .where(eq(profilesPreferences.profileId, existingProfile.id))
           .returning();
-
-      let profilePhotos = undefined;
-      if (photos?.length) {
-        await tx
-            .delete(profilesPhotos)
-            .where(eq(profilesPhotos.profileId, request.params.profileId));
-        profilePhotos = await tx
-            .insert(profilesPhotos)
-            .values(photos)
-            .returning({
-              id: profilesPhotos.id,
-              order: profilesPhotos.order,
-              fileId: profilesPhotos.fileId,
-            });
-      }
 
       return {
         ...profileData,

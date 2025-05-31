@@ -1,4 +1,4 @@
-import { Type, Static, Object, Integer, String, Optional, Enum, Array, Union, Literal } from '@sinclair/typebox'
+import {Type, Static, Object, Integer, String, Optional, Enum, Array, Union, Literal, Boolean} from '@sinclair/typebox'
 
 export const LoginSchema = {
   tags: ['App / Auth'],
@@ -67,7 +67,7 @@ export const ActivateProfileSchema = {
         Array(
             Object({
               fileId: String(),
-              order: Integer(),
+              isAvatar: Boolean(),
             }),
             { maxItems: 3 }
         )

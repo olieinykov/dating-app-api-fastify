@@ -9,7 +9,6 @@ import { files } from '../../../db/schema/index.js';
 export const uploadFile = async (request: FastifyRequest<UploadFileType>, reply: FastifyReply) => {
     try {
         const file = await request.file();
-        console.log("file", file);
 
         if (!file) {
             return reply.code(400).send({

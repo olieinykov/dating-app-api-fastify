@@ -1,8 +1,9 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../../db/index.js";
 import { UpdateProfileSchemaType } from "./schemas.js";
-import { files, profiles, profilesPhotos, profilesPreferences } from "../../../db/schema/index.js";
+import {files, models, profiles, profiles_photos, profilesPreferences} from "../../../db/schema/index.js";
 import { eq } from "drizzle-orm";
+import {updateModelPhotos, updateProfilePhotos} from "../../../utils/files/files.js";
 
 export const getProfile = async (
   request: FastifyRequest,
@@ -29,13 +30,13 @@ export const getProfile = async (
 
     const photos = await db
       .select({
-        id: profilesPhotos.id,
+        id: profiles_photos.id,
         url: files.url,
-        order: profilesPhotos.order,
+        isAvatar: profiles_photos.isAvatar,
       })
-      .from(profilesPhotos)
-      .where(eq(profilesPhotos.profileId, profileData.id))
-      .leftJoin(files, eq(files.id, profilesPhotos.fileId))
+      .from(profiles_photos)
+      .where(eq(profiles_photos.profileId, profileData.id))
+      .leftJoin(files, eq(files.id, profiles_photos.fileId))
 
     reply.code(200).send({
       ...profileData,
@@ -45,6 +46,7 @@ export const getProfile = async (
       },
     });
   } catch (error) {
+      console.log("error", error)
     reply.code(404).send({
       success: false,
       message: "User not found",
@@ -57,11 +59,8 @@ export const updateProfile = async (
   reply: FastifyReply
 ) => {
   try {
+    const { photos, ...payload } = request.body;
     const userId = request.userId;
-      if (!userId) {
-          throw new Error("userId is required");
-      }
-
     const [existingProfile] = await db
       .select()
       .from(profiles)
@@ -73,20 +72,17 @@ export const updateProfile = async (
     }
 
     const result = await db.transaction(async (tx) => {
-      const photos = request.body.photos
-        ?.map((photo) => ({
-          fileId: photo.fileId,
-          profileId: existingProfile.id,
-          order: photo.order,
-        }))
-        ?.sort((a, b) => a.order - b.order);
+     let profilePhotos = undefined;
+
+     if (photos?.length) {
+        profilePhotos = await updateProfilePhotos(tx, existingProfile.id, photos);
+     }
 
       const [profileData] = await db
         .update(profiles)
         .set({
-          name: request.body.name,
-          avatarFileId: photos?.[0]?.fileId,
-          activatedAt: new Date(),
+          name: payload.name,
+          avatar: profilePhotos?.find(photo => photo?.isAvatar === true)?.url,
         })
         .where(eq(profiles.id, existingProfile.id))
         .returning();
@@ -94,34 +90,19 @@ export const updateProfile = async (
       const [profileDetails] = await db
         .update(profilesPreferences)
         .set({
-          about: request.body.about,
+          about: payload.about,
           // profileId: request.params.profileId,
-          dateOfBirth: request.body.dateOfBirth,
-          gender: request.body.gender,
-          hobbies: request.body.hobbies,
-          city: request.body.city,
-          paramsAge: request.body.paramsAge,
-          paramsBustSize: request.body.paramsBustSize,
-          paramsHairColor: request.body.paramsHairColor,
-          paramsBodyType: request.body.paramsBodyType,
+          dateOfBirth: payload.dateOfBirth,
+          gender: payload.gender,
+          hobbies: payload.hobbies,
+          city: payload.city,
+          paramsAge: payload.paramsAge,
+          paramsBustSize: payload.paramsBustSize,
+          paramsHairColor: payload.paramsHairColor,
+          paramsBodyType: payload.paramsBodyType,
         })
         .where(eq(profilesPreferences.profileId, existingProfile.id))
         .returning();
-
-      let profilePhotos = undefined;
-      if (photos !== undefined) {
-        await tx
-          .delete(profilesPhotos)
-          .where(eq(profilesPhotos.profileId, existingProfile.id));
-        profilePhotos = await tx
-          .insert(profilesPhotos)
-          .values(photos)
-          .returning({
-            id: profilesPhotos.id,
-            order: profilesPhotos.order,
-            fileId: profilesPhotos.fileId,
-          });
-      }
 
       return {
         ...profileData,
@@ -137,7 +118,7 @@ export const updateProfile = async (
     reply.code(400).send({
       success: false,
       error: (error as Error).message,
-      message: "Failed to activate profile",
+      message: "Failed to update profile",
     });
   }
 };

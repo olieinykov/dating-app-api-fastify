@@ -1,4 +1,4 @@
-import { Static, Object, Literal, String, Array, Integer, Optional, Enum, Union } from "@sinclair/typebox";
+import { Static, Object, Literal, String, Array, Boolean, Optional, Enum, Union } from "@sinclair/typebox";
 
 export const GetProfileSchema = {
   tags: ['App / Profile'],
@@ -40,7 +40,7 @@ export const UpdateProfileSchema = {
         Array(
             Object({
               fileId: String(),
-              order: Integer(),
+              isAvatar: Boolean(),
             }),
             { maxItems: 3 }
         )

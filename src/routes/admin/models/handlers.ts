@@ -11,6 +11,8 @@ import {
     UpdateModelType
 } from "./schemas.js";
 import { supabase } from "../../../services/supabase.js";
+import { models_photos } from "../../../db/schema/model_photos.js";
+import { updateModelPhotos } from "../../../utils/files/files.js";
 
 export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, reply: FastifyReply) => {
     try {
@@ -43,7 +45,7 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
             .select({
                 id: models.id,
                 age: models.age,
-                avatar: files.url,
+                avatar: models.avatar,
                 bodyType: models.bodyType,
                 bustSize:  models.bustSize,
                 country: models.country,
@@ -55,7 +57,6 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
             })
             .from(models)
             .where(whereCondition)
-            .leftJoin(files, eq(files.id, models.avatarFileId))
             .orderBy(
                 sortOrder === 'asc'
                 // @ts-ignore
@@ -94,7 +95,7 @@ export const getOneModel = async (request: FastifyRequest<GetOneModelType>, repl
                 userId: models.userId,
                 name: models.name,
                 country: models.country,
-                avatar: files.url,
+                avatar: models.avatar,
                 description: models.description,
                 age: models.age,
                 gender: models.gender,
@@ -107,24 +108,22 @@ export const getOneModel = async (request: FastifyRequest<GetOneModelType>, repl
             })
             .from(models)
             .where(eq(models.id, request.params.modelId))
-            .leftJoin(files, eq(files.id, models.avatarFileId))
             .limit(1);
+
+        const photos = await db.select({
+            id: files.id,
+            url: files.url,
+            isAvatar: models_photos.isAvatar,
+        }).from(models_photos)
+            .where(eq(models_photos.modelId, request.params.modelId))
+            .leftJoin(files, eq(files.id, models_photos.fileId))
 
         if (model) {
             reply.send({
                 success: true,
                 data: {
                     ...model,
-                    photos: [
-                        {
-                            id: '51100b39-19a2-4f02-8f74-a5b2879ce322',
-                            url: 'https://avbstfhignbxstnlfsef.supabase.co/storage/v1/object/public/uploads/9615b7bd-bb10-4e5c-a9a6-a06fb23fea57-pexels-maiconfotografo-15417324.jpg'
-                        },
-                        {
-                            id: 'b4b48581-f60f-4fe4-8127-f705c660beca',
-                            url: 'https://avbstfhignbxstnlfsef.supabase.co/storage/v1/object/public/uploads/6f905d38-d822-49c6-a016-b7c6c1309629-pexels-soldiervip-1391498.jpg'
-                        },
-                    ]
+                    photos
                 },
             });
         } else {
@@ -143,13 +142,12 @@ export const getOneModel = async (request: FastifyRequest<GetOneModelType>, repl
 
 export const deleteModel = async (request: FastifyRequest<DeleteModelType>, reply: FastifyReply) => {
     try {
-        const currentUserId = request.userId;
         const result = await db.transaction(async (tx) => {
-            const [updatedModel] = await tx.update(gifts)
+            const [updatedModel] = await tx.update(models)
                 .set({
                     deactivatedAt: new Date(),
                 })
-                .where(eq(gifts.id, request.params.modelId))
+                .where(eq(models.id, request.params.modelId))
                 .returning();
 
             if (!updatedModel) {
@@ -180,7 +178,7 @@ export const deleteModel = async (request: FastifyRequest<DeleteModelType>, repl
 
 export const createModel = async (request: FastifyRequest<CreateModelType>, reply: FastifyReply) => {
     try {
-        const currentUserId = request.userId;
+        const { photos = [], ...payload } = request.body;
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: `${uuidv4()}@amorium-model.com`,
             password: "MOCKED_PASSWORD",
@@ -194,18 +192,45 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
         }
 
         const result = await db.transaction(async (tx) => {
-            const [createdModel] = await db.insert(models).values({
-                ...request.body,
+            let [createdModel] = await tx.insert(models).values({
+                ...payload,
                 userId: authData.user?.id as string,
             }).returning();
 
+            let modelPhotos = undefined;
+            if (photos.length) {
+                const photosValues = photos.map((file => ({
+                    modelId: createdModel?.id!,
+                    fileId: file.fileId,
+                    isAvatar: file.isAvatar,
+                })));
 
-            // await tx.insert(models_actions).values({
-            //     authorUserId: currentUserId,
-            //     actionGiftId: createdModel.id,
-            //     actionType: "create",
-            // });
-            return createdModel;
+                await tx.insert(models_photos).values(photosValues).returning();
+
+                modelPhotos = await tx
+                    .select({
+                        id: files.id,
+                        url: files.url,
+                        isAvatar: models_photos.isAvatar,
+                    })
+                    .from(models_photos)
+                    .where(eq(models_photos.modelId, createdModel.id))
+                    .leftJoin(files, eq(files.id, models_photos.fileId))
+
+
+                const [data] = await tx.update(models).set({
+                    avatar: modelPhotos?.find(photo => photo?.isAvatar === true)?.url,
+                })
+                    .where(eq(models.id, createdModel.id))
+                    .returning();
+
+                createdModel = data;
+            }
+
+            return {
+                ...createdModel,
+                photos: modelPhotos,
+            };
         });
 
         reply.send({
@@ -213,6 +238,7 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
             data: result
         });
     } catch (error) {
+        console.log("error", error);
         reply.status(400).send({
             success: false,
             error: (error as Error)?.message
@@ -222,20 +248,33 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
 
 export const updateModel = async (request: FastifyRequest<UpdateModelType>, reply: FastifyReply) => {
     try {
-        const currentUserId = request.userId;
+        const { photos = [], ...payload } = request.body;
+
         const result = await db.transaction(async (tx) => {
-            const [updatedModel] = await db.update(models)
-                .set(request.body as any)
-                .where(eq(models.id, request.params.modelId))
-                .returning();
+            let modelPhotos = undefined;
+            let updatedModel = {};
 
+            if (photos.length) {
+                modelPhotos = await updateModelPhotos(tx, request.params.modelId, photos);
+            }
 
-            // await tx.insert(models_actions).values({
-            //     authorUserId: currentUserId,
-            //     actionGiftId: updatedModel.id,
-            //     actionType: "update",
-            // });
-            return updatedModel;
+            if (Object.keys(payload ?? {}).length) {
+                const avatar = modelPhotos?.find(photo => photo?.isAvatar === true)?.url;
+
+                const [data] = await tx.update(models)
+                    .set({
+                        ...payload,
+                        avatar,
+                    })
+                    .where(eq(models.id, request.params.modelId))
+                    .returning();
+                updatedModel = data;
+            }
+
+            return {
+                ...updatedModel,
+                photos: modelPhotos,
+            };
         });
 
         reply.send({
@@ -243,6 +282,7 @@ export const updateModel = async (request: FastifyRequest<UpdateModelType>, repl
             data: result
         });
     } catch (error) {
+        console.log("error", error)
         reply.status(400).send({
             success: false,
             error: (error as Error)?.message

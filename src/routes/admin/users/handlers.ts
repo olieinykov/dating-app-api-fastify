@@ -44,17 +44,17 @@ export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, repl
         const users = await db
             .select({
                 id: profiles.id,
-                // userId:  profiles.userId,
-                // name:  profiles.name,
-                // email:  profiles.email,
-                // telegramId: profiles.telegramId,
-                // role:  profiles.role,
-                // avatar: profiles.avatar,
-                // bannedAt: profiles.bannedAt,
-                // activatedAt:  profiles.activatedAt,
-                // createdAt:  profiles.createdAt,
-                // updatedAt:  profiles.updatedAt,
-                // city: profilesPreferences.city,
+                userId:  profiles.userId,
+                name:  profiles.name,
+                email:  profiles.email,
+                telegramId: profiles.telegramId,
+                role:  profiles.role,
+                avatar: profiles.avatar,
+                deactivatedAt: profiles.deactivatedAt,
+                activatedAt:  profiles.activatedAt,
+                createdAt:  profiles.createdAt,
+                updatedAt:  profiles.updatedAt,
+                city: profilesPreferences.city,
             })
             .from(profiles)
             .leftJoin(profilesPreferences, eq(profilesPreferences.profileId, profiles.id))
