@@ -97,7 +97,8 @@ export const sendGiftToModel = async (request: FastifyRequest<SendGiftsToModelSc
         const {
             giftId,
             modelId,
-            chatId
+            chatId,
+            localEntryId
         } = request.body;
 
         const profileId = request.profileId;
@@ -146,23 +147,30 @@ export const sendGiftToModel = async (request: FastifyRequest<SendGiftsToModelSc
                 .select({
                     id: chat_entries.id,
                     type: chat_entries.type,
-                    createdAt: chat_entries.createdAt,
                     chatId: chat_entries.chatId,
+                    gift: {
+                        id: gifts.id,
+                        title: gifts.title,
+                        price: gifts.price,
+                        image: gifts.image,
+                    },
                     sender: {
                         id: profiles.id,
                         name: profiles.name,
                     },
+                    createdAt: chat_entries.createdAt,
                 })
                 .from(chat_entries)
+                .leftJoin(gifts, eq(chat_entries.giftId, gifts.id))
                 .leftJoin(profiles, eq(chat_entries.senderId, profiles.userId))
                 .where(eq(chat_entries.id, newEntry.id));
 
             if (entryWithSender) {
                 const usersChannel = ablyClient.channels.get(`user-events:${request.userId}`);
                 const adminChannel = ablyClient.channels.get(`admin-events`);
-
-                await usersChannel.publish('entry-created', entryWithSender);
-                await adminChannel.publish('entry-created', entryWithSender);
+                const eventData = { ...entryWithSender, localEntryId }
+                await usersChannel.publish('entry-created', eventData);
+                await adminChannel.publish('entry-created', eventData);
             }
 
             return entryWithSender;
@@ -170,7 +178,10 @@ export const sendGiftToModel = async (request: FastifyRequest<SendGiftsToModelSc
 
         return reply.code(200).send({
             success: true,
-            data,
+            data: {
+                ...data,
+                localEntryId
+            },
         });
 
     } catch (error) {

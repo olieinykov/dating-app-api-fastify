@@ -23,6 +23,7 @@ export const SendGiftsToModelSchema = {
     giftId: Type.Optional(Type.Integer()),
     modelId: Type.Optional(Type.Integer()),
     chatId: Type.Optional(Type.Integer()),
+    localEntryId: Type.String(),
   }),
 }
 export type SendGiftsToModelSchemaType = {

@@ -6,7 +6,7 @@ import {
     GetChatEntriesSchemaType
 } from './schemas.js'
 import { db } from "../../../db/index.js";
-import { chat_entries, chats, models, profiles, files, chat_entry_files, chat_participants } from "../../../db/schema/index.js";
+import { chat_entries, chats, models, profiles, files, chat_entry_files, chat_participants, gifts } from "../../../db/schema/index.js";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import ablyClient from '../../../services/ably.js'
 
@@ -151,6 +151,8 @@ export const getAllChats = async (
                 id: chat_entries.id,
                 chatId: chat_entries.chatId,
                 body: chat_entries.body,
+                type: chat_entries.type,
+                giftId: chat_entries.giftId,
                 createdAt: chat_entries.createdAt,
                 senderId: chat_entries.senderId,
             })
@@ -186,9 +188,11 @@ export const getAllChats = async (
             lastMessageMap.set(message.chatId, {
                 id: message.id,
                 body: message.body,
+                type: message.type,
                 senderId: message.senderId,
                 createdAt: message.createdAt,
                 includeFile: filesByEntryId.has(message.id),
+                includeGift: Boolean(message.giftId),
             });
         }
 
@@ -293,7 +297,10 @@ export const createChatEntry = async (
 
         reply.code(200).send({
             success: true,
-            data: data,
+            data: {
+                ...data,
+                localEntryId
+            },
         });
     } catch (error) {
         reply.code(400).send({
@@ -319,7 +326,14 @@ export const getChatEntries = async (
             .select({
                 id: chat_entries.id,
                 body: chat_entries.body,
+                type: chat_entries.type,
                 chatId: chat_entries.chatId,
+                gift: {
+                    id: gifts.id,
+                    title: gifts.title,
+                    price: gifts.price,
+                    image: gifts.image,
+                },
                 createdAt: chat_entries.createdAt,
                 updatedAt: chat_entries.updatedAt,
                 fromProfile: profiles,
@@ -329,6 +343,7 @@ export const getChatEntries = async (
             .where(eq(chat_entries.chatId, request.params.chatId))
             .leftJoin(profiles, eq(chat_entries.senderId, profiles.userId))
             .leftJoin(models, eq(chat_entries.senderId, models.userId))
+            .leftJoin(gifts, eq(chat_entries.giftId, gifts.id))
             .orderBy(desc(chat_entries.createdAt))
             .limit(limit)
             .offset(offset);
