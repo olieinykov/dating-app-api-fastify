@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { v4 as uuidv4 } from 'uuid';
 import { db } from "../../../db/index.js";
-import { gifts, models, files } from "../../../db/schema/index.js";
+import {models, files, modelGifts, model_gifts} from "../../../db/schema/index.js";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import {
     CreateModelType,
@@ -178,7 +178,7 @@ export const deleteModel = async (request: FastifyRequest<DeleteModelType>, repl
 
 export const createModel = async (request: FastifyRequest<CreateModelType>, reply: FastifyReply) => {
     try {
-        const { photos = [], ...payload } = request.body;
+        const { photos = [], favoriteGiftIds, ...payload } = request.body;
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: `${uuidv4()}@amorium-model.com`,
             password: "MOCKED_PASSWORD",
@@ -218,6 +218,7 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
                     .leftJoin(files, eq(files.id, models_photos.fileId))
 
 
+
                 const [data] = await tx.update(models).set({
                     avatar: modelPhotos?.find(photo => photo?.isAvatar === true)?.url,
                 })
@@ -225,6 +226,15 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
                     .returning();
 
                 createdModel = data;
+
+                if (favoriteGiftIds?.length) {
+                    const giftsValues = favoriteGiftIds.map((giftId => ({
+                        modelId: createdModel?.id!,
+                        giftId: giftId,
+                    })));
+
+                    await tx.insert(model_gifts).values(giftsValues).returning();
+                }
             }
 
             return {

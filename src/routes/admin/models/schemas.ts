@@ -1,4 +1,4 @@
-import { Type, Static, Array, Object, String, Boolean } from '@sinclair/typebox'
+import {Type, Static, Array, Object, String, Boolean, Integer} from '@sinclair/typebox'
 import { PaginationSchema } from '../../../shared/schemas.js'
 
 export const CreateModelSchema = {
@@ -36,6 +36,7 @@ export const CreateModelSchema = {
         }),
         { maxItems: 3 }
     ),
+    favoriteGiftIds: Array(Integer())
   }),
 };
 export type CreateModelType = {

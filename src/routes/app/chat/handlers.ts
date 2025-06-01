@@ -114,6 +114,7 @@ export const getAllChats = async (
             .select({
                 chatId: chat_participants.chatId,
                 userId: chat_participants.userId,
+                modelId: models.id,
                 modelName: models.name,
                 modelAvatar: models.avatar,
             })
@@ -127,6 +128,7 @@ export const getAllChats = async (
             if (p.userId !== userId) {
                 list.push({
                     id: p.userId,
+                    modelId: p.modelId,
                     name: p.modelName!,
                     avatar: p.modelAvatar!,
                 });
@@ -233,6 +235,7 @@ export const createChatEntry = async (
 ) => {
     try {
         const { localEntryId, attachmentIds, ...payload } = request.body;
+
         const data = await db.transaction(async (tx) => {
 
             const [entry] = await tx.insert(chat_entries).values({
@@ -283,6 +286,7 @@ export const createChatEntry = async (
             const usersChannel = ablyClient.channels.get(`user-events:${request.userId}`);
             const adminChannel = ablyClient.channels.get(`admin-events`);
             const eventData = { ...data, localEntryId }
+
             await usersChannel.publish('entry-created', eventData);
             await adminChannel.publish('entry-created', eventData);
         }

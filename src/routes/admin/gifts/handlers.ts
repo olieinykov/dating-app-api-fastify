@@ -9,7 +9,6 @@ import {
     GetOneGiftType,
     UpdateGiftType
 } from "./schemas.js";
-import { gift_actions } from "../../../db/schema/gift_action";
 
 export const getAllGifts = async (request: FastifyRequest<GetAllGiftsType>, reply: FastifyReply) => {
     try {

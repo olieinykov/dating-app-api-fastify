@@ -1,5 +1,5 @@
 import { integer, pgTable, serial, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-import { chats } from "./chat.js";
+import { chats } from "./chat";
 import { uuid } from "drizzle-orm/pg-core";
 
 export const chat_participants = pgTable("chat_participants", {

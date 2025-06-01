@@ -11,6 +11,7 @@ import appChatRoutes from './routes/app/chat/index.js'
 import appModelsRoutes from './routes/app/models/index.js'
 import appFilesRoutes from './routes/app/files/index.js'
 import appConfigRoutes from './routes/app/configuration/index.js'
+import appGiftsRoutes from './routes/app/gifts/index.js'
 
 import adminUsersRoutes from './routes/admin/users/index.js'
 import adminModelsRoutes from './routes/admin/models/index.js'
@@ -36,6 +37,7 @@ async function initialize() {
   await fastify.register(appModelsRoutes, { prefix: '/api/app/models' })
   await fastify.register(appFilesRoutes, { prefix: '/api/app/files' })
   await fastify.register(appConfigRoutes, { prefix: '/api/app/configuration' })
+  await fastify.register(appGiftsRoutes, { prefix: '/api/app/gifts' })
 
   await fastify.register(adminAuthRoutes, { prefix: '/api/admin/auth' })
   await fastify.register(adminUsersRoutes, { prefix: '/api/admin/users' })

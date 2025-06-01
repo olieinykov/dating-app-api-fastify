@@ -1,5 +1,5 @@
 import { pgTable, serial, varchar, text, timestamp, uuid, integer } from 'drizzle-orm/pg-core'
-import { profilesTelegram } from "./profile_telegram.js";
+import { profilesTelegram } from "./profile_telegram";
 import { pgEnum } from "drizzle-orm/pg-core";
 import { files } from "./file";
 
