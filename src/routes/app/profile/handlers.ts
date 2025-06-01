@@ -1,9 +1,10 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../../db/index.js";
 import { UpdateProfileSchemaType } from "./schemas.js";
-import {files, models, profiles, profiles_photos, profilesPreferences} from "../../../db/schema/index.js";
+import {files, profiles, profiles_photos, profilesPreferences} from "../../../db/schema/index.js";
 import { eq } from "drizzle-orm";
-import {updateModelPhotos, updateProfilePhotos} from "../../../utils/files/files.js";
+import {updateProfilePhotos} from "../../../utils/files/files.js";
+import {profile_balances} from "../../../db/schema/profile_balances.js";
 
 export const getProfile = async (
   request: FastifyRequest,
@@ -38,10 +39,18 @@ export const getProfile = async (
       .where(eq(profiles_photos.profileId, profileData.id))
       .leftJoin(files, eq(files.id, profiles_photos.fileId))
 
+
+      const [balanceRow] = await db
+          .select({ balance: profile_balances.balance })
+          .from(profile_balances)
+          .where(eq(profile_balances.profileId, profileData.id as number))
+          .limit(1);
+
     reply.code(200).send({
       ...profileData,
       profile: {
         ...profileDetails,
+        balance: balanceRow.balance,
         photos,
       },
     });
@@ -77,6 +86,7 @@ export const updateProfile = async (
      if (photos?.length) {
         profilePhotos = await updateProfilePhotos(tx, existingProfile.id, photos);
      }
+     console.log("payload", payload);
 
       const [profileData] = await db
         .update(profiles)
@@ -104,10 +114,17 @@ export const updateProfile = async (
         .where(eq(profilesPreferences.profileId, existingProfile.id))
         .returning();
 
+        const [balanceRow] = await tx
+            .select({ balance: profile_balances.balance })
+            .from(profile_balances)
+            .where(eq(profile_balances.profileId, existingProfile.id as number))
+            .limit(1);
+
       return {
         ...profileData,
         profile: {
           ...profileDetails,
+          balance: balanceRow.balance,
           photos: profilePhotos,
         },
       };

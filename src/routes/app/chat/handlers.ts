@@ -255,7 +255,7 @@ export const createChatEntry = async (
                     }))
                 ).returning();
 
-                 attachments = await db.select()
+                 attachments = await tx.select()
                     .from(files)
                     .where(inArray(files.id, attachmentIds));
             }

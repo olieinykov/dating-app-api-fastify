@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { chat_entries, model_gifts, models } from "../../../db/schema/index.js";
+import {chat_entries, model_gifts, models, profiles} from "../../../db/schema/index.js";
 import { db } from "../../../db/index.js";
 import {GetGiftsSentFromMeSchemaType, GetModelFavoritesSchemaType, SendGiftsToModelSchemaType} from "./schemas.js";
 import { gifts } from "../../../db/schema/gift.js";
@@ -120,9 +120,6 @@ export const sendGiftToModel = async (request: FastifyRequest<SendGiftsToModelSc
             const balance = balanceRow?.balance ?? 0;
             const giftPrice = gift.price ?? 0;
 
-            console.log("balance", balance);
-            console.log("gift.price", gift.price);
-
             if (balance <= giftPrice) {
                 throw new Error('Insufficient balance');
             }
@@ -145,15 +142,30 @@ export const sendGiftToModel = async (request: FastifyRequest<SendGiftsToModelSc
                 giftId: gift.id,
             }).returning();
 
-            if (newEntry) {
+            const [entryWithSender] = await tx
+                .select({
+                    id: chat_entries.id,
+                    type: chat_entries.type,
+                    createdAt: chat_entries.createdAt,
+                    chatId: chat_entries.chatId,
+                    sender: {
+                        id: profiles.id,
+                        name: profiles.name,
+                    },
+                })
+                .from(chat_entries)
+                .leftJoin(profiles, eq(chat_entries.senderId, profiles.userId))
+                .where(eq(chat_entries.id, newEntry.id));
+
+            if (entryWithSender) {
                 const usersChannel = ablyClient.channels.get(`user-events:${request.userId}`);
                 const adminChannel = ablyClient.channels.get(`admin-events`);
 
-                await usersChannel.publish('entry-created', newEntry);
-                await adminChannel.publish('entry-created', newEntry);
+                await usersChannel.publish('entry-created', entryWithSender);
+                await adminChannel.publish('entry-created', entryWithSender);
             }
 
-            return newEntry;
+            return entryWithSender;
         });
 
         return reply.code(200).send({
