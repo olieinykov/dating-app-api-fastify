@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { v4 as uuidv4 } from 'uuid';
 import { db } from "../../../db/index.js";
-import {models, files, modelGifts, model_gifts} from "../../../db/schema/index.js";
+import {models, files, model_gifts} from "../../../db/schema/index.js";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import {
     CreateModelType,

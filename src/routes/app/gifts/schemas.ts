@@ -15,6 +15,7 @@ export type GetModelFavoritesSchemaType = {
 }
 
 export const GetGiftsSentFromMeSchema = GetModelFavoritesSchema;
+export type GetGiftsSentFromMeSchemaType = GetModelFavoritesSchemaType;
 
 export const SendGiftsToModelSchema = {
   tags: ['App / Gifts'],

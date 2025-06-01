@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { chat_entries, model_gifts, models } from "../../../db/schema/index.js";
 import { db } from "../../../db/index.js";
-import { GetModelFavoritesSchemaType, SendGiftsToModelSchemaType } from "./schemas.js";
+import {GetGiftsSentFromMeSchemaType, GetModelFavoritesSchemaType, SendGiftsToModelSchemaType} from "./schemas.js";
 import { gifts } from "../../../db/schema/gift";
 import {and, eq} from "drizzle-orm";
 import { profile_gift_transactions } from "../../../db/schema/profile_gift_transactions";
@@ -41,7 +41,7 @@ export const getModelFavoriteGifts = async (request: FastifyRequest<GetModelFavo
                 updatedAt: gifts.updatedAt
             })
             .from(model_gifts)
-            .where(eq(model_gifts.modelId, modelId))
+            .where(eq(model_gifts.modelId, modelId!))
             .innerJoin(gifts, eq(model_gifts.giftId, gifts.id))
 
         return reply.send({
@@ -57,7 +57,7 @@ export const getModelFavoriteGifts = async (request: FastifyRequest<GetModelFavo
 };
 
 
-export const getGiftsSentFromMe = async (request: FastifyRequest, reply: FastifyReply) => {
+export const getGiftsSentFromMe = async (request: FastifyRequest<GetGiftsSentFromMeSchemaType>, reply: FastifyReply) => {
     try {
         const { modelId } = request.params;
         const profileId = request.profileId;
@@ -74,8 +74,8 @@ export const getGiftsSentFromMe = async (request: FastifyRequest, reply: Fastify
             .from(profile_gift_transactions)
             .where(
                 and(
-                    eq(profile_gift_transactions.profileId, profileId),
-                    eq(profile_gift_transactions.modelId, modelId)
+                    eq(profile_gift_transactions.profileId, profileId as number),
+                    eq(profile_gift_transactions.modelId, modelId as number)
                 )
             )
             .innerJoin(gifts, eq(profile_gift_transactions.giftId, gifts.id))
@@ -103,8 +103,8 @@ export const sendGiftToModel = async (request: FastifyRequest<SendGiftsToModelSc
         const profileId = request.profileId;
         const profileUserId = request.userId;
 
-        const [model] = await db.select().from(models).where(eq(models.id, modelId)).limit(1);
-        const [gift] = await db.select().from(gifts).where(eq(gifts.id, giftId)).limit(1);
+        const [model] = await db.select().from(models).where(eq(models.id, modelId as number)).limit(1);
+        const [gift] = await db.select().from(gifts).where(eq(gifts.id, giftId as number)).limit(1);
 
         if (!model || !gift) {
             throw new Error();
@@ -114,32 +114,33 @@ export const sendGiftToModel = async (request: FastifyRequest<SendGiftsToModelSc
             const [balanceRow] = await tx
                 .select({ balance: profile_balances.balance })
                 .from(profile_balances)
-                .where(eq(profile_balances.profileId, profileId))
+                .where(eq(profile_balances.profileId, profileId as number))
                 .limit(1);
 
             const balance = balanceRow?.balance ?? 0;
+            const giftPrice = gift.price ?? 0;
 
             console.log("balance", balance);
             console.log("gift.price", gift.price);
 
-            if (balance <= gift.price) {
+            if (balance <= giftPrice) {
                 throw new Error('Insufficient balance');
             }
 
             await tx.update(profile_balances)
-                .set({ balance: balance - gift.price })
-                .where(eq(profile_balances.profileId, profileId));
+                .set({ balance: balance - giftPrice })
+                .where(eq(profile_balances.profileId, profileId as number));
 
             await tx.insert(profile_gift_transactions).values({
                 profileId,
                 modelId,
                 giftId,
-                price: gift.price,
+                price: giftPrice,
             });
 
             const [newEntry] = await tx.insert(chat_entries).values({
                 chatId: chatId,
-                senderId: profileUserId,
+                senderId: profileUserId as string,
                 type: 'gift',
                 giftId: gift.id,
             }).returning();

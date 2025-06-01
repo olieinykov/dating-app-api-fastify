@@ -122,13 +122,13 @@ export const getAllChats = async (
             .leftJoin(models, eq(chat_participants.userId, models.userId))
             .where(inArray(chat_participants.chatId, chatIds));
 
-        const participantMap = new Map<number, Array<{ id: string, name: string, avatar?: string }>>();
+        const participantMap = new Map<number, Array<{ modelId: number; id: string, name: string, avatar?: string }>>();
         for (const p of participants) {
             const list = participantMap.get(p.chatId) ?? [];
             if (p.userId !== userId) {
                 list.push({
                     id: p.userId,
-                    modelId: p.modelId,
+                    modelId: p.modelId!,
                     name: p.modelName!,
                     avatar: p.modelAvatar!,
                 });
