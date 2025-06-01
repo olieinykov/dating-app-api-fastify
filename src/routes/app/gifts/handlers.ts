@@ -2,11 +2,11 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { chat_entries, model_gifts, models } from "../../../db/schema/index.js";
 import { db } from "../../../db/index.js";
 import {GetGiftsSentFromMeSchemaType, GetModelFavoritesSchemaType, SendGiftsToModelSchemaType} from "./schemas.js";
-import { gifts } from "../../../db/schema/gift";
+import { gifts } from "../../../db/schema/gift.js";
 import {and, eq} from "drizzle-orm";
-import { profile_gift_transactions } from "../../../db/schema/profile_gift_transactions";
-import {profile_balances} from "../../../db/schema/profile_balances";
-import ablyClient from "../../../services/ably";
+import { profile_gift_transactions } from "../../../db/schema/profile_gift_transactions.js";
+import {profile_balances} from "../../../db/schema/profile_balances.js";
+import ablyClient from "../../../services/ably.js";
 
 
 export const getGifts = async (request: FastifyRequest, reply: FastifyReply) => {

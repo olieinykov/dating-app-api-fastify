@@ -1,5 +1,5 @@
 import { pgTable, timestamp, integer, serial } from 'drizzle-orm/pg-core'
-import { profiles } from './profile'
+import { profiles } from './profile.js'
 
 export const profile_balances = pgTable('profile_balances', {
     profileId: serial('profile_id').references(() => profiles.id),
