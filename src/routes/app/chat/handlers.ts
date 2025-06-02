@@ -7,7 +7,7 @@ import {
 } from './schemas.js'
 import { db } from "../../../db/index.js";
 import { chat_entries, chats, models, profiles, files, chat_entry_files, chat_participants, gifts } from "../../../db/schema/index.js";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import {and, asc, eq, inArray, sql} from "drizzle-orm";
 import ablyClient from '../../../services/ably.js'
 
 export const createChat = async (
@@ -273,6 +273,7 @@ export const createChatEntry = async (
                     chatId: chat_entries.chatId,
                     sender: {
                         id: profiles.id,
+                        senderId: profiles.userId,
                         name: profiles.name,
                     },
                 })
@@ -344,7 +345,7 @@ export const getChatEntries = async (
             .leftJoin(profiles, eq(chat_entries.senderId, profiles.userId))
             .leftJoin(models, eq(chat_entries.senderId, models.userId))
             .leftJoin(gifts, eq(chat_entries.giftId, gifts.id))
-            .orderBy(desc(chat_entries.createdAt))
+            .orderBy(asc(chat_entries.createdAt))
             .limit(limit)
             .offset(offset);
 
@@ -373,7 +374,9 @@ export const getChatEntries = async (
                 attachments: entryFiles,
                 sender: {
                     id: sender.id,
+                    senderId: sender.userId,
                     name: sender.name,
+                    avatar: sender.avatar,
                 }
             };
         });
