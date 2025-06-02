@@ -78,7 +78,7 @@ export const getGiftsSentFromMe = async (request: FastifyRequest<GetGiftsSentFro
                     eq(profile_gift_transactions.modelId, modelId as number)
                 )
             )
-            .innerJoin(gifts, eq(profile_gift_transactions.giftId, gifts.id))
+            .innerJoin(gifts, eq(profile_gift_transactions.giftId, gifts.id)).groupBy(gifts.id)
 
         return reply.send({
             status: 'success',
