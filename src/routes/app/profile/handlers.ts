@@ -31,7 +31,7 @@ export const getProfile = async (
 
     const photos = await db
       .select({
-        id: profiles_photos.id,
+        id: profiles_photos.fileId,
         url: files.url,
         isAvatar: profiles_photos.isAvatar,
       })
@@ -86,7 +86,6 @@ export const updateProfile = async (
      if (photos?.length) {
         profilePhotos = await updateProfilePhotos(tx, existingProfile.id, photos);
      }
-     console.log("payload", payload);
 
       const [profileData] = await db
         .update(profiles)

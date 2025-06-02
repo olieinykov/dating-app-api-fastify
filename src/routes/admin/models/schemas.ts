@@ -31,7 +31,7 @@ export const CreateModelSchema = {
     }),
     photos: Array(
         Object({
-          fileId: String(),
+          id: String(),
           isAvatar: Boolean(),
         }),
         { maxItems: 3 }
@@ -55,11 +55,12 @@ export const UpdateModelSchema = {
     about: Type.String(),
     photos: Array(
         Object({
-          fileId: String(),
+          id: String(),
           isAvatar: Boolean(),
         }),
         { maxItems: 3 }
     ),
+    favoriteGiftIds: Array(Integer())
   })),
 
 };

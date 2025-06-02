@@ -39,7 +39,7 @@ export const UpdateProfileSchema = {
     photos: Optional(
         Array(
             Object({
-              fileId: String(),
+              id: String(),
               isAvatar: Boolean(),
             }),
             { maxItems: 3 }

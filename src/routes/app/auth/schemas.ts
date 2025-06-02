@@ -66,7 +66,7 @@ export const ActivateProfileSchema = {
     photos: Optional(
         Array(
             Object({
-              fileId: String(),
+              id: String(),
               isAvatar: Boolean(),
             }),
             { maxItems: 3 }

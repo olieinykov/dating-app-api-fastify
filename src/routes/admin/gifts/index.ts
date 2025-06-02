@@ -8,6 +8,8 @@ import {
   GetOneGiftSchema
 } from "./schemas.js";
 import { adminAuthenticated } from "../../../middleware/adminAuthenticated.js";
+import { GetModelFavoritesSchema } from "../../app/gifts/schemas.js";
+import { getModelFavoriteGifts } from "../../app/gifts/handlers.js";
 
 const routes = async (fastify: FastifyInstance) => {
   fastify.post('/', {
@@ -34,6 +36,11 @@ const routes = async (fastify: FastifyInstance) => {
     schema: DeleteGiftSchema,
     preHandler: [adminAuthenticated],
     handler: deleteGift
+  })
+  fastify.get('/models/:modelId/favorite-gifts', {
+    schema: GetModelFavoritesSchema,
+    preHandler: [adminAuthenticated],
+    handler: getModelFavoriteGifts
   })
 }
 
