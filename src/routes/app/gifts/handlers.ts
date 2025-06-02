@@ -156,6 +156,7 @@ export const sendGiftToModel = async (request: FastifyRequest<SendGiftsToModelSc
                     },
                     sender: {
                         id: profiles.id,
+                        senderId: profiles.userId,
                         name: profiles.name,
                     },
                     createdAt: chat_entries.createdAt,
