@@ -6,6 +6,7 @@ import { ActivateProfileSchemaType, LoginSchemaType } from "./schemas.js";
 import { supabase, supabaseAdmin } from "../../../services/supabase.js";
 import { CookieSerializeOptions } from "@fastify/cookie";
 import {updateProfilePhotos} from "../../../utils/files/files.js";
+import {profile_balances} from "../../../db/schema/profile_balances.js";
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
   const telegram = request.body;
@@ -96,6 +97,12 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
         await tx.insert(profilesPreferences).values({
           profileId: profileData.id
         }).returning();
+
+        await tx.insert(profile_balances).values({
+          profileId: profileData.id,
+          balance: 0,
+        }).returning();
+
 
         return profileData;
       });

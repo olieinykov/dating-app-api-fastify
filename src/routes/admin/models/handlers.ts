@@ -111,7 +111,7 @@ export const getOneModel = async (request: FastifyRequest<GetOneModelType>, repl
             .limit(1);
 
         const photos = await db.select({
-            id: files.id,
+            id: models_photos.fileId,
             url: files.url,
             isAvatar: models_photos.isAvatar,
         }).from(models_photos)
@@ -201,7 +201,7 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
             if (photos.length) {
                 const photosValues = photos.map((file => ({
                     modelId: createdModel?.id!,
-                    fileId: file.fileId,
+                    fileId: file.id,
                     isAvatar: file.isAvatar,
                 })));
 
@@ -209,7 +209,7 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
 
                 modelPhotos = await tx
                     .select({
-                        id: files.id,
+                        id: models_photos.fileId,
                         url: files.url,
                         isAvatar: models_photos.isAvatar,
                     })
@@ -258,34 +258,54 @@ export const createModel = async (request: FastifyRequest<CreateModelType>, repl
 
 export const updateModel = async (request: FastifyRequest<UpdateModelType>, reply: FastifyReply) => {
     try {
-        const { photos = [], ...payload } = request.body;
+        const { photos = [], favoriteGiftIds, ...payload } = request.body;
+        const modelId = request.params.modelId;
 
         const result = await db.transaction(async (tx) => {
-            let modelPhotos = undefined;
-            let updatedModel = {};
+            try {
+                let modelPhotos = undefined;
+                let updatedModel = {};
 
-            if (photos.length) {
-                modelPhotos = await updateModelPhotos(tx, request.params.modelId, photos);
+                if (photos.length) {
+                    modelPhotos = await updateModelPhotos(tx, modelId, photos);
+                }
+
+                if (Object.keys(payload ?? {}).length) {
+                    const avatar = modelPhotos?.find(photo => photo?.isAvatar === true)?.url;
+
+                    const [data] = await tx.update(models)
+                        .set({
+                            ...payload,
+                            avatar,
+                        })
+                        .where(eq(models.id, modelId))
+                        .returning();
+                    updatedModel = data;
+                }
+
+                if (favoriteGiftIds?.length === 0) {
+                    await tx.delete(model_gifts).where(eq(model_gifts.modelId, modelId)).returning();
+                }
+
+                if (favoriteGiftIds?.length) {
+                    const giftsValues = favoriteGiftIds.map((giftId => ({
+                        modelId: modelId!,
+                        giftId: giftId,
+                    })));
+                    await tx.delete(model_gifts).where(eq(model_gifts.modelId, modelId)).returning();
+                    await tx.insert(model_gifts).values(giftsValues).returning();
+                }
+
+                return {
+                    ...updatedModel,
+                    photos: modelPhotos,
+                };
+            } catch (error) {
+                console.log("TRANSACTION ERROR", error);
             }
-
-            if (Object.keys(payload ?? {}).length) {
-                const avatar = modelPhotos?.find(photo => photo?.isAvatar === true)?.url;
-
-                const [data] = await tx.update(models)
-                    .set({
-                        ...payload,
-                        avatar,
-                    })
-                    .where(eq(models.id, request.params.modelId))
-                    .returning();
-                updatedModel = data;
-            }
-
-            return {
-                ...updatedModel,
-                photos: modelPhotos,
-            };
         });
+
+        console.log("Updated Model ===>", result);
 
         reply.send({
             success: true,

@@ -60,8 +60,8 @@ export const createChat = async (
     if (data) {
         const userChannel = ablyClient.channels.get(`user-events:${profileUserId}`);
         const adminChannel = ablyClient.channels.get(`admin-events`);
-        await userChannel.publish('channel-created', data);
-        await adminChannel.publish('channel-created', data);
+        await userChannel.publish('chat-created', data);
+        await adminChannel.publish('chat-created', data);
     }
 
     reply.code(200).send({

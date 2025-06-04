@@ -2,16 +2,16 @@ import { db } from "../../db";
 import { models_photos } from "../../db/schema/model_photos.js";
 import { eq } from "drizzle-orm";
 import { ProfileFile } from "./type";
-import {files, profiles_photos} from "../../db/schema/index.js";
+import { files, profiles_photos } from "../../db/schema/index.js";
 
 
 export const updateModelPhotos = async (tx: Parameters<Parameters<typeof db.transaction>[0]>[0], modelId: number, photos: ProfileFile[]) => {
     const photosValues = photos.map((file => ({
         modelId: modelId,
-        fileId: file.fileId,
+        fileId: file.id,
         isAvatar: file.isAvatar,
     })));
-    await tx.delete(models_photos).where(eq(models_photos.modelId, modelId));
+    await tx.delete(models_photos).where(eq(models_photos.modelId, modelId)).returning();
     await tx.insert(models_photos).values(photosValues).returning();
 
     return tx
@@ -28,7 +28,7 @@ export const updateModelPhotos = async (tx: Parameters<Parameters<typeof db.tran
 export const updateProfilePhotos = async (tx: Parameters<Parameters<typeof db.transaction>[0]>[0], profileId: number, photos: ProfileFile[]) => {
     const photosValues = photos.map((file => ({
         profileId: profileId,
-        fileId: file.fileId,
+        fileId: file.id,
         isAvatar: file.isAvatar,
     })));
 
