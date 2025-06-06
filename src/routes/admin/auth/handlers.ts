@@ -2,6 +2,7 @@ import { supabase } from '../../../services/supabase.js'
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { LoginBodyType } from './schemas.js'
 import {CookieSerializeOptions} from "@fastify/cookie";
+import env from "../../../config/env.js";
 
 const cookiesConfig: CookieSerializeOptions = {
   httpOnly: true,
@@ -31,12 +32,14 @@ export const login = async (
 
     reply.setCookie('adminAccessToken', authData?.session?.access_token!, {
       ...cookiesConfig,
-      maxAge: 10 * 60 * 1000,
+      // maxAge: 60 * 60 * 1000,
+      maxAge: env.appConfig.adminTokenExpirationTime,
     });
 
     reply.setCookie('adminRefreshToken', authData?.session?.refresh_token!, {
       ...cookiesConfig,
-      maxAge: 24 * 60 * 60 * 1000,
+      // maxAge: 24 * 60 * 60 * 1000,
+      maxAge: env.appConfig.adminRefreshTokenExpirationTime,
     });
 
     reply.code(200);
@@ -51,5 +54,5 @@ export const logout = async (request: FastifyRequest<LoginBodyType>, reply: Fast
   reply.clearCookie('adminAccessToken');
   reply.clearCookie('adminRefreshToken');
 
-  return reply.code(200);
+  reply.code(200);
 };

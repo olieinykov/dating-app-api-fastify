@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { models } from "../../../db/schema/index.js";
 import { db } from "../../../db/index.js";
 import { GetModelsByPreferencesSchemaType } from "./schemas.js";
+import { isNull } from "drizzle-orm";
 
 export const getModelsByPreferences = async (request: FastifyRequest<GetModelsByPreferencesSchemaType>, reply: FastifyReply) => {
     try {
@@ -17,6 +18,7 @@ export const getModelsByPreferences = async (request: FastifyRequest<GetModelsBy
         const data = await db
             .select()
             .from(models)
+            .where(isNull(models.deactivatedAt))
             .limit(limit)
             .offset(offset);
 

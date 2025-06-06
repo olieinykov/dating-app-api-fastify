@@ -16,15 +16,11 @@ export const getMe = async (
       });
     }
 
-    console.log("Message user =>", user);
-
     const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
         .single();
-
-    console.log("Message data =>", data);
 
     if (error) throw error;
     if (!data) {

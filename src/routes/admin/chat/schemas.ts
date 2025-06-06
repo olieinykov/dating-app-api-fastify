@@ -23,7 +23,7 @@ export const CreateChatEntrySchema = {
     body: Optional(Type.String()),
     attachmentIds: Optional(Type.Array(Type.String())),
     fromModelId: Type.String(),
-    // participantId: Type.String(),
+    participantsIds: Type.Array(Type.String()),
   })
 }
 

@@ -1,8 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { v4 as uuidv4 } from 'uuid';
 import { db } from "../../../db/index.js";
-import {models, files, model_gifts} from "../../../db/schema/index.js";
-import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
+import { models, files, model_gifts } from "../../../db/schema/index.js";
+import {and, asc, desc, eq, ilike, or, isNull} from "drizzle-orm";
+
 import {
     CreateModelType,
     DeleteModelType,
@@ -10,7 +11,7 @@ import {
     GetOneModelType,
     UpdateModelType
 } from "./schemas.js";
-import { supabase } from "../../../services/supabase.js";
+import { supabaseAdmin } from "../../../services/supabase.js";
 import { models_photos } from "../../../db/schema/model_photos.js";
 import { updateModelPhotos } from "../../../utils/files/files.js";
 
@@ -30,6 +31,7 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
         const offset = (currentPage - 1) * limit;
         const whereClauses = [];
 
+        whereClauses.push(isNull(models.deactivatedAt));
 
         if (search.trim()) {
             whereClauses.push(
@@ -42,19 +44,7 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
 
         const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
         const data = await db
-            .select({
-                id: models.id,
-                age: models.age,
-                avatar: models.avatar,
-                bodyType: models.bodyType,
-                bustSize:  models.bustSize,
-                country: models.country,
-                description: models.description,
-                gender: models.gender,
-                hairColor: models.hairColor,
-                name: models.name,
-                userId: models.userId,
-            })
+            .select()
             .from(models)
             .where(whereCondition)
             .orderBy(
@@ -179,10 +169,15 @@ export const deleteModel = async (request: FastifyRequest<DeleteModelType>, repl
 export const createModel = async (request: FastifyRequest<CreateModelType>, reply: FastifyReply) => {
     try {
         const { photos = [], favoriteGiftIds, ...payload } = request.body;
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        const {  data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email: `${uuidv4()}@amorium-model.com`,
             password: "MOCKED_PASSWORD",
+            email_confirm: true,
+            user_metadata: {
+                role: "model"
+            },
         });
+
 
         if (authError) {
             return reply.code(400).send({
@@ -304,8 +299,6 @@ export const updateModel = async (request: FastifyRequest<UpdateModelType>, repl
                 console.log("TRANSACTION ERROR", error);
             }
         });
-
-        console.log("Updated Model ===>", result);
 
         reply.send({
             success: true,

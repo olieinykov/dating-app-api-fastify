@@ -29,6 +29,7 @@ export const GetChatEntriesSchema = {
     chatId: Type.Integer(),
   }),
   querystring: Type.Object({
+    fromModelId: Type.Optional(Type.String()),
     page: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
     pageSize: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 10 })),
   }),
@@ -48,6 +49,7 @@ export const CreateChatEntrySchema = {
     body: Optional(Type.String()),
     attachmentIds: Optional(Type.Array(Type.String())),
     localEntryId: Type.String(),
+    participantsIds: Type.Array(Type.String()),
   })
 }
 
@@ -55,3 +57,16 @@ export type CreateChatEntrySchemaType = {
   Body: Static<typeof CreateChatEntrySchema.body>;
   Params: Static<typeof CreateChatEntrySchema.parameters>;
 }
+
+
+export const ReadChatEntriesSchema = {
+  tags: ['Chat'],
+  body: Type.Object({
+    entriesIds: Type.Array(Type.Integer()),
+    participantId: Type.String(),
+  }),
+};
+
+export type ReadChatEntriesSchemaType = {
+  Body: Static<typeof ReadChatEntriesSchema.body>;
+};

@@ -1,6 +1,12 @@
 import { FastifyInstance } from 'fastify'
-import { createChat, getChatEntries, getAllChats, createChatEntry } from './handlers.js'
-import { CreateChatEntrySchema, CreateChatSchema, GetChatEntriesSchema, GetAllChatsSchema } from './schemas.js'
+import {createChat, getChatEntries, getAllChats, createChatEntry, readChatEntries} from './handlers.js'
+import {
+  CreateChatEntrySchema,
+  CreateChatSchema,
+  GetChatEntriesSchema,
+  GetAllChatsSchema,
+  ReadChatEntriesSchema
+} from './schemas.js'
 import { userAuthenticated } from "../../../middleware/userAuthenticated.js";
 
 const routes = async (fastify: FastifyInstance) => {
@@ -26,6 +32,12 @@ const routes = async (fastify: FastifyInstance) => {
     handler: createChatEntry,
     preHandler: [userAuthenticated],
     schema: CreateChatEntrySchema,
+  })
+
+  fastify.post('/:chatId/entries/read', {
+    handler: readChatEntries,
+    preHandler: [userAuthenticated],
+    schema: ReadChatEntriesSchema,
   })
 }
 

@@ -3,12 +3,14 @@ import {
     CreateChatEntrySchemaType,
     CreateChatSchemaBodyType,
     GetAllChatsSchemaType,
-    GetChatEntriesSchemaType
+    GetChatEntriesSchemaType,
+    ReadChatEntriesSchemaType
 } from './schemas.js'
 import { db } from "../../../db/index.js";
 import { chat_entries, chats, models, profiles, files, chat_entry_files, chat_participants, gifts } from "../../../db/schema/index.js";
 import {and, asc, eq, inArray, sql} from "drizzle-orm";
 import ablyClient from '../../../services/ably.js'
+import {chat_entries_unread} from "../../../db/schema/chat_entries_unread.js";
 
 export const createChat = async (
   request: FastifyRequest<CreateChatSchemaBodyType>,
@@ -196,6 +198,21 @@ export const getAllChats = async (
             });
         }
 
+        const unreadCounts = await db
+            .select({
+                chatId: chat_entries.chatId,
+                count: sql<number>`COUNT(*)`.as("count")
+            })
+            .from(chat_entries_unread)
+            .innerJoin(chat_entries, eq(chat_entries_unread.chatEntryId, chat_entries.id))
+            .where(eq(chat_entries_unread.userId, userId as string))
+            .groupBy(chat_entries.chatId);
+
+        const unreadMap = new Map<number, number>();
+        for (const u of unreadCounts) {
+            unreadMap.set(u.chatId!, u.count);
+        }
+
         const sortedChatIds = [...chatIds].sort((a, b) => {
             const aDate = lastMessageMap.get(a)?.createdAt?.getTime() ?? 0;
             const bDate = lastMessageMap.get(b)?.createdAt?.getTime() ?? 0;
@@ -206,6 +223,7 @@ export const getAllChats = async (
             id: chatId,
             participants: participantMap.get(chatId) ?? [],
             lastEntry: lastMessageMap.get(chatId) ?? null,
+            unreadCount: unreadMap.get(chatId) ?? 0,
         }));
 
         const [{ count: total }] = await db
@@ -238,7 +256,7 @@ export const createChatEntry = async (
     reply: FastifyReply
 ) => {
     try {
-        const { localEntryId, attachmentIds, ...payload } = request.body;
+        const { localEntryId, participantsIds, attachmentIds, ...payload } = request.body;
 
         const data = await db.transaction(async (tx) => {
 
@@ -263,6 +281,16 @@ export const createChatEntry = async (
                     .from(files)
                     .where(inArray(files.id, attachmentIds));
             }
+
+            const participantsWithoutCurrentUser = participantsIds?.filter(userId => userId !== request.userId);
+
+            const data = await tx.insert(chat_entries_unread).values(
+                participantsWithoutCurrentUser.map((userId) => ({
+                    userId,
+                    chatId: entry.chatId,
+                    chatEntryId: entry.id,
+                }))
+            ).onConflictDoNothing()
 
             const [entryWithSender] = await tx
                 .select({
@@ -323,6 +351,8 @@ export const getChatEntries = async (
         const limit = Math.min(100, Math.max(1, pageSize));
         const offset = (currentPage - 1) * limit;
 
+        const fromModelId = request.query?.fromModelId;
+
         const entries = await db
             .select({
                 id: chat_entries.id,
@@ -339,12 +369,17 @@ export const getChatEntries = async (
                 updatedAt: chat_entries.updatedAt,
                 fromProfile: profiles,
                 fromModel: models,
+                unreadUserId: chat_entries_unread.userId,
             })
             .from(chat_entries)
             .where(eq(chat_entries.chatId, request.params.chatId))
             .leftJoin(profiles, eq(chat_entries.senderId, profiles.userId))
             .leftJoin(models, eq(chat_entries.senderId, models.userId))
             .leftJoin(gifts, eq(chat_entries.giftId, gifts.id))
+            .leftJoin(chat_entries_unread, and(
+                eq(chat_entries_unread.chatEntryId, chat_entries.id),
+                eq(chat_entries_unread.userId, fromModelId ?? request.userId!)
+            ))
             .orderBy(asc(chat_entries.createdAt))
             .limit(limit)
             .offset(offset);
@@ -360,7 +395,7 @@ export const getChatEntries = async (
             .where(inArray(chat_entry_files.chatEntryId, entriesIds));
 
         const entriesWithFiles = (entries || []).map(entry => {
-            const { fromModel, fromProfile, ...message } = entry;
+            const { fromModel, unreadUserId, fromProfile, ...message } = entry;
             const sender = fromModel ?? fromProfile;
             const entryFiles =
                 filesList?.filter(file => file.chatEntryId === entry.id)?.map(file => file.file)
@@ -372,6 +407,7 @@ export const getChatEntries = async (
             return {
                 ...message,
                 attachments: entryFiles,
+                isRead: unreadUserId == null,
                 sender: {
                     id: sender.id,
                     senderId: sender.userId,
@@ -404,3 +440,36 @@ export const getChatEntries = async (
         })
     }
 }
+
+export const readChatEntries = async (request: FastifyRequest<ReadChatEntriesSchemaType>, reply: FastifyReply) => {
+    try {
+        const { entriesIds, participantId } = request.body;
+
+        if (!entriesIds?.length) {
+            return reply.code(400).send({
+                success: false,
+                message: "No entry IDs provided",
+            });
+        }
+
+        await db
+            .delete(chat_entries_unread)
+            .where(
+                and(
+                    eq(chat_entries_unread.userId, participantId),
+                    inArray(chat_entries_unread.chatEntryId, entriesIds)
+                )
+            );
+
+        reply.code(200).send({
+            success: true,
+            message: `Marked ${entriesIds.length} entries as read`,
+        });
+    } catch (error) {
+        reply.code(500).send({
+            success: false,
+            error: (error as Error).message,
+            message: "Failed to mark messages as read",
+        });
+    }
+};

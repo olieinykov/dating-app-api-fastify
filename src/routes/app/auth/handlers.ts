@@ -1,17 +1,16 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { db } from "../../../db/index.js";
 import { eq } from "drizzle-orm";
-import { profiles, profiles_photos, profilesPreferences, profilesTelegram } from "../../../db/schema/index.js";
+import { profiles, profilesPreferences, profilesTelegram } from "../../../db/schema/index.js";
 import { ActivateProfileSchemaType, LoginSchemaType } from "./schemas.js";
 import { supabase, supabaseAdmin } from "../../../services/supabase.js";
 import { CookieSerializeOptions } from "@fastify/cookie";
 import {updateProfilePhotos} from "../../../utils/files/files.js";
 import {profile_balances} from "../../../db/schema/profile_balances.js";
+import env from "../../../config/env.js";
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
   const telegram = request.body;
-
-  console.log("telegram", telegram)
 
   const email = `${telegram.id}.mock@amorium.com`;
   const password = "TEST_MOCK_PASSWORD";
@@ -51,8 +50,8 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
     };
 
     reply
-        .setCookie('userAccessToken', accessToken, { ...cookieOptions, maxAge: 60 * 60 })
-        .setCookie('userRefreshToken', refreshToken, { ...cookieOptions, maxAge: 60 * 60 * 24 * 30 });
+        .setCookie('userAccessToken', accessToken, { ...cookieOptions, maxAge: env.appConfig.userTokenExpirationTime, })
+        .setCookie('userRefreshToken', refreshToken, { ...cookieOptions, maxAge: env.appConfig.userRefreshTokenExpirationTime, });
     return reply.code(200).send({
       success: true,
       data: {

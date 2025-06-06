@@ -7,6 +7,7 @@ import {
     CreateChatEntrySchemaType
 } from "./schemas.js";
 import ablyClient from "../../../services/ably.js";
+import { chat_entries_unread } from '../../../db/schema/chat_entries_unread.js';
 
 export const getModelsChats = async (request: FastifyRequest<GetAllModelsType>, reply: FastifyReply) => {
     try {
@@ -120,6 +121,21 @@ export const getModelsChats = async (request: FastifyRequest<GetAllModelsType>, 
             });
         }
 
+        const unreadCounts = await db
+        .select({
+            chatId: chat_entries.chatId,
+            count: sql<number>`COUNT(*)`.as("count")
+        })
+        .from(chat_entries_unread)
+        .innerJoin(chat_entries, eq(chat_entries_unread.chatEntryId, chat_entries.id))
+        .where(eq(chat_entries_unread.userId, userId as string))
+        .groupBy(chat_entries.chatId);
+
+        const unreadMap = new Map<number, number>();
+        for (const u of unreadCounts) {
+            unreadMap.set(u.chatId!, u.count);
+        }
+
         const sortedChatIds = [...chatIds].sort((a, b) => {
             const aDate = lastMessageMap.get(a)?.createdAt?.getTime() ?? 0;
             const bDate = lastMessageMap.get(b)?.createdAt?.getTime() ?? 0;
@@ -130,6 +146,7 @@ export const getModelsChats = async (request: FastifyRequest<GetAllModelsType>, 
             id: chatId,
             participants: participantMap.get(chatId) ?? [],
             lastEntry: lastMessageMap.get(chatId) ?? null,
+            unreadCount: unreadMap.get(chatId) ?? 0,
         }));
 
         const [{ count: total }] = await db
@@ -185,6 +202,16 @@ export const createChatEntry = async (
                     .from(files)
                     .where(inArray(files.id, fileIds));
             }
+
+            const participantsWithoutCurrentUser = request.body?.participantsIds?.filter(userId => userId !== request.userId);
+            
+            const data = await tx.insert(chat_entries_unread).values(
+                        participantsWithoutCurrentUser.map((userId) => ({
+                            userId,
+                            chatId: entry.chatId,
+                            chatEntryId: entry.id,
+                        }))
+                    ).onConflictDoNothing()
 
             return {
                 ...entry,

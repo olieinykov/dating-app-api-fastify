@@ -1,9 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { db } from "../../../db/index.js";
-import { profiles, profilesPreferences } from "../../../db/schema/index.js";
-import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
+import {profiles, profilesPreferences} from "../../../db/schema/index.js";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { CreateUserType, DeleteUserType, GetAllUsersType, GetOneUserType, UpdateUsersType } from "./schemas.js";
-import { supabase } from "../../../services/supabase.js";
+import {supabaseAdmin} from "../../../services/supabase.js";
 
 export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, reply: FastifyReply) => {
     try {
@@ -25,6 +25,7 @@ export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, repl
         const limit = Math.min(100, Math.max(1, Number(pageSize)));
         const offset = (currentPage - 1) * limit;
         const whereClauses = [];
+        // whereClauses.push(eq(profiles.deactivatedAt, null));
 
 
         if (role && allowedRoles.includes(role as UserRole)) {
@@ -156,9 +157,13 @@ export const createUser = async (request: FastifyRequest<CreateUserType>, reply:
             role: request.body.role || "chatter"
         }
 
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        const {  data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email: request.body.email,
             password: request.body.password,
+            email_confirm: true,
+            user_metadata: {
+                role: payload.role
+            },
         });
 
         if (authError) {
