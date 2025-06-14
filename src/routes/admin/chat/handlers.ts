@@ -205,7 +205,7 @@ export const createChatEntry = async (
 
             const participantsWithoutCurrentUser = request.body?.participantsIds?.filter(userId => userId !== request.userId);
             
-            const data = await tx.insert(chat_entries_unread).values(
+            await tx.insert(chat_entries_unread).values(
                         participantsWithoutCurrentUser.map((userId) => ({
                             userId,
                             chatId: entry.chatId,

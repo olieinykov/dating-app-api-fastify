@@ -16,7 +16,7 @@ export const GetAllChatsSchema = {
   querystring: Type.Object({
     search: Type.Optional(Type.String()),
     page: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
-    pageSize: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 10 })),
+    pageSize: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 50 })),
   }),
 }
 export type GetAllChatsSchemaType = {
@@ -31,7 +31,7 @@ export const GetChatEntriesSchema = {
   querystring: Type.Object({
     fromModelId: Type.Optional(Type.String()),
     page: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
-    pageSize: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 10 })),
+    pageSize: Type.Optional(Type.Integer({ minimum: 1, maximum: 1500, default: 50 })),
   }),
 }
 

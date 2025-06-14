@@ -157,7 +157,7 @@ export const createUser = async (request: FastifyRequest<CreateUserType>, reply:
             role: request.body.role || "chatter"
         }
 
-        const {  data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email: request.body.email,
             password: request.body.password,
             email_confirm: true,
