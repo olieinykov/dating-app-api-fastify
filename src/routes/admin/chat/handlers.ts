@@ -213,8 +213,25 @@ export const createChatEntry = async (
                         }))
                     ).onConflictDoNothing()
 
+            const [entryWithSender] = await tx
+                .select({
+                    id: chat_entries.id,
+                    type: chat_entries.type,
+                    body: chat_entries.body,
+                    createdAt: chat_entries.createdAt,
+                    chatId: chat_entries.chatId,
+                    sender: {
+                        id: models.id,
+                        senderId: models.userId,
+                        name: models.name,
+                    },
+                })
+                .from(chat_entries)
+                .leftJoin(models, eq(chat_entries.senderId, models.userId))
+                .where(eq(chat_entries.id, entry.id));
+
             return {
-                ...entry,
+                ...entryWithSender,
                 attachments
             }
         });

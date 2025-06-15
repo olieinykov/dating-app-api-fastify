@@ -345,13 +345,20 @@ export const getChatEntries = async (
     reply: FastifyReply
 ) => {
     try {
-        const page = request.query?.page ?? 1;
-        const pageSize = request.query?.pageSize ?? 10;
+        const page = Number(request.query?.page) || 1;
+        const pageSize = Number(request.query?.pageSize) || 20;
         const currentPage = Math.max(1, page);
-        const limit = Math.min(100, Math.max(1, pageSize));
-        const offset = (currentPage - 1) * limit;
-
+        const limit = Math.max(1, pageSize);
         const fromModelId = request.query?.fromModelId;
+
+        const [{ count: total }] = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(chat_entries)
+            .where(eq(chat_entries.chatId, request.params.chatId));
+
+        const totalPages = Math.ceil(total / limit);
+        const effectivePage = Math.min(currentPage, totalPages);
+        const reverseOffset = Math.max(0, total - (effectivePage * limit));
 
         const entries = await db
             .select({
@@ -376,32 +383,34 @@ export const getChatEntries = async (
             .leftJoin(profiles, eq(chat_entries.senderId, profiles.userId))
             .leftJoin(models, eq(chat_entries.senderId, models.userId))
             .leftJoin(gifts, eq(chat_entries.giftId, gifts.id))
-            .leftJoin(chat_entries_unread, and(
-                eq(chat_entries_unread.chatEntryId, chat_entries.id),
-                eq(chat_entries_unread.userId, fromModelId ?? request.userId!)
-            ))
-            .orderBy(asc(chat_entries.createdAt))
+            .leftJoin(
+                chat_entries_unread,
+                and(
+                    eq(chat_entries_unread.chatEntryId, chat_entries.id),
+                    eq(chat_entries_unread.userId, fromModelId ?? request.userId!)
+                )
+            )
+            .orderBy(asc(chat_entries.createdAt)) // Newest messages first
             .limit(limit)
-            .offset(offset);
+            .offset(Math.max(0, reverseOffset)); // Ensure offset isn't negative
 
-        const entriesIds = (entries || []).map(entry => entry.id);
-
-        const filesList = await db.select({
-            chatEntryId: chat_entry_files.chatEntryId,
-            file: files,
-        })
+        const entriesIds = entries.map((entry) => entry.id);
+        const filesList = entriesIds.length > 0 ? await db
+            .select({
+                chatEntryId: chat_entry_files.chatEntryId,
+                file: files,
+            })
             .from(chat_entry_files)
             .leftJoin(files, eq(chat_entry_files.fileId, files.id))
-            .where(inArray(chat_entry_files.chatEntryId, entriesIds));
+            .where(inArray(chat_entry_files.chatEntryId, entriesIds)) : [];
 
-        const entriesWithFiles = (entries || []).map(entry => {
+        const entriesWithFiles = (entries || []).map((entry) => {
             const { fromModel, unreadUserId, fromProfile, ...message } = entry;
             const sender = fromModel ?? fromProfile;
-            const entryFiles =
-                filesList?.filter(file => file.chatEntryId === entry.id)?.map(file => file.file)
+            const entryFiles = filesList?.filter((file) => file.chatEntryId === entry.id)?.map((file) => file.file)
 
             if (!sender) {
-                throw new Error();
+                throw new Error('Sender information missing');
             }
 
             return {
@@ -413,25 +422,20 @@ export const getChatEntries = async (
                     senderId: sender.userId,
                     name: sender.name,
                     avatar: sender.avatar,
-                }
+                },
             };
         });
-
-
-        const [{ count: total }] = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(chat_entries)
-            .where(eq(chat_entries.chatId, request.params.chatId));
 
         reply.code(200).send({
             success: true,
             data: entriesWithFiles,
             pagination: {
-                page: currentPage,
+                page: effectivePage,
                 pageSize: limit,
                 total,
-                totalPages: Math.ceil(total / limit)
-            }
+                totalPages,
+                hasMore: effectivePage < totalPages,
+            },
         });
     } catch (error) {
         reply.code(400).send({
