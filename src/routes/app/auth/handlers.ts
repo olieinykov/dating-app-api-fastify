@@ -6,11 +6,29 @@ import { ActivateProfileSchemaType, LoginSchemaType } from "./schemas.js";
 import { supabase, supabaseAdmin } from "../../../services/supabase.js";
 import { CookieSerializeOptions } from "@fastify/cookie";
 import {updateProfilePhotos} from "../../../utils/files/files.js";
-import {profile_balances} from "../../../db/schema/profile_balances.js";
+import { profile_balances } from "../../../db/schema/profile_balances.js";
 import env from "../../../config/env.js";
+import { isValid, parse } from "@telegram-apps/init-data-node";
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
-  const telegram = request.body;
+  let telegram = undefined;
+  let isInitDataValid = undefined;
+
+  if (request.body.bypassData) {
+     telegram = request.body.bypassData;
+  } else {
+     isInitDataValid = isValid(request.body.initData!, env.telegram.botToken!);
+     telegram = isInitDataValid ? parse(request.body.initData).user : null;
+  }
+
+  console.log("Init data:", request.body.initData);
+  console.log("botToken:", env.telegram.botToken);
+  console.log("telegram:", telegram);
+  console.log("bypassData:", request.body.bypassData);
+
+  if (!isInitDataValid || !telegram?.id) {
+    throw new Error("Failed to handle telegram data")
+  }
 
   const email = `${telegram.id}.mock@amorium.com`;
   const password = "TEST_MOCK_PASSWORD";
@@ -42,18 +60,20 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
     const accessToken = sessionData.session.access_token;
     const refreshToken = sessionData.session.refresh_token;
 
-    // const cookieOptions: CookieSerializeOptions = {
-    //   path: '/',
-    //   httpOnly: true,
-    //   secure: process.env.NODE_ENV === 'production',
-    //   sameSite: 'lax',
-    // };
+    let cookieOptions: CookieSerializeOptions = {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+    }
 
-    const cookieOptions: CookieSerializeOptions = {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      path: '/',
+    if (request.body.bypassData) {
+      cookieOptions = {
+        path: '/',
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+      }
     }
 
     reply
