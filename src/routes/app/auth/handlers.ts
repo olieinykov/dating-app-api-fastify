@@ -1,5 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { db } from "../../../db/index.js";
+import { isValid, parse } from "@telegram-apps/init-data-node";
 import { eq } from "drizzle-orm";
 import { profiles, profilesPreferences, profilesTelegram } from "../../../db/schema/index.js";
 import { ActivateProfileSchemaType, LoginSchemaType } from "./schemas.js";
@@ -10,7 +11,12 @@ import {profile_balances} from "../../../db/schema/profile_balances.js";
 import env from "../../../config/env.js";
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
-  const telegram = request.body;
+  const isInitDataValid = isValid(request.body.initData, env.telegram.botToken!);
+  const telegram = isInitDataValid ? parse(request.body.initData).user : null;
+
+  if (!isInitDataValid || !telegram?.id) {
+    throw new Error("Failed to handle telegram data")
+  }
 
   const email = `${telegram.id}.mock@amorium.com`;
   const password = "TEST_MOCK_PASSWORD";
@@ -42,11 +48,18 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
     const accessToken = sessionData.session.access_token;
     const refreshToken = sessionData.session.refresh_token;
 
+    // const cookieOptions: CookieSerializeOptions = {
+    //   path: '/',
+    //   sameSite: 'none',
+    //   httpOnly: true,
+    //   secure: true,
+    // };
+
     const cookieOptions: CookieSerializeOptions = {
       path: '/',
-      sameSite: 'none',
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
     };
 
     reply
