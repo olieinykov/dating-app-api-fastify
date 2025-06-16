@@ -1,6 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { db } from "../../../db/index.js";
-import { isValid, parse } from "@telegram-apps/init-data-node";
 import { eq } from "drizzle-orm";
 import { profiles, profilesPreferences, profilesTelegram } from "../../../db/schema/index.js";
 import { ActivateProfileSchemaType, LoginSchemaType } from "./schemas.js";
@@ -11,16 +10,7 @@ import {profile_balances} from "../../../db/schema/profile_balances.js";
 import env from "../../../config/env.js";
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
-  const isInitDataValid = isValid(request.body.initData, env.telegram.botToken!);
-  const telegram = isInitDataValid ? parse(request.body.initData).user : null;
-
-  console.log("Init data:", request.body.initData);
-  console.log("botToken:", env.telegram.botToken);
-  console.log("telegram:", telegram);
-
-  if (!isInitDataValid || !telegram?.id) {
-    throw new Error("Failed to handle telegram data")
-  }
+  const telegram = request.body;
 
   const email = `${telegram.id}.mock@amorium.com`;
   const password = "TEST_MOCK_PASSWORD";

@@ -2,8 +2,16 @@ import {Type, Static, Object, Integer, String, Optional, Enum, Array, Union, Lit
 
 export const LoginSchema = {
   tags: ['App / Auth'],
+  // body: Type.Object({
+  //   initData: Type.String({ minLength: 1 })
+  // })
   body: Type.Object({
-    initData: Type.String({ minLength: 1 })
+    first_name: Type.String(),
+    last_name: Type.String(),
+    telegram_name: Type.String(),
+    language_code: Type.String(),
+    username: Type.String(),
+    id: Type.Integer(),
   })
 };
 export type LoginSchemaType = {
