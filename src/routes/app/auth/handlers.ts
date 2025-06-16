@@ -26,7 +26,7 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
   console.log("telegram:", telegram);
   console.log("bypassData:", request.body.bypassData);
 
-  if (!isInitDataValid || !telegram?.id) {
+  if (isInitDataValid === false || !telegram?.id) {
     throw new Error("Failed to handle telegram data")
   }
 
