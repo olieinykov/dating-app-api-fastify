@@ -61,10 +61,10 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
     const refreshToken = sessionData.session.refresh_token;
 
     let cookieOptions: CookieSerializeOptions = {
-        path: '/',
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+      path: '/',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
     }
 
     if (request.body.bypassData) {
