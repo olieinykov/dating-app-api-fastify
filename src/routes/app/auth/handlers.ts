@@ -18,7 +18,7 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
      telegram = request.body.bypassData;
   } else {
      isInitDataValid = isValid(request.body.initData!, env.telegram.botToken!);
-     telegram = isInitDataValid ? parse(request.body.initData).user : null;
+     telegram = isInitDataValid ? parse(request.body.initData ?? "").user : null;
   }
 
   console.log("Init data:", request.body.initData);
