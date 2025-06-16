@@ -1,9 +1,10 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { db } from "../../../db/index.js";
 import {profiles, profilesPreferences} from "../../../db/schema/index.js";
-import { and, asc, desc, eq } from "drizzle-orm";
+import {and, asc, desc, eq, isNotNull, isNull} from "drizzle-orm";
 import { CreateUserType, DeleteUserType, GetAllUsersType, GetOneUserType, UpdateUsersType } from "./schemas.js";
 import {supabaseAdmin} from "../../../services/supabase.js";
+import {profile_actions} from "../../../db/schema/profile_action.js";
 
 export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, reply: FastifyReply) => {
     try {
@@ -14,6 +15,7 @@ export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, repl
             pageSize = 10,
             sortField = 'createdAt',
             sortOrder = 'desc',
+            deactivated = undefined,
         } = request.query;
 
         type UserRole = "admin" | "chatter" | "user";
@@ -25,20 +27,26 @@ export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, repl
         const limit = Math.min(100, Math.max(1, Number(pageSize)));
         const offset = (currentPage - 1) * limit;
         const whereClauses = [];
-        // whereClauses.push(eq(profiles.deactivatedAt, null));
 
+        if (deactivated === true) {
+            // whereClauses.push(ne(profiles.deactivatedAt, null));
+            whereClauses.push(isNotNull(profiles.deactivatedAt));
+        }
+        if (deactivated === false) {
+            whereClauses.push(isNull(profiles.deactivatedAt));
+        }
 
         if (role && allowedRoles.includes(role as UserRole)) {
             whereClauses.push(eq(profiles.role, role as UserRole));
         }
 
-        // if (search.trim()) {
-        //     whereClauses.push(
-        //         or(
-        //             ilike(profiles.name, `%${search}%`),
-        //         )
-        //     );
-        // }
+        if (search.trim()) {
+            whereClauses.push(
+                or(
+                    ilike(profiles.name, `%${search}%`),
+                )
+            );
+        }
 
         const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
         const users = await db
@@ -129,11 +137,11 @@ export const deleteUser = async (request: FastifyRequest<DeleteUserType>, reply:
                 throw new Error(`No profile found with id: ${request.params.userId}`);
             }
 
-            // await tx.insert(profile_actions).values({
-            //     authorUserId: currentUserId,
-            //     actionGiftId: updatedProfile.id,
-            //     actionType: "delete",
-            // });
+            await tx.insert(profile_actions).values({
+                authorUserId: currentUserId,
+                actionProfileId: updatedProfile.id,
+                actionType: "delete",
+            });
 
             return updatedProfile;
         });
@@ -206,16 +214,17 @@ export const updateUser = async (request: FastifyRequest<UpdateUsersType>, reply
     try {
         const result = await db.transaction(async (tx) => {
             const currentUserId = request.userId;
-            const [updatedUser] = await db.update(profiles)
+            const [updatedUser] = await tx.update(profiles)
                 .set(request.body as any)
                 .where(eq(profiles.id, request.params.userId))
                 .returning();
 
-            // await tx.insert(profile_actions).values({
-            //     authorUserId: currentUserId,
-            //     actionGiftId: updatedUser.id,
-            //     actionType: "update",
-            // });
+            await tx.insert(profile_actions).values({
+                authorUserId: currentUserId,
+                actionProfileId: updatedUser.id,
+                actionType: "update",
+            });
+
             return updatedUser;
         });
 

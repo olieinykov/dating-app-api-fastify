@@ -20,6 +20,7 @@ export const CreateChatEntrySchema = {
     chatId: Type.Integer(),
   }),
   body: Type.Object({
+    localEntryId: Type.String(),
     body: Optional(Type.String()),
     attachmentIds: Optional(Type.Array(Type.String())),
     fromModelId: Type.String(),
@@ -30,4 +31,13 @@ export const CreateChatEntrySchema = {
 export type CreateChatEntrySchemaType = {
   Body: Static<typeof CreateChatEntrySchema.body>;
   Params: Static<typeof CreateChatEntrySchema.parameters>;
+}
+
+export const GetChatModelsSchema = {
+  tags: ['Admin / Chat'],
+  querystring: PaginationSchema,
+}
+
+export type GetChatModelsSchemaType = {
+  Querystring: Static<typeof GetChatModelsSchema.querystring>;
 }

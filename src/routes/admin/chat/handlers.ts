@@ -1,10 +1,17 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { db } from "../../../db/index.js";
-import { models, chat_participants, profiles, chat_entries, chat_entry_files, files } from "../../../db/schema/index.js";
-import { and, eq, inArray, sql} from "drizzle-orm";
+import {
+    models,
+    chat_participants,
+    profiles,
+    chat_entries,
+    chat_entry_files,
+    files,
+} from "../../../db/schema/index.js";
+import {and, asc, desc, eq, ilike, inArray, isNull, ne, or, sql} from "drizzle-orm";
 import {
     GetAllModelsType,
-    CreateChatEntrySchemaType
+    CreateChatEntrySchemaType, GetChatModelsSchemaType
 } from "./schemas.js";
 import ablyClient from "../../../services/ably.js";
 import { chat_entries_unread } from '../../../db/schema/chat_entries_unread.js';
@@ -203,7 +210,7 @@ export const createChatEntry = async (
                     .where(inArray(files.id, fileIds));
             }
 
-            const participantsWithoutCurrentUser = request.body?.participantsIds?.filter(userId => userId !== request.userId);
+            const participantsWithoutCurrentUser = request.body?.participantsIds?.filter(userId => userId !== request.body.fromModelId);
             
             await tx.insert(chat_entries_unread).values(
                         participantsWithoutCurrentUser.map((userId) => ({
@@ -232,15 +239,17 @@ export const createChatEntry = async (
 
             return {
                 ...entryWithSender,
-                attachments
+                attachments,
+                localEntryId: request.body.localEntryId,
             }
         });
 
         if (data) {
-            const usersChannel = ablyClient.channels.get(`user-events:${request.body.fromModelId}`);
+            const eventData = { ...data, localEntryId: request.body.localEntryId };
+            // const usersChannel = ablyClient.channels.get(`user-events:${request.body.fromModelId}`);
             const adminChannel = ablyClient.channels.get(`admin-events`);
-            await usersChannel.publish('entry-created', data);
-            await adminChannel.publish('entry-created', data);
+            // await usersChannel.publish('entry-created', eventData);
+            await adminChannel.publish('entry-created', eventData);
         }
 
         reply.code(200).send({
@@ -255,3 +264,157 @@ export const createChatEntry = async (
         })
     }
 }
+
+export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchemaType>, reply: FastifyReply) => {
+    try {
+        const {
+            search = '',
+            page = 1,
+            pageSize = 10,
+            sortField = 'createdAt',
+            sortOrder = 'desc',
+        } = request.query;
+
+        // 1. Базовый запрос моделей
+        const baseQuery = db
+            .select({
+                id: models.id,
+                userId: models.userId,
+                name: models.name,
+                avatar: models.avatar,
+                deactivatedAt: models.deactivatedAt,
+                createdAt: models.createdAt,
+            })
+            .from(models)
+            .where(isNull(models.deactivatedAt));
+
+        // 2. Добавляем поиск если есть
+        if (search.trim()) {
+            baseQuery.where(
+                or(
+                    ilike(models.name, `%${search}%`),
+                    ilike(models.description, `%${search}%`)
+                )
+            );
+        }
+
+        // 3. Применяем сортировку и пагинацию
+        const currentPage = Math.max(1, Number(page));
+        const limit = Math.min(100, Math.max(1, Number(pageSize)));
+        const offset = (currentPage - 1) * limit;
+
+        const data = await baseQuery
+            .orderBy(sortOrder === 'asc' ? asc(models[sortField]) : desc(models[sortField]))
+            .limit(limit)
+            .offset(offset);
+
+        const total = await db.$count(models);
+
+        // 4. Получаем userId всех моделей
+        const modelUserIds = data.map(model => model.userId);
+
+        // 5. Получаем все чаты, где участвуют модели
+        const modelChats = await db
+            .select({
+                userId: chat_participants.userId,
+                chatId: chat_participants.chatId
+            })
+            .from(chat_participants)
+            .where(inArray(chat_participants.userId, modelUserIds));
+
+        // 6. Группируем чаты по пользователям
+        const chatsByUser = new Map<string, number[]>();
+        modelChats.forEach(chat => {
+            const userChats = chatsByUser.get(chat.userId) || [];
+            userChats.push(chat.chatId);
+            chatsByUser.set(chat.userId, userChats);
+        });
+
+        // 7. Получаем последние сообщения для всех чатов
+        const lastEntrySubquery = db
+            .select({
+                chatId: chat_entries.chatId,
+                lastCreatedAt: sql`MAX(${chat_entries.createdAt})`.as("lastCreatedAt"),
+            })
+            .from(chat_entries)
+            .groupBy(chat_entries.chatId)
+            .as("last_entries");
+
+        const allChatIds = Array.from(new Set(modelChats.map(c => c.chatId)));
+        const lastMessages = await db
+            .select({
+                id: chat_entries.id,
+                chatId: chat_entries.chatId,
+                body: chat_entries.body,
+                createdAt: chat_entries.createdAt,
+                senderId: chat_entries.senderId,
+            })
+            .from(chat_entries)
+            .innerJoin(
+                lastEntrySubquery,
+                and(
+                    eq(chat_entries.chatId, lastEntrySubquery.chatId),
+                    eq(chat_entries.createdAt, lastEntrySubquery.lastCreatedAt)
+                )
+            )
+            .where(inArray(chat_entries.chatId, allChatIds));
+
+        // 8. Создаем маппинг chatId -> lastMessage
+        const lastMessageMap = new Map<number, typeof lastMessages[0]>();
+        lastMessages.forEach(msg => {
+            lastMessageMap.set(msg.chatId, msg);
+        });
+
+        // 9. Подсчет непрочитанных сообщений (аналогично рабочему примеру)
+        const unreadCounts = await db
+            .select({
+                userId: chat_entries_unread.userId,
+                count: sql<number>`COUNT(*)`.as("count")
+            })
+            .from(chat_entries_unread)
+            .innerJoin(chat_entries, eq(chat_entries_unread.chatEntryId, chat_entries.id))
+            .where(inArray(chat_entries_unread.userId, modelUserIds))
+            .groupBy(chat_entries_unread.userId);
+
+        const unreadMap = new Map(unreadCounts.map(item => [item.userId, item.count]));
+
+        // 10. Формируем финальный результат
+        const enhancedData = data.map(model => {
+            const userChats = chatsByUser.get(model.userId) || [];
+            const lastEntries = userChats
+                .map(chatId => lastMessageMap.get(chatId))
+                .filter(Boolean)
+                .sort((a, b) => new Date(b!.createdAt).getTime() - new Date(a!.createdAt).getTime());
+
+            return {
+                ...model,
+                unreadCount: unreadMap.get(model.userId) || 0,
+                lastEntry: lastEntries[0] ? {
+                    id: lastEntries[0].id,
+                    body: lastEntries[0].body,
+                    createdAt: lastEntries[0].createdAt,
+                    senderId: lastEntries[0].senderId
+                } : null
+            };
+        });
+
+        reply.send({
+            success: true,
+            data: enhancedData,
+            pagination: {
+                page: currentPage,
+                pageSize: limit,
+                total,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
+
+    } catch (error) {
+        console.error("Error in getChatsModels:", error);
+        reply.status(500).send({
+            success: false,
+            error: "Internal server error",
+            message: error instanceof Error ? error.message : "Unknown error"
+        });
+    }
+};

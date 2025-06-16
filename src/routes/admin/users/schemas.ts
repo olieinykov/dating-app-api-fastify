@@ -1,4 +1,4 @@
-import { Type, Static } from '@sinclair/typebox'
+import {Type, Static, Optional} from '@sinclair/typebox'
 import { PaginationSchema } from '../../../shared/schemas.js'
 
 export const CreateUserSchema = {
@@ -43,7 +43,8 @@ export type UpdateUsersType = {
 export const GetAllUsersSchema = {
   tags: ['Admin / Users'],
   querystring: Type.Intersect([PaginationSchema, Type.Object({
-    role: Type.String()
+    role: Type.String(),
+    deactivated: Optional(Type.Boolean())
   })]),
 }
 export type GetAllUsersType = {

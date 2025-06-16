@@ -1,4 +1,4 @@
-import {Type, Static, Array, Object, String, Boolean, Integer} from '@sinclair/typebox'
+import {Type, Static, Array, Object, String, Boolean, Integer, Optional} from '@sinclair/typebox'
 import { PaginationSchema } from '../../../shared/schemas.js'
 
 export const CreateModelSchema = {
@@ -71,7 +71,9 @@ export type UpdateModelType = {
 
 export const GetAllModelsSchema = {
   tags: ['Admin / Models'],
-  querystring: PaginationSchema,
+  querystring: Type.Intersect([PaginationSchema, Type.Object({
+    deactivated: Optional(Type.Boolean())
+  })]),
 }
 export type GetAllModelsType = {
   Querystring: Static<typeof GetAllModelsSchema.querystring>;

@@ -5,7 +5,7 @@ export const actionTypeEnum = pgEnum('action_type', ['create', 'edit', 'delete']
 
 export const profile_actions = pgTable('profile_actions', {
   id: serial('id').primaryKey(),
-  authorUserId: uuid('user_id').notNull(),
+  authorUserId: uuid('profile_id').notNull(),
   actionProfileId: integer('gift_id').references(() => profiles.id),
   actionType: actionTypeEnum('action_type').notNull(),
   actionTime: timestamp('action_time',).defaultNow(),

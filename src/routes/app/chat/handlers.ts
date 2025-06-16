@@ -407,7 +407,9 @@ export const getChatEntries = async (
         const entriesWithFiles = (entries || []).map((entry) => {
             const { fromModel, unreadUserId, fromProfile, ...message } = entry;
             const sender = fromModel ?? fromProfile;
-            const entryFiles = filesList?.filter((file) => file.chatEntryId === entry.id)?.map((file) => file.file)
+            const entryFiles = filesList
+                .filter((file) => file.chatEntryId === entry.id)
+                .map((file) => file.file);
 
             if (!sender) {
                 throw new Error('Sender information missing');

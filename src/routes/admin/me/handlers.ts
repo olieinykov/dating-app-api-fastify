@@ -1,5 +1,8 @@
 import { supabase } from '../../../services/supabase.js'
 import { FastifyRequest, FastifyReply } from 'fastify'
+import {db} from "../../../db";
+import {profiles} from "../../../db/schema";
+import {eq} from "drizzle-orm";
 
 export const getMe = async (
     request: FastifyRequest,
@@ -16,13 +19,12 @@ export const getMe = async (
       });
     }
 
-    const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+    const [data] = await db
+        .select()
+        .from(profiles)
+        .where(eq(profiles.userId, user.id))
+        .limit(1);
 
-    if (error) throw error;
     if (!data) {
       return reply.code(404).send({
         success: false,

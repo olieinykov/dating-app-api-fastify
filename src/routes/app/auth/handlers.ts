@@ -14,6 +14,10 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
   const isInitDataValid = isValid(request.body.initData, env.telegram.botToken!);
   const telegram = isInitDataValid ? parse(request.body.initData).user : null;
 
+  console.log("Init data:", request.body.initData);
+  console.log("botToken:", env.telegram.botToken);
+  console.log("telegram:", telegram);
+
   if (!isInitDataValid || !telegram?.id) {
     throw new Error("Failed to handle telegram data")
   }
@@ -47,13 +51,6 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
 
     const accessToken = sessionData.session.access_token;
     const refreshToken = sessionData.session.refresh_token;
-
-    // const cookieOptions: CookieSerializeOptions = {
-    //   path: '/',
-    //   sameSite: 'none',
-    //   httpOnly: true,
-    //   secure: true,
-    // };
 
     const cookieOptions: CookieSerializeOptions = {
       path: '/',

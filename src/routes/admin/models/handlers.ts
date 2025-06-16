@@ -1,8 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { v4 as uuidv4 } from 'uuid';
 import { db } from "../../../db/index.js";
-import { models, files, model_gifts } from "../../../db/schema/index.js";
-import {and, asc, desc, eq, ilike, or, isNull} from "drizzle-orm";
+import {models, files, model_gifts} from "../../../db/schema/index.js";
+import {and, asc, desc, eq, ilike, or, isNull, isNotNull} from "drizzle-orm";
 
 import {
     CreateModelType,
@@ -23,6 +23,7 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
             pageSize = 10,
             sortField = 'createdAt',
             sortOrder = 'desc',
+            deactivated = undefined,
         } = request.query;
 
         const sortBy = models[sortField as keyof typeof models];
@@ -31,8 +32,6 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
         const offset = (currentPage - 1) * limit;
         const whereClauses = [];
 
-        whereClauses.push(isNull(models.deactivatedAt));
-
         if (search.trim()) {
             whereClauses.push(
                 or(
@@ -40,6 +39,13 @@ export const getAllModels = async (request: FastifyRequest<GetAllModelsType>, re
                     ilike(models.description, `%${search}%`)
                 )
             );
+        }
+
+        if (deactivated === true) {
+            whereClauses.push(isNotNull(models.deactivatedAt));
+        }
+        if (deactivated === false) {
+            whereClauses.push(isNull(models.deactivatedAt));
         }
 
         const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
