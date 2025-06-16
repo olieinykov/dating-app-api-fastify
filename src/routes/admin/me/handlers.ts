@@ -1,7 +1,7 @@
 import { supabase } from '../../../services/supabase.js'
 import { FastifyRequest, FastifyReply } from 'fastify'
-import {db} from "../../../db";
-import {profiles} from "../../../db/schema";
+import {db} from "../../../db/index.js";
+import {profiles} from "../../../db/schema/index.js";
 import {eq} from "drizzle-orm";
 
 export const getMe = async (

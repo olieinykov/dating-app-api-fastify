@@ -275,7 +275,6 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
             sortOrder = 'desc',
         } = request.query;
 
-        // 1. Базовый запрос моделей
         const baseQuery = db
             .select({
                 id: models.id,
@@ -288,8 +287,8 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
             .from(models)
             .where(isNull(models.deactivatedAt));
 
-        // 2. Добавляем поиск если есть
         if (search.trim()) {
+            // @ts-ignore
             baseQuery.where(
                 or(
                     ilike(models.name, `%${search}%`),
@@ -298,22 +297,19 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
             );
         }
 
-        // 3. Применяем сортировку и пагинацию
         const currentPage = Math.max(1, Number(page));
         const limit = Math.min(100, Math.max(1, Number(pageSize)));
         const offset = (currentPage - 1) * limit;
-
         const data = await baseQuery
+            // @ts-ignore
             .orderBy(sortOrder === 'asc' ? asc(models[sortField]) : desc(models[sortField]))
             .limit(limit)
             .offset(offset);
 
         const total = await db.$count(models);
 
-        // 4. Получаем userId всех моделей
         const modelUserIds = data.map(model => model.userId);
 
-        // 5. Получаем все чаты, где участвуют модели
         const modelChats = await db
             .select({
                 userId: chat_participants.userId,
@@ -330,7 +326,6 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
             chatsByUser.set(chat.userId, userChats);
         });
 
-        // 7. Получаем последние сообщения для всех чатов
         const lastEntrySubquery = db
             .select({
                 chatId: chat_entries.chatId,
@@ -359,13 +354,11 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
             )
             .where(inArray(chat_entries.chatId, allChatIds));
 
-        // 8. Создаем маппинг chatId -> lastMessage
         const lastMessageMap = new Map<number, typeof lastMessages[0]>();
         lastMessages.forEach(msg => {
-            lastMessageMap.set(msg.chatId, msg);
+            lastMessageMap.set(msg.chatId!, msg);
         });
 
-        // 9. Подсчет непрочитанных сообщений (аналогично рабочему примеру)
         const unreadCounts = await db
             .select({
                 userId: chat_entries_unread.userId,
@@ -378,12 +371,13 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
 
         const unreadMap = new Map(unreadCounts.map(item => [item.userId, item.count]));
 
-        // 10. Формируем финальный результат
         const enhancedData = data.map(model => {
             const userChats = chatsByUser.get(model.userId) || [];
             const lastEntries = userChats
                 .map(chatId => lastMessageMap.get(chatId))
+                // @ts-ignore
                 .filter(Boolean)
+                // @ts-ignore
                 .sort((a, b) => new Date(b!.createdAt).getTime() - new Date(a!.createdAt).getTime());
 
             return {

@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { db } from "../../../db/index.js";
 import {profiles, profilesPreferences} from "../../../db/schema/index.js";
-import {and, asc, desc, eq, isNotNull, isNull} from "drizzle-orm";
+import {and, asc, desc, eq, ilike, isNotNull, isNull, or} from "drizzle-orm";
 import { CreateUserType, DeleteUserType, GetAllUsersType, GetOneUserType, UpdateUsersType } from "./schemas.js";
 import {supabaseAdmin} from "../../../services/supabase.js";
 import {profile_actions} from "../../../db/schema/profile_action.js";
@@ -40,13 +40,13 @@ export const getAllUsers = async (request: FastifyRequest<GetAllUsersType>, repl
             whereClauses.push(eq(profiles.role, role as UserRole));
         }
 
-        if (search.trim()) {
-            whereClauses.push(
-                or(
-                    ilike(profiles.name, `%${search}%`),
-                )
-            );
-        }
+        // if (search.trim()) {
+        //     whereClauses.push(
+        //         or(
+        //             ilike(profiles.name, `%${search}%`),
+        //         )
+        //     );
+        // }
 
         const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
         const users = await db
@@ -137,11 +137,11 @@ export const deleteUser = async (request: FastifyRequest<DeleteUserType>, reply:
                 throw new Error(`No profile found with id: ${request.params.userId}`);
             }
 
-            await tx.insert(profile_actions).values({
-                authorUserId: currentUserId,
-                actionProfileId: updatedProfile.id,
-                actionType: "delete",
-            });
+            // await tx.insert(profile_actions).values({
+            //     authorUserId: currentUserId,
+            //     actionProfileId: updatedProfile.id,
+            //     actionType: "delete",
+            // });
 
             return updatedProfile;
         });
@@ -213,17 +213,17 @@ export const createUser = async (request: FastifyRequest<CreateUserType>, reply:
 export const updateUser = async (request: FastifyRequest<UpdateUsersType>, reply: FastifyReply) => {
     try {
         const result = await db.transaction(async (tx) => {
-            const currentUserId = request.userId;
+            // const currentUserId = request.userId;
             const [updatedUser] = await tx.update(profiles)
                 .set(request.body as any)
                 .where(eq(profiles.id, request.params.userId))
                 .returning();
 
-            await tx.insert(profile_actions).values({
-                authorUserId: currentUserId,
-                actionProfileId: updatedUser.id,
-                actionType: "update",
-            });
+            // await tx.insert(profile_actions).values({
+            //     authorUserId: currentUserId,
+            //     actionProfileId: updatedUser.id,
+            //     actionType: "update",
+            // });
 
             return updatedUser;
         });
