@@ -42,12 +42,19 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
     const accessToken = sessionData.session.access_token;
     const refreshToken = sessionData.session.refresh_token;
 
+    // const cookieOptions: CookieSerializeOptions = {
+    //   path: '/',
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === 'production',
+    //   sameSite: 'lax',
+    // };
+
     const cookieOptions: CookieSerializeOptions = {
-      path: '/',
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-    };
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+    }
 
     reply
         .setCookie('userAccessToken', accessToken, { ...cookieOptions, maxAge: env.appConfig.userTokenExpirationTime, })
