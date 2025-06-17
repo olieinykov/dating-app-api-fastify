@@ -8,7 +8,8 @@ const cookiesConfig: CookieSerializeOptions = {
   httpOnly: true,
   secure: true,
   sameSite: 'none',
-  path: '/',
+  // path: '/',
+  path: '/api/admin',
 }
 
 export const login = async (

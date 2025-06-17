@@ -61,7 +61,7 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
     const refreshToken = sessionData.session.refresh_token;
 
     let cookieOptions: CookieSerializeOptions = {
-      path: '/',
+      path: '/api/app',
       httpOnly: true,
       secure: true,
       sameSite: 'none',
@@ -69,7 +69,7 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
 
     if (request.body.bypassData) {
       cookieOptions = {
-        path: '/',
+        path: '/api/app',
         httpOnly: true,
         secure: true,
         sameSite: 'none',
