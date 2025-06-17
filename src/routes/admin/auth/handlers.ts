@@ -31,15 +31,17 @@ export const login = async (
       });
     }
 
+    reply
+        .clearCookie('adminAccessToken', cookiesConfig)
+        .clearCookie('adminRefreshToken', cookiesConfig);
+
     reply.setCookie('adminAccessToken', authData?.session?.access_token!, {
       ...cookiesConfig,
-      // maxAge: 60 * 60 * 1000,
       maxAge: env.appConfig.adminTokenExpirationTime,
     });
 
     reply.setCookie('adminRefreshToken', authData?.session?.refresh_token!, {
       ...cookiesConfig,
-      // maxAge: 24 * 60 * 60 * 1000,
       maxAge: env.appConfig.adminRefreshTokenExpirationTime,
     });
 
@@ -51,9 +53,23 @@ export const login = async (
   }
 }
 
-export const logout = async (request: FastifyRequest<LoginBodyType>, reply: FastifyReply) => {
-  reply.clearCookie('adminAccessToken');
-  reply.clearCookie('adminRefreshToken');
+export const logout = async (
+    request: FastifyRequest,
+    reply: FastifyReply
+) => {
+  try {
 
-  reply.code(200);
+    await supabase.auth.signOut();
+    return reply
+        .clearCookie('adminAccessToken', cookiesConfig)
+        .clearCookie('adminRefreshToken', cookiesConfig)
+        .code(200)
+        .send({ success: true });
+
+  } catch (error) {
+    return reply.code(500).send({
+      success: false,
+      error: 'Logout failed'
+    });
+  }
 };
