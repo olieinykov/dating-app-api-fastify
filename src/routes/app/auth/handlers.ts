@@ -4,19 +4,19 @@ import { eq } from "drizzle-orm";
 import { profiles, profilesPreferences, profilesTelegram } from "../../../db/schema/index.js";
 import { ActivateProfileSchemaType, LoginSchemaType } from "./schemas.js";
 import { supabase, supabaseAdmin } from "../../../services/supabase.js";
-import { CookieSerializeOptions } from "@fastify/cookie";
+// import { CookieSerializeOptions } from "@fastify/cookie";
 import {updateProfilePhotos} from "../../../utils/files/files.js";
 import { profile_balances } from "../../../db/schema/profile_balances.js";
 import env from "../../../config/env.js";
 import { isValid, parse } from "@telegram-apps/init-data-node";
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
-  const clientCookiesConfig: CookieSerializeOptions = {
-    path: '/api/app',
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-  };
+  // const clientCookiesConfig: CookieSerializeOptions = {
+  //   path: '/api/app',
+  //   httpOnly: true,
+  //   secure: true,
+  //   sameSite: 'none',
+  // };
 
   try {
     let telegram = null;
@@ -61,25 +61,43 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
         });
       }
 
-      reply
-          .clearCookie('userAccessToken', clientCookiesConfig)
-          .clearCookie('userRefreshToken', clientCookiesConfig)
-          .clearCookie('adminAccessToken', clientCookiesConfig) //remove
-          .clearCookie('adminRefreshToken', clientCookiesConfig) //remove
-          .setCookie('userAccessToken', sessionData.session.access_token, {
-            ...clientCookiesConfig,
-            maxAge: env.appConfig.userTokenExpirationTime,
-          })
-          .setCookie('userRefreshToken', sessionData.session.refresh_token, {
-            ...clientCookiesConfig,
-            maxAge: env.appConfig.userRefreshTokenExpirationTime,
-          });
+      // return reply.code(200).send({
+      //   success: true,
+      //   data: {
+      //     accessToken: authData.session.access_token,
+      //     refreshToken: authData.session.refresh_token,
+      //     expiresIn: env.appConfig.adminTokenExpirationTime,
+      //   }
+      // });
+
+      // reply
+      //     .clearCookie('userAccessToken', clientCookiesConfig)
+      //     .clearCookie('userRefreshToken', clientCookiesConfig)
+      //     .clearCookie('adminAccessToken', clientCookiesConfig) //remove
+      //     .clearCookie('adminRefreshToken', clientCookiesConfig) //remove
+      //     .setCookie('userAccessToken', sessionData.session.access_token, {
+      //       ...clientCookiesConfig,
+      //       maxAge: env.appConfig.userTokenExpirationTime,
+      //     })
+      //     .setCookie('userRefreshToken', sessionData.session.refresh_token, {
+      //       ...clientCookiesConfig,
+      //       maxAge: env.appConfig.userRefreshTokenExpirationTime,
+      //     });
+      //
+      // return reply.code(200).send({
+      //   success: true,
+      //   data: {
+      //     authStatus: "USER_AUTHENTICATED",
+      //     user: profile,
+      //   }
+      // });
 
       return reply.code(200).send({
         success: true,
         data: {
-          authStatus: "USER_AUTHENTICATED",
-          user: profile,
+          accessToken: sessionData.session.access_token,
+          refreshToken: sessionData.session.refresh_token,
+          expiresIn: env.appConfig.adminTokenExpirationTime,
         }
       });
     }

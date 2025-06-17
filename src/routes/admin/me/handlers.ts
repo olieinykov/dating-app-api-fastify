@@ -9,7 +9,7 @@ export const getMe = async (
     reply: FastifyReply
 ) => {
   try {
-    const token = request.cookies.access_token;
+    const token = request.cookies.adminAccessToken;
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
