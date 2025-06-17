@@ -98,6 +98,8 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
           accessToken: sessionData.session.access_token,
           refreshToken: sessionData.session.refresh_token,
           expiresIn: env.appConfig.adminTokenExpirationTime,
+          authStatus: "USER_AUTHENTICATED",
+          user: profile,
         }
       });
     }
