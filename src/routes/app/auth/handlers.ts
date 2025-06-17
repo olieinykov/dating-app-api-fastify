@@ -11,96 +11,90 @@ import env from "../../../config/env.js";
 import { isValid, parse } from "@telegram-apps/init-data-node";
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
-  let telegram = undefined;
-  let isInitDataValid = undefined;
+  const clientCookiesConfig: CookieSerializeOptions = {
+    path: '/api/app',
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+  };
 
-  if (request.body.bypassData) {
-     telegram = request.body.bypassData;
-  } else {
-     isInitDataValid = isValid(request.body.initData!, env.telegram.botToken!);
-     telegram = isInitDataValid ? parse(request.body.initData ?? "").user : null;
-  }
-
-  console.log("Init data:", request.body.initData);
-  console.log("botToken:", env.telegram.botToken);
-  console.log("telegram:", telegram);
-  console.log("bypassData:", request.body.bypassData);
-
-  if (isInitDataValid === false || !telegram?.id) {
-    throw new Error("Failed to handle telegram data")
-  }
-
-  const email = `${telegram.id}.mock@amorium.com`;
-  const password = "TEST_MOCK_PASSWORD";
-
-  const profile = await db.query.profiles.findFirst({
-    where: eq(profiles.telegramId, telegram?.id as number),
-  });
-
-  if (profile && !profile.activatedAt) {
-    return reply.code(200).send({
-      success: true,
-      data: {
-        authStatus: "USER_REGISTERED_NOT_ACTIVATED",
-        user: profile,
-      }
-    });
-  }
-
-  if (profile && profile.activatedAt) {
-    const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (signInError || !sessionData.session) {
-      return reply.status(401).send({ success: false, error: "USER_ACTIVATED_LOGIN_FAILED" });
-    }
-
-    const accessToken = sessionData.session.access_token;
-    const refreshToken = sessionData.session.refresh_token;
-
-    let cookieOptions: CookieSerializeOptions = {
-      path: '/api/app',
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-    }
+  try {
+    let telegram = null;
+    let isInitDataValid = false;
 
     if (request.body.bypassData) {
-      cookieOptions = {
-        path: '/api/app',
-        httpOnly: true,
-        secure: true,
-        sameSite: 'none',
-      }
+      telegram = request.body.bypassData;
+      isInitDataValid = true;
+    } else {
+      isInitDataValid = isValid(request.body.initData!, env.telegram.botToken!);
+      telegram = isInitDataValid ? parse(request.body.initData ?? "").user : null;
     }
 
-    reply
-        .setCookie('userAccessToken', accessToken, { ...cookieOptions, maxAge: env.appConfig.userTokenExpirationTime, })
-        .setCookie('userRefreshToken', refreshToken, { ...cookieOptions, maxAge: env.appConfig.userRefreshTokenExpirationTime, });
-    return reply.code(200).send({
-      success: true,
-      data: {
-        authStatus: "USER_AUTHENTICATED",
-        user: profile,
-      }
+    if (!isInitDataValid || !telegram?.id) {
+      return reply.code(400).send({ success: false, error: "Invalid Telegram data" });
+    }
+
+    const profile = await db.query.profiles.findFirst({
+      where: eq(profiles.telegramId, telegram.id!),
     });
-  }
 
+    if (profile && !profile.activatedAt) {
+      return reply.code(200).send({
+        success: true,
+        data: {
+          authStatus: "USER_REGISTERED_NOT_ACTIVATED",
+          user: profile,
+        }
+      });
+    }
 
-  if (!profile) {
+    if (profile && profile.activatedAt) {
+      const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: `${telegram.id}.mock@amorium.com`,
+        password: "TEST_MOCK_PASSWORD",
+      });
+
+      if (signInError || !sessionData?.session) {
+        return reply.status(401).send({
+          success: false,
+          error: "USER_ACTIVATED_LOGIN_FAILED"
+        });
+      }
+
+      reply
+          .clearCookie('userAccessToken', clientCookiesConfig)
+          .clearCookie('userRefreshToken', clientCookiesConfig)
+          .clearCookie('adminAccessToken', clientCookiesConfig) //remove
+          .clearCookie('adminRefreshToken', clientCookiesConfig) //remove
+          .setCookie('userAccessToken', sessionData.session.access_token, {
+            ...clientCookiesConfig,
+            maxAge: env.appConfig.userTokenExpirationTime,
+          })
+          .setCookie('userRefreshToken', sessionData.session.refresh_token, {
+            ...clientCookiesConfig,
+            maxAge: env.appConfig.userRefreshTokenExpirationTime,
+          });
+
+      return reply.code(200).send({
+        success: true,
+        data: {
+          authStatus: "USER_AUTHENTICATED",
+          user: profile,
+        }
+      });
+    }
+
     const { data: createdUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
+      email: `${telegram.id}.mock@amorium.com`,
+      password: "TEST_MOCK_PASSWORD",
       email_confirm: true,
       user_metadata: {
         telegram_id: telegram.id,
       }
-    })
+    });
 
     if (createUserError) {
-      throw new Error()
+      throw createUserError;
     }
 
     try {
@@ -141,16 +135,18 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
         }
       });
     } catch (error) {
-      await supabaseAdmin.auth.admin.deleteUser(createdUser.user?.id!);
-      return reply.code(200).send({
-        success: false,
-        data: {
-          success: false,
-          message: "Failed to handle login",
-          error,
-        }
-      });
+      if (createdUser?.user?.id) {
+        await supabaseAdmin.auth.admin.deleteUser(createdUser.user.id);
+      }
+      throw error;
     }
+
+  } catch (error) {
+    return reply.code(200).send({
+      success: false,
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 };
 
