@@ -84,13 +84,13 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
       });
     }
 
-    const { data: createdUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: createdUser, error: createUserError } = await supabase.auth.signUp({
       email: `${telegram.id}.mock@amorium.com`,
       password: "TEST_MOCK_PASSWORD",
-      email_confirm: true,
-      user_metadata: {
-        telegram_id: telegram.id,
-      }
+      // email_confirm: true,
+      // user_metadata: {
+      //   telegram_id: telegram.id,
+      // }
     });
 
     if (createUserError) {
