@@ -275,7 +275,14 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
             sortOrder = 'desc',
         } = request.query;
 
-        const baseQuery = db
+        // Base query for counting total records
+        const countQuery = db
+            .select({ count: sql<number>`count(*)` })
+            .from(models)
+            .where(isNull(models.deactivatedAt));
+
+        // Base query for fetching data
+        const dataQuery = db
             .select({
                 id: models.id,
                 userId: models.userId,
@@ -288,28 +295,31 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
             .where(isNull(models.deactivatedAt));
 
         if (search.trim()) {
-            // @ts-ignore
-            baseQuery.where(
-                or(
-                    ilike(models.name, `%${search}%`),
-                    ilike(models.description, `%${search}%`)
-                )
+            const searchCondition = or(
+                ilike(models.name, `%${search}%`),
+                ilike(models.description, `%${search}%`)
             );
+            countQuery.where(searchCondition);
+            dataQuery.where(searchCondition);
         }
 
         const currentPage = Math.max(1, Number(page));
         const limit = Math.min(100, Math.max(1, Number(pageSize)));
         const offset = (currentPage - 1) * limit;
-        const data = await baseQuery
-            // @ts-ignore
+
+        // Execute count query first to get total records
+        const totalResult = await countQuery;
+        const total = totalResult[0]?.count ?? 0;
+
+        // Then execute data query with pagination and sorting
+        const data = await dataQuery
             .orderBy(sortOrder === 'asc' ? asc(models[sortField]) : desc(models[sortField]))
             .limit(limit)
             .offset(offset);
 
-        const total = await db.$count(models);
-
         const modelUserIds = data.map(model => model.userId);
 
+        // Get all chats for these models
         const modelChats = await db
             .select({
                 userId: chat_participants.userId,
@@ -318,7 +328,7 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
             .from(chat_participants)
             .where(inArray(chat_participants.userId, modelUserIds));
 
-        // 6. Группируем чаты по пользователям
+        // Group chats by user
         const chatsByUser = new Map<string, number[]>();
         modelChats.forEach(chat => {
             const userChats = chatsByUser.get(chat.userId) || [];
@@ -326,6 +336,7 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
             chatsByUser.set(chat.userId, userChats);
         });
 
+        // Subquery to find last entry in each chat
         const lastEntrySubquery = db
             .select({
                 chatId: chat_entries.chatId,
@@ -335,12 +346,17 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
             .groupBy(chat_entries.chatId)
             .as("last_entries");
 
+        // Get all unique chat IDs
         const allChatIds = Array.from(new Set(modelChats.map(c => c.chatId)));
+
+        // Get last messages for these chats
         const lastMessages = await db
             .select({
                 id: chat_entries.id,
                 chatId: chat_entries.chatId,
                 body: chat_entries.body,
+                type: chat_entries.type,
+                giftId: chat_entries.giftId,
                 createdAt: chat_entries.createdAt,
                 senderId: chat_entries.senderId,
             })
@@ -354,11 +370,13 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
             )
             .where(inArray(chat_entries.chatId, allChatIds));
 
+        // Create map of last messages by chat ID
         const lastMessageMap = new Map<number, typeof lastMessages[0]>();
         lastMessages.forEach(msg => {
             lastMessageMap.set(msg.chatId!, msg);
         });
 
+        // Get unread counts for each user
         const unreadCounts = await db
             .select({
                 userId: chat_entries_unread.userId,
@@ -371,13 +389,29 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
 
         const unreadMap = new Map(unreadCounts.map(item => [item.userId, item.count]));
 
+        // Get file attachments for these messages
+        const entryIds = lastMessages.map(m => m.id);
+        const fileMappings = await db
+            .select({
+                chatEntryId: chat_entry_files.chatEntryId,
+                fileId: chat_entry_files.fileId,
+            })
+            .from(chat_entry_files)
+            .where(inArray(chat_entry_files.chatEntryId, entryIds));
+
+        const filesByEntryId = new Map<number, string[]>();
+        for (const f of fileMappings) {
+            const list = filesByEntryId.get(f.chatEntryId) ?? [];
+            list.push(f.fileId);
+            filesByEntryId.set(f.chatEntryId, list);
+        }
+
+        // Enhance the model data with chat information
         const enhancedData = data.map(model => {
             const userChats = chatsByUser.get(model.userId) || [];
             const lastEntries = userChats
                 .map(chatId => lastMessageMap.get(chatId))
-                // @ts-ignore
                 .filter(Boolean)
-                // @ts-ignore
                 .sort((a, b) => new Date(b!.createdAt).getTime() - new Date(a!.createdAt).getTime());
 
             return {
@@ -386,8 +420,11 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
                 lastEntry: lastEntries[0] ? {
                     id: lastEntries[0].id,
                     body: lastEntries[0].body,
+                    type: lastEntries[0].type,
+                    senderId: lastEntries[0].senderId,
                     createdAt: lastEntries[0].createdAt,
-                    senderId: lastEntries[0].senderId
+                    includeFile: filesByEntryId.has(lastEntries[0].id),
+                    includeGift: Boolean(lastEntries[0].giftId),
                 } : null
             };
         });
