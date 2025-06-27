@@ -9,6 +9,7 @@ import {updateProfilePhotos} from "../../../utils/files/files.js";
 import { profile_balances } from "../../../db/schema/profile_balances.js";
 import env from "../../../config/env.js";
 import { isValid, parse } from "@telegram-apps/init-data-node";
+import { activateTariff } from '../../../utils/tariffs/tariffs.js';
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
   // const clientCookiesConfig: CookieSerializeOptions = {
@@ -143,6 +144,8 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
           balance: 0,
         }).returning();
 
+        // Pass transaction here and take default tariff from env
+        await activateTariff(profileData.id, 0);
 
         return profileData;
       });

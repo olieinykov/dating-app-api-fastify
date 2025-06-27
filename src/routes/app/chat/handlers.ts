@@ -11,6 +11,8 @@ import { chat_entries, chats, models, profiles, files, chat_entry_files, chat_pa
 import {and, asc, eq, inArray, sql} from "drizzle-orm";
 import ablyClient from '../../../services/ably.js'
 import {chat_entries_unread} from "../../../db/schema/chat_entries_unread.js";
+import { profiles_tariff } from '../../../db/schema/profile_tariff.js';
+import { tariffs } from '../../../db/schema/tariff.js';
 
 export const createChat = async (
   request: FastifyRequest<CreateChatSchemaBodyType>,
@@ -259,6 +261,25 @@ export const createChatEntry = async (
         const { localEntryId, participantsIds, attachmentIds, ...payload } = request.body;
 
         const data = await db.transaction(async (tx) => {
+            const [activeTariff] = await db
+            .select({
+                id: profiles_tariff.id,
+                tariffId: profiles_tariff.tariffId,
+                entriesSentToday: profiles_tariff.entriesSentToday,
+                entriesDailyLimit: tariffs.entriesDailyLimit,
+            })
+            .from(profiles_tariff)
+            .where(eq(profiles.id, request.profileId!))
+            .leftJoin(tariffs, eq(tariffs.id, profiles_tariff.tariffId))
+            .limit(1);
+
+            if (!activeTariff) {
+                throw new Error('Tariff not found for the profile');
+            }
+
+            if ((activeTariff.entriesSentToday ?? 0) >= (activeTariff.entriesDailyLimit ?? 0)) {
+                throw new Error("Daily limit of entries reached");
+            }
 
             const [entry] = await tx.insert(chat_entries).values({
                 type: 'text',
