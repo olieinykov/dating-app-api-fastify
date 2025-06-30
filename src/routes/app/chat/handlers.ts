@@ -13,6 +13,7 @@ import ablyClient from '../../../services/ably.js'
 import {chat_entries_unread} from "../../../db/schema/chat_entries_unread.js";
 import { profiles_tariff } from '../../../db/schema/profile_tariff.js';
 import { tariffs } from '../../../db/schema/tariff.js';
+import { checkEntriesDailyLimit } from '../../../utils/tariffs/tariffs.js';
 
 export const createChat = async (
   request: FastifyRequest<CreateChatSchemaBodyType>,
@@ -261,23 +262,8 @@ export const createChatEntry = async (
         const { localEntryId, participantsIds, attachmentIds, ...payload } = request.body;
 
         const data = await db.transaction(async (tx) => {
-            const [activeTariff] = await db
-            .select({
-                id: profiles_tariff.id,
-                tariffId: profiles_tariff.tariffId,
-                entriesSentToday: profiles_tariff.entriesSentToday,
-                entriesDailyLimit: tariffs.entriesDailyLimit,
-            })
-            .from(profiles_tariff)
-            .where(eq(profiles.id, request.profileId!))
-            .leftJoin(tariffs, eq(tariffs.id, profiles_tariff.tariffId))
-            .limit(1);
-
-            if (!activeTariff) {
-                throw new Error('Tariff not found for the profile');
-            }
-
-            if ((activeTariff.entriesSentToday ?? 0) >= (activeTariff.entriesDailyLimit ?? 0)) {
+            const { allowSending, entriesSent } = await checkEntriesDailyLimit(tx, request.profileId!);
+            if (!allowSending) {
                 throw new Error("Daily limit of entries reached");
             }
 
@@ -312,6 +298,14 @@ export const createChatEntry = async (
                     chatEntryId: entry.id,
                 }))
             ).onConflictDoNothing()
+        
+            await tx
+                .update(profiles_tariff).set({
+                    entriesSentToday: entriesSent + 1,
+                    lastResetDate: new Date(),
+                })
+                  .where(eq(profiles_tariff.profileId, request.profileId!))
+                  .returning();
 
             const [entryWithSender] = await tx
                 .select({
@@ -356,7 +350,7 @@ export const createChatEntry = async (
         reply.code(400).send({
             success: false,
             error: (error as Error)?.message,
-            message: 'Failed to create a new chat'
+            message: 'Failed to create a new chat entry'
         })
     }
 }

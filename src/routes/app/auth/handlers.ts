@@ -4,12 +4,12 @@ import { eq } from "drizzle-orm";
 import { profiles, profilesPreferences, profilesTelegram } from "../../../db/schema/index.js";
 import { ActivateProfileSchemaType, LoginSchemaType } from "./schemas.js";
 import { supabase, supabaseAdmin } from "../../../services/supabase.js";
-// import { CookieSerializeOptions } from "@fastify/cookie";
 import {updateProfilePhotos} from "../../../utils/files/files.js";
 import { profile_balances } from "../../../db/schema/profile_balances.js";
 import env from "../../../config/env.js";
 import { isValid, parse } from "@telegram-apps/init-data-node";
-import { activateTariff } from '../../../utils/tariffs/tariffs.js';
+
+import { profiles_tariff } from '../../../db/schema/profile_tariff.js';
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
   // const clientCookiesConfig: CookieSerializeOptions = {
@@ -145,7 +145,13 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
         }).returning();
 
         // Pass transaction here and take default tariff from env
-        await activateTariff(profileData.id, 0);
+        // await activateTariff(profileData.id, 1);
+        await tx.insert(profiles_tariff).values({
+            profileId: profileData.id,
+            tariffId: 1,
+            isActive: true,
+            entriesSentToday: 0,
+        });
 
         return profileData;
       });
