@@ -55,16 +55,22 @@ export const telegramPaymentWebhook = async (
   reply: FastifyReply
 ) => {
   const update = request.body;
+
+  console.log("HOOK update=>", update);
   // @ts-ignore
   if (update.pre_checkout_query) {
     try {
       const tgUrl = `https://api.telegram.org/bot${env.telegram.botToken!}/answerPreCheckoutQuery`;
       // const response = await axios.get(tgUrl);
+
+      console.log("HOOK checkout ask=>");
       const checkoutData = await axios.post(tgUrl, {
         // @ts-ignore
         pre_checkout_query_id: update.pre_checkout_query.id,
         ok: true,
       })
+
+      console.log("HOOK checkout ask=>", checkoutData);
 
       return reply.send({
         success: true,
@@ -78,6 +84,8 @@ export const telegramPaymentWebhook = async (
 
   // @ts-ignore
   if (update.message?.successful_payment) {
+    // @ts-ignore
+    console.log("HOOK success payment=>", update.message?.successful_payment);
     // @ts-ignore
     const { successful_payment, from } = update.message;
     const { total_amount, invoice_payload } = successful_payment;
