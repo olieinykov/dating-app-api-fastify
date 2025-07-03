@@ -3,7 +3,7 @@ import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import * as schema from '../schema/index.js';
 
-const queryClient = postgres("postgresql://postgres.avbstfhignbxstnlfsef:B1FD25WfIgV7ZmHK@aws-0-eu-central-1.pooler.supabase.com:6543/postgres", {
+const queryClient = postgres("postgresql://postgres.angrparasmsncbnmgecm:fpl2BzEQAMAsbOap@aws-0-eu-north-1.pooler.supabase.com:6543/postgres", {
     prepare: false,
 });
 

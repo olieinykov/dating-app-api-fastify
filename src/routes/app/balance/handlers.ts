@@ -1,6 +1,5 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import axios from 'axios';
-import { db } from "../../../db/index.js";
 import { BuyTokensSchemaType } from "./schemas.js";
 import env from "../../../config/env.js";
 
@@ -11,7 +10,6 @@ export const buyTokens = async (
   try {
     const { amount } = request.body;
     const tgUrl = `https://api.telegram.org/bot${env.telegram.botToken!}/createInvoiceLink`;
-    // const response = await axios.get(tgUrl);
     const invoiceData = await axios.post(tgUrl, {
       title: "Buy tokens",
       description: "Buy tokens for Amorium",
@@ -36,12 +34,7 @@ export const buyTokens = async (
         invoiceUrl: invoiceData.data.result,
       },
     });
-    
-    // console.log("Telegram API response:", response.data);
-
-    // console.log("buyTokens request", amount);
   } catch (error) {
-      console.log("error", error)
     reply.code(404).send({
       success: false,
       message: "Failed to buy tokens",
@@ -93,19 +86,10 @@ export const telegramPaymentWebhook = async (
     try {
       const payload = JSON.parse(invoice_payload);
       const amount = parseInt(payload.amount);
-      const profileId = payload.profileId;
 
       if (total_amount !== amount) {
-        // await sendTelegramMessage(
-        //   from.id,
-        // );
         return reply.send({ ok: false });
       }
-
-      // await db.profiles.update({
-      //   where: { id: profileId },
-      //   data: { tokens: { increment: amount } }
-      // });
 
       return reply.send({ ok: true });
 

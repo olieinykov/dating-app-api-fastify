@@ -7,6 +7,7 @@ import {
     chat_entries,
     chat_entry_files,
     files,
+    model_profile_assignments,
 } from "../../../db/schema/index.js";
 import {and, asc, desc, eq, ilike, inArray, isNull, ne, or, sql} from "drizzle-orm";
 import {
@@ -275,14 +276,63 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
             sortOrder = 'desc',
         } = request.query;
 
-        // Base query for counting total records
-        const countQuery = db
+        // Base conditions
+        const whereClauses = [isNull(models.deactivatedAt)];
+
+        // Search condition
+        if (search.trim()) {
+            whereClauses.push(
+                // @ts-ignore
+                or(
+                    ilike(models.name, `%${search}%`),
+                    ilike(models.description, `%${search}%`)
+                )
+            );
+        }
+
+        // Filter by accessible models for non-admin users
+        if (request.role !== "admin") {
+            const userModels = await db
+                .select({ modelId: model_profile_assignments.modelId })
+                .from(model_profile_assignments)
+                // @ts-ignore
+                .where(eq(model_profile_assignments.profileId, request.profileId));
+
+            if (userModels.length === 0) {
+                return reply.send({
+                    success: true,
+                    data: [],
+                    pagination: {
+                        page: 1,
+                        pageSize: 10,
+                        total: 0,
+                        totalPages: 0
+                    }
+                });
+            }
+
+            whereClauses.push(inArray(
+                models.id,
+                userModels.map(m => m.modelId)
+            ));
+        }
+
+        const whereCondition = and(...whereClauses);
+
+        // Count total records
+        const totalResult = await db
             .select({ count: sql<number>`count(*)` })
             .from(models)
-            .where(isNull(models.deactivatedAt));
+            .where(whereCondition);
+        const total = totalResult[0]?.count ?? 0;
 
-        // Base query for fetching data
-        const dataQuery = db
+        // Pagination
+        const currentPage = Math.max(1, Number(page));
+        const limit = Math.min(100, Math.max(1, Number(pageSize)));
+        const offset = (currentPage - 1) * limit;
+
+        // Fetch models data
+        const data = await db
             .select({
                 id: models.id,
                 userId: models.userId,
@@ -292,34 +342,27 @@ export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchema
                 createdAt: models.createdAt,
             })
             .from(models)
-            .where(isNull(models.deactivatedAt));
-
-        if (search.trim()) {
-            const searchCondition = or(
-                ilike(models.name, `%${search}%`),
-                ilike(models.description, `%${search}%`)
-            );
-            // @ts-ignore
-            countQuery.where(searchCondition);
-            // @ts-ignore
-            dataQuery.where(searchCondition);
-        }
-
-        const currentPage = Math.max(1, Number(page));
-        const limit = Math.min(100, Math.max(1, Number(pageSize)));
-        const offset = (currentPage - 1) * limit;
-
-        // Execute count query first to get total records
-        const totalResult = await countQuery;
-        const total = totalResult[0]?.count ?? 0;
-
-        // Then execute data query with pagination and sorting
-        const data = await dataQuery
+            .where(whereCondition)
             // @ts-ignore
             .orderBy(sortOrder === 'asc' ? asc(models[sortField]) : desc(models[sortField]))
             .limit(limit)
             .offset(offset);
-        // @ts-ignore
+
+        // Early return if no models found
+        if (data.length === 0) {
+            return reply.send({
+                success: true,
+                data: [],
+                pagination: {
+                    page: currentPage,
+                    pageSize: limit,
+                    total,
+                    totalPages: Math.ceil(total / limit)
+                }
+            });
+        }
+
+        // Get all model user IDs
         const modelUserIds = data.map(model => model.userId);
 
         // Get all chats for these models

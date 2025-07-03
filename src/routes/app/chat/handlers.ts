@@ -12,7 +12,6 @@ import {and, asc, eq, inArray, sql} from "drizzle-orm";
 import ablyClient from '../../../services/ably.js'
 import {chat_entries_unread} from "../../../db/schema/chat_entries_unread.js";
 import { profiles_tariff } from '../../../db/schema/profile_tariff.js';
-import { tariffs } from '../../../db/schema/tariff.js';
 import { checkEntriesDailyLimit } from '../../../utils/tariffs/tariffs.js';
 
 export const createChat = async (

@@ -9,9 +9,7 @@ export const setupTelegramHooks = async (
 ) => {
   try {
     const webhookUrl = request.body.webhookUrl;
-    // https://dating-be-mvp.onrender.com/api/app/balance/telegram-payment-webhook
     const response =  await axios.post(`https://api.telegram.org/bot${env.telegram.botToken!}/setWebhook?url=${webhookUrl}`);
-    console.log("setupTelegramHooks response", response);
     return reply.code(200).send({
       success: true,
     });

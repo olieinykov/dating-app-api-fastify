@@ -63,14 +63,14 @@ export const getProfile = async (
 
     reply.code(200).send({
       ...profileData,
+      tariff: {
+        ...activeTariff?.tariff,
+        entriesSentToday: activeTariff?.entriesSentToday ?? 0,
+      },
       profile: {
         ...profileDetails,
         balance: balanceRow.balance,
         photos,
-        tariff: {
-          ...activeTariff?.tariff,
-          entriesSentToday: activeTariff?.entriesSentToday ?? 0,
-        },
       },
     });
   } catch (error) {

@@ -8,7 +8,6 @@ import {updateProfilePhotos} from "../../../utils/files/files.js";
 import { profile_balances } from "../../../db/schema/profile_balances.js";
 import env from "../../../config/env.js";
 import { isValid, parse } from "@telegram-apps/init-data-node";
-
 import { profiles_tariff } from '../../../db/schema/profile_tariff.js';
 
 export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, reply: FastifyReply) => {
@@ -144,8 +143,6 @@ export const createOrLogin = async (request: FastifyRequest<LoginSchemaType>, re
           balance: 0,
         }).returning();
 
-        // Pass transaction here and take default tariff from env
-        // await activateTariff(profileData.id, 1);
         await tx.insert(profiles_tariff).values({
             profileId: profileData.id,
             tariffId: 1,

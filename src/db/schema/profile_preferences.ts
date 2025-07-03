@@ -1,12 +1,31 @@
 import { pgTable, serial, text, timestamp, pgEnum, date, json, integer } from 'drizzle-orm/pg-core'
-import { profiles } from "./profile.js";
-import { tariffs } from './tariff.js';
+import { profiles } from "./profile";
+import { tariffs } from './tariff';
 
 export const genderEnum = pgEnum('gender', ['male', 'female']);
-export const paramsAgeEnum = pgEnum('params_age', ['18-24', '25-34', '35-44', '45+']);
-export const paramsBustSizeEnum = pgEnum('params_bust_size', ['AA-A', 'B-C', 'D-E', 'F+']);
-export const paramsHairColorEnum = pgEnum('params_hair_color', ['blonde', 'brunette', 'brown-haired', 'redhead']);
-export const paramsBodyTypeEnum = pgEnum('params_body_type', ['athletic', 'curvy', 'slim']);
+export const paramsAgeEnum = pgEnum('params_age', [
+  '18-24',
+  '25-34',
+  '35-44',
+  '45+',
+]);
+export const paramsBustSizeEnum = pgEnum('params_bust_size', [
+  'AA-A',
+  'B-C',
+  'D-E',
+  'F+',
+]);
+export const paramsHairColorEnum = pgEnum('params_hair_color', [
+  'blonde',
+  'brunette',
+  'brown-haired',
+  'redhead',
+]);
+export const paramsBodyTypeEnum = pgEnum('params_body_type', [
+  'athletic',
+  'curvy',
+  'slim',
+]);
 
 // Use them in the table
 export const profilesPreferences = pgTable('profiles_preferences', {

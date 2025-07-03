@@ -1,5 +1,14 @@
-import {Type, Static, Array, Object, String, Boolean, Integer, Optional} from '@sinclair/typebox'
-import { PaginationSchema } from '../../../shared/schemas.js'
+import {
+  Type,
+  Static,
+  Array,
+  Object,
+  String,
+  Boolean,
+  Integer,
+  Optional,
+} from '@sinclair/typebox';
+import { PaginationSchema } from '../../../shared/schemas.js';
 
 export const CreateModelSchema = {
   tags: ['Admin / Models'],
@@ -11,7 +20,7 @@ export const CreateModelSchema = {
     gender: Type.Enum({
       male: 'male',
       female: 'female',
-    }),  // тип enum для пола
+    }),
     bustSize: Type.Enum({
       'AA-A': 'AA-A',
       'B-C': 'B-C',
@@ -30,13 +39,14 @@ export const CreateModelSchema = {
       slim: 'slim',
     }),
     photos: Array(
-        Object({
-          id: String(),
-          isAvatar: Boolean(),
-        }),
-        { maxItems: 3 }
+      Object({
+        id: String(),
+        isAvatar: Boolean(),
+      }),
+      { maxItems: 3 }
     ),
-    favoriteGiftIds: Array(Integer())
+    favoriteGiftIds: Array(Integer()),
+    assignedChattersIds: Optional(Array(Integer())),
   }),
 };
 export type CreateModelType = {
@@ -48,21 +58,23 @@ export const UpdateModelSchema = {
   parameters: Type.Object({
     modelId: Type.Integer(),
   }),
-  body: Type.Partial(Type.Object({
-    name: Type.String({ minLength: 1 }),
-    geo: Type.String({ minLength: 1 }),
-    avatar: Type.String({ format: 'uri' }),
-    about: Type.String(),
-    photos: Array(
+  body: Type.Partial(
+    Type.Object({
+      name: Type.String({ minLength: 1 }),
+      geo: Type.String({ minLength: 1 }),
+      avatar: Type.String({ format: 'uri' }),
+      about: Type.String(),
+      photos: Array(
         Object({
           id: String(),
           isAvatar: Boolean(),
         }),
         { maxItems: 3 }
-    ),
-    favoriteGiftIds: Array(Integer())
-  })),
-
+      ),
+      favoriteGiftIds: Array(Integer()),
+      assignedChattersIds: Optional(Array(Integer())),
+    })
+  ),
 };
 export type UpdateModelType = {
   Body: Static<typeof UpdateModelSchema.body>;
@@ -71,13 +83,16 @@ export type UpdateModelType = {
 
 export const GetAllModelsSchema = {
   tags: ['Admin / Models'],
-  querystring: Type.Intersect([PaginationSchema, Type.Object({
-    deactivated: Optional(Type.Boolean())
-  })]),
-}
+  querystring: Type.Intersect([
+    PaginationSchema,
+    Type.Object({
+      deactivated: Optional(Type.Boolean()),
+    }),
+  ]),
+};
 export type GetAllModelsType = {
   Querystring: Static<typeof GetAllModelsSchema.querystring>;
-}
+};
 
 export const GetOneModelSchema = {
   tags: ['Admin / Models'],
@@ -97,4 +112,31 @@ export const DeleteModelSchema = {
 };
 export type DeleteModelType = {
   Params: Static<typeof DeleteModelSchema.parameters>;
+};
+
+export const GetModelActionsSchema = {
+  tags: ['Admin / Models'],
+  querystring: Type.Intersect([
+    PaginationSchema,
+    Type.Object({
+      modelId: Optional(Type.Integer()),
+      actionType: Optional(
+        Type.Enum({
+          create: 'create',
+          edit: 'edit',
+          delete: 'delete',
+        })
+      ),
+      sortOrder: Optional(
+        Type.Enum({
+          asc: 'asc',
+          desc: 'desc',
+        })
+      ),
+    }),
+  ]),
+};
+
+export type GetModelActionsType = {
+  Querystring: Static<typeof GetModelActionsSchema.querystring>;
 };
