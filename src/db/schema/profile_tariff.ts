@@ -1,6 +1,6 @@
 import { pgTable, serial, integer, boolean, timestamp } from 'drizzle-orm/pg-core'
-import { profiles } from "./profile";
-import { tariffs } from './tariff';
+import { profiles } from "./profile.js";
+import { tariffs } from './tariff.js';
 
 export const profiles_tariff = pgTable('profiles_tariff', {
     id: serial('id').primaryKey(),

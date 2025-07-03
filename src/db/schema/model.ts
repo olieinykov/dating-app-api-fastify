@@ -5,7 +5,7 @@ import {
   paramsBodyTypeEnum,
   paramsBustSizeEnum,
   paramsHairColorEnum,
-} from './profile_preferences';
+} from './profile_preferences.js';
 
 export const models = pgTable('models', {
   id: serial('id').primaryKey(),

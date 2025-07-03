@@ -7,7 +7,7 @@ import {
   uuid,
   integer,
 } from 'drizzle-orm/pg-core';
-import { profilesTelegram } from './profile_telegram';
+import { profilesTelegram } from './profile_telegram.js';
 import { pgEnum } from 'drizzle-orm/pg-core';
 
 export const userRoleEnum = pgEnum('role', ['admin', 'chatter', 'user']);

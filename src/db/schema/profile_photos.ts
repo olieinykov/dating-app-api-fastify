@@ -1,7 +1,7 @@
 import { pgTable, serial } from 'drizzle-orm/pg-core';
-import { profiles } from './profile';
+import { profiles } from './profile.js';
 import { uuid } from 'drizzle-orm/pg-core';
-import { files } from './file';
+import { files } from './file.js';
 import { boolean } from 'drizzle-orm/pg-core';
 
 export const profiles_photos = pgTable('profiles_photos', {
