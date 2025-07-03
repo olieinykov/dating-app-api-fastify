@@ -198,7 +198,7 @@ export const deleteModel = async (
         actorId: currentUserId,
         modelId: modelId!,
         actionType: 'delete',
-      });
+      }).returning();
 
       return updatedModel;
     });
@@ -259,7 +259,7 @@ export const createModel = async (
         actorId: currentUserId!,
         modelId: createdModel.id,
         actionType: 'create',
-      });
+      }).returning();
 
       let modelPhotos = undefined;
       if (photos.length) {
@@ -405,11 +405,12 @@ export const updateModel = async (
             .returning();
         }
 
+
         await tx.insert(models_actions).values({
           actorId: currentUserId!,
           modelId: modelId,
           actionType: 'edit',
-        });
+        }).returning();
 
         return {
           ...updatedModel,
