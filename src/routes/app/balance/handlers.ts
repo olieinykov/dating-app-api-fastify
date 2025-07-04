@@ -63,24 +63,15 @@ export const telegramPaymentWebhook = async (
   reply: FastifyReply
 ) => {
   const update = request.body;
-  console.log("update ======>", update);
-
-  console.log("HOOK update=>", update);
   // @ts-ignore
   if (update.pre_checkout_query) {
     try {
       // @ts-ignore
       const payload = JSON.parse(update.pre_checkout_query.invoice_payload);
-      console.log("payload", payload);
-      console.log("paymentId", payload.paymentId);
       const tgUrl = `https://api.telegram.org/bot${env.telegram.botToken!}/answerPreCheckoutQuery`;
-
-      console.log("BEFORE updatedPayment");
       const [updatedPayment] = await db.update(payments).set({
         status: 'pre-checkout'
       }).where(eq(payments.id, payload.paymentId)).returning()
-
-      console.log("AFTER updatedPayment", updatedPayment);
 
       const checkoutData = await axios.post(tgUrl, {
         // @ts-ignore
@@ -88,8 +79,6 @@ export const telegramPaymentWebhook = async (
         error_message: !updatedPayment ? "Failed to handle payment" : undefined,
         ok: !!updatedPayment,
       })
-
-      console.log("HOOK checkout ask=>", checkoutData);
 
       return reply.send({
         success: true,
@@ -106,8 +95,6 @@ export const telegramPaymentWebhook = async (
   // @ts-ignore
   if (update.message?.successful_payment) {
     // @ts-ignore
-    console.log("HOOK success payment=>", update.message?.successful_payment);
-    // @ts-ignore
     const { successful_payment, from } = update.message;
     const { total_amount, invoice_payload } = successful_payment;
 
@@ -116,16 +103,6 @@ export const telegramPaymentWebhook = async (
       const amount = parseInt(payload.amount);
       const paymentId = parseInt(payload.paymentId);
       const profileId = parseInt(payload.profileId);
-
-      console.log("amount", amount);
-      console.log("payload", payload);
-      console.log("total_amount", total_amount);
-      console.log("profileId", profileId);
-      console.log("successful_payment", successful_payment);
-
-      // if (total_amount !== amount) {
-      //   return reply.send({ ok: false });
-      // }
 
       const result = await db.transaction(async (tx) => {
         try {
@@ -143,7 +120,8 @@ export const telegramPaymentWebhook = async (
 
           const updatedBalance = await tx.update(profile_balances).set({
             balance: currentUserBalance + (amount ?? 0)
-          }).returning();
+          })
+          .where(and(eq(profile_balances.profileId, profileId))).returning()
 
           return !(!updatedPayment || !updatedBalance);
 
