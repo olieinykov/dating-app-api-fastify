@@ -5,7 +5,7 @@ import env from "../../../config/env.js";
 import {db} from "../../../db/index.js";
 import {payments} from "../../../db/schema/payment.js";
 import {and, eq} from "drizzle-orm";
-import {profile_balances} from "../../../db/schema/profile_balances";
+import {profile_balances} from "../../../db/schema/profile_balances.js";
 
 export const buyTokens = async (
   request: FastifyRequest<BuyTokensSchemaType>,
