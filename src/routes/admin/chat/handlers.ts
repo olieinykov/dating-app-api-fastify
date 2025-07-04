@@ -392,6 +392,7 @@ export const getChatsModels = async (
       .where(whereCondition)
       // @ts-ignore
       .orderBy(
+          // @ts-ignore
         sortOrder === 'asc' ? asc(models[sortField]) : desc(models[sortField])
       )
       .limit(limit)
