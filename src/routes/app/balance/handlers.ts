@@ -114,6 +114,10 @@ export const telegramPaymentWebhook = async (
       const amount = parseInt(payload.amount);
       const paymentId = parseInt(payload.paymentId);
 
+      console.log("amount", amount);
+      console.log("total_amount", total_amount);
+      console.log("successful_payment", successful_payment);
+
       if (total_amount !== amount) {
         return reply.send({ ok: false });
       }
