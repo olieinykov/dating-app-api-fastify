@@ -28,6 +28,7 @@ import {
   GetOneModelType,
   UpdateModelType,
   GetModelActionsType,
+  UpdateModelLastActiveTimeType,
 } from './schemas.js';
 import { supabaseAdmin } from '../../../services/supabase.js';
 import { models_photos } from '../../../db/schema/model_photos.js';
@@ -503,6 +504,32 @@ export const getModelActions = async (
         total,
         totalPages: Math.ceil(total / limit),
       },
+    });
+  } catch (error) {
+    reply.status(400).send({
+      success: false,
+      error: (error as Error)?.message,
+    });
+  }
+};
+
+export const updateModelLastActiveTime = async (
+  request: FastifyRequest<UpdateModelLastActiveTimeType>,
+  reply: FastifyReply
+) => {
+  try {
+    const { modelId } = request.params;
+    const [updatedModel] = await db
+      .update(models)
+      .set({
+        lastActiveTime: new Date(),
+      })
+      .where(eq(models.id, modelId))
+      .returning();
+
+    reply.send({
+      success: true,
+      data: updatedModel,
     });
   } catch (error) {
     reply.status(400).send({

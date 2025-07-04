@@ -140,3 +140,12 @@ export const GetModelActionsSchema = {
 export type GetModelActionsType = {
   Querystring: Static<typeof GetModelActionsSchema.querystring>;
 };
+
+export const UpdateModelLastActiveTimeSchema = {
+  tags: ['Admin / Models'],
+  parameters: Type.Object({ modelId: Type.Integer() }),
+};
+
+export type UpdateModelLastActiveTimeType = {
+  Params: Static<typeof UpdateModelLastActiveTimeSchema.parameters>;
+};

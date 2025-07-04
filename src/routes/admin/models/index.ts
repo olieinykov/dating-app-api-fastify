@@ -6,6 +6,7 @@ import {
   createModel,
   updateModel,
   getModelActions,
+  updateModelLastActiveTime,
 } from './handlers.js';
 import {
   CreateModelSchema,
@@ -14,6 +15,7 @@ import {
   UpdateModelSchema,
   GetOneModelSchema,
   GetModelActionsSchema,
+  UpdateModelLastActiveTimeSchema,
 } from './schemas.js';
 import { adminAuthenticated } from '../../../middleware/adminAuthenticated.js';
 
@@ -47,6 +49,11 @@ const routes = async (fastify: FastifyInstance) => {
     schema: GetModelActionsSchema,
     preHandler: [adminAuthenticated],
     handler: getModelActions,
+  });
+  fastify.patch('/:modelId/last-active', {
+    schema: UpdateModelLastActiveTimeSchema,
+    preHandler: [adminAuthenticated],
+    handler: updateModelLastActiveTime,
   });
 };
 

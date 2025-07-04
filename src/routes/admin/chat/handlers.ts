@@ -1,497 +1,556 @@
-import { FastifyRequest, FastifyReply } from 'fastify'
-import { db } from "../../../db/index.js";
+import { FastifyRequest, FastifyReply } from 'fastify';
+import { db } from '../../../db/index.js';
 import {
-    models,
-    chat_participants,
-    profiles,
-    chat_entries,
-    chat_entry_files,
-    files,
-    model_profile_assignments,
-} from "../../../db/schema/index.js";
-import {and, asc, desc, eq, ilike, inArray, isNull, ne, or, sql} from "drizzle-orm";
+  models,
+  chat_participants,
+  profiles,
+  chat_entries,
+  chat_entry_files,
+  files,
+  model_profile_assignments,
+} from '../../../db/schema/index.js';
 import {
-    GetAllModelsType,
-    CreateChatEntrySchemaType, GetChatModelsSchemaType
-} from "./schemas.js";
-import ablyClient from "../../../services/ably.js";
+  and,
+  asc,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  ne,
+  or,
+  sql,
+} from 'drizzle-orm';
+import {
+  GetAllModelsType,
+  CreateChatEntrySchemaType,
+  GetChatModelsSchemaType,
+} from './schemas.js';
+import ablyClient from '../../../services/ably.js';
 import { chat_entries_unread } from '../../../db/schema/chat_entries_unread.js';
 
-export const getModelsChats = async (request: FastifyRequest<GetAllModelsType>, reply: FastifyReply) => {
-    try {
-        const [model] = await db.select().from(models).where(eq(models.id, request.params.modelId));
-        const userId = model.userId;
+export const getModelsChats = async (
+  request: FastifyRequest<GetAllModelsType>,
+  reply: FastifyReply
+) => {
+  try {
+    const [model] = await db
+      .select()
+      .from(models)
+      .where(eq(models.id, request.params.modelId));
+    const userId = model.userId;
 
-        const page = request.query.page ?? 1;
-        const pageSize =  request.query.pageSize ?? 10;
-        const currentPage = Math.max(1, page);
-        const limit = Math.min(100, Math.max(1, pageSize));
-        const offset = (currentPage - 1) * limit;
+    const page = request.query.page ?? 1;
+    const pageSize = request.query.pageSize ?? 10;
+    const currentPage = Math.max(1, page);
+    const limit = Math.min(100, Math.max(1, pageSize));
+    const offset = (currentPage - 1) * limit;
 
-        const userChatIds = await db
-            .select({ chatId: chat_participants.chatId })
-            .from(chat_participants)
-            .where(eq(chat_participants.userId, userId as string))
-            .limit(limit)
-            .offset(offset);
+    const userChatIds = await db
+      .select({ chatId: chat_participants.chatId })
+      .from(chat_participants)
+      .where(eq(chat_participants.userId, userId as string))
+      .limit(limit)
+      .offset(offset);
 
-        const chatIds = userChatIds.map(c => c.chatId);
-        if (chatIds.length === 0) {
-            return reply.code(200).send({
-                success: true,
-                data: [],
-                pagination: {
-                    page: currentPage,
-                    pageSize: limit,
-                    total: 0,
-                    totalPages: 0
-                }
-            });
-        }
-
-        const participants = await db
-            .select({
-                chatId: chat_participants.chatId,
-                userId: chat_participants.userId,
-                profile: profiles,
-                // model: models,
-            })
-            .from(chat_participants)
-            .leftJoin(profiles, eq(chat_participants.userId, profiles.userId))
-            .leftJoin(models, eq(chat_participants.userId, models.userId))
-            .where(inArray(chat_participants.chatId, chatIds));
-
-        const participantMap = new Map<number, Array<{ id: string, name?: string, avatar?: string }>>();
-        for (const p of participants) {
-            const list = participantMap.get(p.chatId) ?? [];
-            if (p.userId !== userId) {
-                list.push({
-                    id: p.userId,
-                    name: p.profile?.name!,
-                    avatar: p.profile?.avatar!,
-                });
-            }
-            participantMap.set(p.chatId, list);
-        }
-
-        const lastEntrySubquery = db
-            .select({
-                chatId: chat_entries.chatId,
-                lastCreatedAt: sql`MAX(${chat_entries.createdAt})`.as("lastCreatedAt"),
-            })
-            .from(chat_entries)
-            .groupBy(chat_entries.chatId)
-            .as("last_entries");
-
-        const lastMessages = await db
-            .select({
-                id: chat_entries.id,
-                chatId: chat_entries.chatId,
-                body: chat_entries.body,
-                createdAt: chat_entries.createdAt,
-                senderId: chat_entries.senderId,
-            })
-            .from(chat_entries)
-            .innerJoin(
-                lastEntrySubquery,
-                and(
-                    eq(chat_entries.chatId, lastEntrySubquery.chatId),
-                    eq(chat_entries.createdAt, lastEntrySubquery.lastCreatedAt)
-                )
-            )
-            .where(inArray(chat_entries.chatId, chatIds));
-
-        const entryIds = lastMessages.map(m => m.id);
-        const fileMappings = await db
-            .select({
-                chatEntryId: chat_entry_files.chatEntryId,
-                fileId: chat_entry_files.fileId,
-            })
-            .from(chat_entry_files)
-            .where(inArray(chat_entry_files.chatEntryId, entryIds));
-
-        const filesByEntryId = new Map<number, string[]>();
-        for (const f of fileMappings) {
-            const list = filesByEntryId.get(f.chatEntryId) ?? [];
-            list.push(f.fileId);
-            filesByEntryId.set(f.chatEntryId, list);
-        }
-
-        const lastMessageMap = new Map();
-
-        for (const message of lastMessages) {
-            lastMessageMap.set(message.chatId, {
-                id: message.id,
-                body: message.body,
-                senderId: message.senderId,
-                createdAt: message.createdAt,
-                includeFile: filesByEntryId.has(message.id),
-            });
-        }
-
-        const unreadCounts = await db
-        .select({
-            chatId: chat_entries.chatId,
-            count: sql<number>`COUNT(*)`.as("count")
-        })
-        .from(chat_entries_unread)
-        .innerJoin(chat_entries, eq(chat_entries_unread.chatEntryId, chat_entries.id))
-        .where(eq(chat_entries_unread.userId, userId as string))
-        .groupBy(chat_entries.chatId);
-
-        const unreadMap = new Map<number, number>();
-        for (const u of unreadCounts) {
-            unreadMap.set(u.chatId!, u.count);
-        }
-
-        const sortedChatIds = [...chatIds].sort((a, b) => {
-            const aDate = lastMessageMap.get(a)?.createdAt?.getTime() ?? 0;
-            const bDate = lastMessageMap.get(b)?.createdAt?.getTime() ?? 0;
-            return bDate - aDate;
-        });
-
-        const chatsWithParticipants = sortedChatIds.map(chatId => ({
-            id: chatId,
-            participants: participantMap.get(chatId) ?? [],
-            lastEntry: lastMessageMap.get(chatId) ?? null,
-            unreadCount: unreadMap.get(chatId) ?? 0,
-        }));
-
-        const [{ count: total }] = await db
-            .select({ count: sql<number>`COUNT(*)` })
-            .from(chat_participants)
-            .where(eq(chat_participants.userId, userId as string));
-
-        reply.code(200).send({
-            success: true,
-            data: chatsWithParticipants,
-            pagination: {
-                page: currentPage,
-                pageSize: limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-            }
-        });
-
-    } catch (error) {
-        reply.code(400).send({
-            success: false,
-            error: (error as Error)?.message,
-        });
+    const chatIds = userChatIds.map(c => c.chatId);
+    if (chatIds.length === 0) {
+      return reply.code(200).send({
+        success: true,
+        data: [],
+        pagination: {
+          page: currentPage,
+          pageSize: limit,
+          total: 0,
+          totalPages: 0,
+        },
+      });
     }
+
+    const participants = await db
+      .select({
+        chatId: chat_participants.chatId,
+        userId: chat_participants.userId,
+        profile: profiles,
+        // model: models,
+      })
+      .from(chat_participants)
+      .leftJoin(profiles, eq(chat_participants.userId, profiles.userId))
+      .leftJoin(models, eq(chat_participants.userId, models.userId))
+      .where(inArray(chat_participants.chatId, chatIds));
+
+    const participantMap = new Map<
+      number,
+      Array<{
+        id: string;
+        name?: string;
+        avatar?: string;
+        lastActiveTime?: Date | null;
+      }>
+    >();
+    for (const p of participants) {
+      const list = participantMap.get(p.chatId) ?? [];
+      if (p.userId !== userId) {
+        list.push({
+          id: p.userId,
+          name: p.profile?.name!,
+          avatar: p.profile?.avatar!,
+          lastActiveTime: p.profile?.lastActiveTime,
+        });
+      }
+      participantMap.set(p.chatId, list);
+    }
+
+    const lastEntrySubquery = db
+      .select({
+        chatId: chat_entries.chatId,
+        lastCreatedAt: sql`MAX(${chat_entries.createdAt})`.as('lastCreatedAt'),
+      })
+      .from(chat_entries)
+      .groupBy(chat_entries.chatId)
+      .as('last_entries');
+
+    const lastMessages = await db
+      .select({
+        id: chat_entries.id,
+        chatId: chat_entries.chatId,
+        body: chat_entries.body,
+        createdAt: chat_entries.createdAt,
+        senderId: chat_entries.senderId,
+      })
+      .from(chat_entries)
+      .innerJoin(
+        lastEntrySubquery,
+        and(
+          eq(chat_entries.chatId, lastEntrySubquery.chatId),
+          eq(chat_entries.createdAt, lastEntrySubquery.lastCreatedAt)
+        )
+      )
+      .where(inArray(chat_entries.chatId, chatIds));
+
+    const entryIds = lastMessages.map(m => m.id);
+    const fileMappings = await db
+      .select({
+        chatEntryId: chat_entry_files.chatEntryId,
+        fileId: chat_entry_files.fileId,
+      })
+      .from(chat_entry_files)
+      .where(inArray(chat_entry_files.chatEntryId, entryIds));
+
+    const filesByEntryId = new Map<number, string[]>();
+    for (const f of fileMappings) {
+      const list = filesByEntryId.get(f.chatEntryId) ?? [];
+      list.push(f.fileId);
+      filesByEntryId.set(f.chatEntryId, list);
+    }
+
+    const lastMessageMap = new Map();
+
+    for (const message of lastMessages) {
+      lastMessageMap.set(message.chatId, {
+        id: message.id,
+        body: message.body,
+        senderId: message.senderId,
+        createdAt: message.createdAt,
+        includeFile: filesByEntryId.has(message.id),
+      });
+    }
+
+    const unreadCounts = await db
+      .select({
+        chatId: chat_entries.chatId,
+        count: sql<number>`COUNT(*)`.as('count'),
+      })
+      .from(chat_entries_unread)
+      .innerJoin(
+        chat_entries,
+        eq(chat_entries_unread.chatEntryId, chat_entries.id)
+      )
+      .where(eq(chat_entries_unread.userId, userId as string))
+      .groupBy(chat_entries.chatId);
+
+    const unreadMap = new Map<number, number>();
+    for (const u of unreadCounts) {
+      unreadMap.set(u.chatId!, u.count);
+    }
+
+    const sortedChatIds = [...chatIds].sort((a, b) => {
+      const aDate = lastMessageMap.get(a)?.createdAt?.getTime() ?? 0;
+      const bDate = lastMessageMap.get(b)?.createdAt?.getTime() ?? 0;
+      return bDate - aDate;
+    });
+
+    const chatsWithParticipants = sortedChatIds.map(chatId => ({
+      id: chatId,
+      participants: participantMap.get(chatId) ?? [],
+      lastEntry: lastMessageMap.get(chatId) ?? null,
+      unreadCount: unreadMap.get(chatId) ?? 0,
+    }));
+
+    const [{ count: total }] = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(chat_participants)
+      .where(eq(chat_participants.userId, userId as string));
+
+    reply.code(200).send({
+      success: true,
+      data: chatsWithParticipants,
+      pagination: {
+        page: currentPage,
+        pageSize: limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    reply.code(400).send({
+      success: false,
+      error: (error as Error)?.message,
+    });
+  }
 };
 
 export const createChatEntry = async (
-    request: FastifyRequest<CreateChatEntrySchemaType>,
-    reply: FastifyReply
+  request: FastifyRequest<CreateChatEntrySchemaType>,
+  reply: FastifyReply
 ) => {
-    try {
-        const data = await db.transaction(async (tx) => {
-            const fileIds = request.body?.attachmentIds;
+  try {
+    const data = await db.transaction(async tx => {
+      const fileIds = request.body?.attachmentIds;
 
-            const [entry] = await tx.insert(chat_entries).values({
-                type: 'text',
-                body: request.body.body,
-                senderId: request.body.fromModelId as string,
-                chatId: request.params.chatId,
-            }).returning();
-
-            let attachments = undefined;
-
-            if (fileIds?.length) {
-                await tx.insert(chat_entry_files).values(
-                    fileIds.map((fileId) => ({
-                        chatEntryId: entry.id,
-                        fileId,
-                    }))
-                ).returning();
-
-                attachments = await db.select()
-                    .from(files)
-                    .where(inArray(files.id, fileIds));
-            }
-
-            const participantsWithoutCurrentUser = request.body?.participantsIds?.filter(userId => userId !== request.body.fromModelId);
-            
-            await tx.insert(chat_entries_unread).values(
-                        participantsWithoutCurrentUser.map((userId) => ({
-                            userId,
-                            chatId: entry.chatId,
-                            chatEntryId: entry.id,
-                        }))
-                    ).onConflictDoNothing()
-
-            const [entryWithSender] = await tx
-                .select({
-                    id: chat_entries.id,
-                    type: chat_entries.type,
-                    body: chat_entries.body,
-                    createdAt: chat_entries.createdAt,
-                    chatId: chat_entries.chatId,
-                    sender: {
-                        id: models.id,
-                        senderId: models.userId,
-                        name: models.name,
-                    },
-                })
-                .from(chat_entries)
-                .leftJoin(models, eq(chat_entries.senderId, models.userId))
-                .where(eq(chat_entries.id, entry.id));
-
-            return {
-                ...entryWithSender,
-                attachments,
-                localEntryId: request.body.localEntryId,
-            }
-        });
-
-        if (data) {
-            const eventData = { ...data, localEntryId: request.body.localEntryId };
-            // const usersChannel = ablyClient.channels.get(`user-events:${request.body.fromModelId}`);
-            const adminChannel = ablyClient.channels.get(`admin-events`);
-            // await usersChannel.publish('entry-created', eventData);
-            await adminChannel.publish('entry-created', eventData);
-        }
-
-        reply.code(200).send({
-            success: true,
-            data: data,
-        });
-    } catch (error) {
-        reply.code(400).send({
-            success: false,
-            error: (error as Error)?.message,
-            message: 'Failed to create a new chat'
+      const [entry] = await tx
+        .insert(chat_entries)
+        .values({
+          type: 'text',
+          body: request.body.body,
+          senderId: request.body.fromModelId as string,
+          chatId: request.params.chatId,
         })
+        .returning();
+
+      let attachments = undefined;
+
+      if (fileIds?.length) {
+        await tx
+          .insert(chat_entry_files)
+          .values(
+            fileIds.map(fileId => ({
+              chatEntryId: entry.id,
+              fileId,
+            }))
+          )
+          .returning();
+
+        attachments = await db
+          .select()
+          .from(files)
+          .where(inArray(files.id, fileIds));
+      }
+
+      const participantsWithoutCurrentUser =
+        request.body?.participantsIds?.filter(
+          userId => userId !== request.body.fromModelId
+        );
+
+      await tx
+        .insert(chat_entries_unread)
+        .values(
+          participantsWithoutCurrentUser.map(userId => ({
+            userId,
+            chatId: entry.chatId,
+            chatEntryId: entry.id,
+          }))
+        )
+        .onConflictDoNothing();
+
+      const [entryWithSender] = await tx
+        .select({
+          id: chat_entries.id,
+          type: chat_entries.type,
+          body: chat_entries.body,
+          createdAt: chat_entries.createdAt,
+          chatId: chat_entries.chatId,
+          sender: {
+            id: models.id,
+            senderId: models.userId,
+            name: models.name,
+          },
+        })
+        .from(chat_entries)
+        .leftJoin(models, eq(chat_entries.senderId, models.userId))
+        .where(eq(chat_entries.id, entry.id));
+
+      return {
+        ...entryWithSender,
+        attachments,
+        localEntryId: request.body.localEntryId,
+      };
+    });
+
+    if (data) {
+      const eventData = { ...data, localEntryId: request.body.localEntryId };
+      // const usersChannel = ablyClient.channels.get(`user-events:${request.body.fromModelId}`);
+      const adminChannel = ablyClient.channels.get(`admin-events`);
+      // await usersChannel.publish('entry-created', eventData);
+      await adminChannel.publish('entry-created', eventData);
     }
-}
 
-export const getChatsModels = async (request: FastifyRequest<GetChatModelsSchemaType>, reply: FastifyReply) => {
-    try {
-        const {
-            search = '',
-            page = 1,
-            pageSize = 10,
-            sortField = 'createdAt',
-            sortOrder = 'desc',
-        } = request.query;
+    reply.code(200).send({
+      success: true,
+      data: data,
+    });
+  } catch (error) {
+    reply.code(400).send({
+      success: false,
+      error: (error as Error)?.message,
+      message: 'Failed to create a new chat',
+    });
+  }
+};
 
-        // Base conditions
-        const whereClauses = [isNull(models.deactivatedAt)];
+export const getChatsModels = async (
+  request: FastifyRequest<GetChatModelsSchemaType>,
+  reply: FastifyReply
+) => {
+  try {
+    const {
+      search = '',
+      page = 1,
+      pageSize = 10,
+      sortField = 'createdAt',
+      sortOrder = 'desc',
+    } = request.query;
 
-        // Search condition
-        if (search.trim()) {
-            whereClauses.push(
-                // @ts-ignore
-                or(
-                    ilike(models.name, `%${search}%`),
-                    ilike(models.description, `%${search}%`)
-                )
-            );
-        }
+    // Base conditions
+    const whereClauses = [isNull(models.deactivatedAt)];
 
-        // Filter by accessible models for non-admin users
-        if (request.role !== "admin") {
-            const userModels = await db
-                .select({ modelId: model_profile_assignments.modelId })
-                .from(model_profile_assignments)
-                // @ts-ignore
-                .where(eq(model_profile_assignments.profileId, request.profileId));
-
-            if (userModels.length === 0) {
-                return reply.send({
-                    success: true,
-                    data: [],
-                    pagination: {
-                        page: 1,
-                        pageSize: 10,
-                        total: 0,
-                        totalPages: 0
-                    }
-                });
-            }
-
-            whereClauses.push(inArray(
-                models.id,
-                userModels.map(m => m.modelId)
-            ));
-        }
-
-        const whereCondition = and(...whereClauses);
-
-        // Count total records
-        const totalResult = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(models)
-            .where(whereCondition);
-        const total = totalResult[0]?.count ?? 0;
-
-        // Pagination
-        const currentPage = Math.max(1, Number(page));
-        const limit = Math.min(100, Math.max(1, Number(pageSize)));
-        const offset = (currentPage - 1) * limit;
-
-        // Fetch models data
-        const data = await db
-            .select({
-                id: models.id,
-                userId: models.userId,
-                name: models.name,
-                avatar: models.avatar,
-                deactivatedAt: models.deactivatedAt,
-                createdAt: models.createdAt,
-            })
-            .from(models)
-            .where(whereCondition)
-            // @ts-ignore
-            .orderBy(sortOrder === 'asc' ? asc(models[sortField]) : desc(models[sortField]))
-            .limit(limit)
-            .offset(offset);
-
-        // Early return if no models found
-        if (data.length === 0) {
-            return reply.send({
-                success: true,
-                data: [],
-                pagination: {
-                    page: currentPage,
-                    pageSize: limit,
-                    total,
-                    totalPages: Math.ceil(total / limit)
-                }
-            });
-        }
-
-        // Get all model user IDs
-        const modelUserIds = data.map(model => model.userId);
-
-        // Get all chats for these models
-        const modelChats = await db
-            .select({
-                userId: chat_participants.userId,
-                chatId: chat_participants.chatId
-            })
-            .from(chat_participants)
-            .where(inArray(chat_participants.userId, modelUserIds));
-
-        // Group chats by user
-        const chatsByUser = new Map<string, number[]>();
-        modelChats.forEach(chat => {
-            const userChats = chatsByUser.get(chat.userId) || [];
-            userChats.push(chat.chatId);
-            chatsByUser.set(chat.userId, userChats);
-        });
-
-        // Subquery to find last entry in each chat
-        const lastEntrySubquery = db
-            .select({
-                chatId: chat_entries.chatId,
-                lastCreatedAt: sql`MAX(${chat_entries.createdAt})`.as("lastCreatedAt"),
-            })
-            .from(chat_entries)
-            .groupBy(chat_entries.chatId)
-            .as("last_entries");
-
-        // Get all unique chat IDs
-        const allChatIds = Array.from(new Set(modelChats.map(c => c.chatId)));
-
-        // Get last messages for these chats
-        const lastMessages = await db
-            .select({
-                id: chat_entries.id,
-                chatId: chat_entries.chatId,
-                body: chat_entries.body,
-                type: chat_entries.type,
-                giftId: chat_entries.giftId,
-                createdAt: chat_entries.createdAt,
-                senderId: chat_entries.senderId,
-            })
-            .from(chat_entries)
-            .innerJoin(
-                lastEntrySubquery,
-                and(
-                    eq(chat_entries.chatId, lastEntrySubquery.chatId),
-                    eq(chat_entries.createdAt, lastEntrySubquery.lastCreatedAt)
-                )
-            )
-            .where(inArray(chat_entries.chatId, allChatIds));
-
-        // Create map of last messages by chat ID
-        const lastMessageMap = new Map<number, typeof lastMessages[0]>();
-        lastMessages.forEach(msg => {
-            lastMessageMap.set(msg.chatId!, msg);
-        });
-
-        // Get unread counts for each user
-        const unreadCounts = await db
-            .select({
-                userId: chat_entries_unread.userId,
-                count: sql<number>`COUNT(*)`.as("count")
-            })
-            .from(chat_entries_unread)
-            .innerJoin(chat_entries, eq(chat_entries_unread.chatEntryId, chat_entries.id))
-            .where(inArray(chat_entries_unread.userId, modelUserIds))
-            .groupBy(chat_entries_unread.userId);
-
-        const unreadMap = new Map(unreadCounts.map(item => [item.userId, item.count]));
-
-        // Get file attachments for these messages
-        const entryIds = lastMessages.map(m => m.id);
-        const fileMappings = await db
-            .select({
-                chatEntryId: chat_entry_files.chatEntryId,
-                fileId: chat_entry_files.fileId,
-            })
-            .from(chat_entry_files)
-            .where(inArray(chat_entry_files.chatEntryId, entryIds));
-
-        const filesByEntryId = new Map<number, string[]>();
-        for (const f of fileMappings) {
-            const list = filesByEntryId.get(f.chatEntryId) ?? [];
-            list.push(f.fileId);
-            filesByEntryId.set(f.chatEntryId, list);
-        }
-
-        // Enhance the model data with chat information
-        const enhancedData = data.map(model => {
-            const userChats = chatsByUser.get(model.userId) || [];
-            const lastEntries = userChats
-                .map(chatId => lastMessageMap.get(chatId))
-                .filter(Boolean)
-                .sort((a, b) => new Date(b!.createdAt!).getTime() - new Date(a!.createdAt!).getTime());
-
-            return {
-                ...model,
-                unreadCount: unreadMap.get(model.userId) || 0,
-                lastEntry: lastEntries[0] ? {
-                    id: lastEntries[0].id,
-                    body: lastEntries[0].body,
-                    type: lastEntries[0].type,
-                    senderId: lastEntries[0].senderId,
-                    createdAt: lastEntries[0].createdAt,
-                    includeFile: filesByEntryId.has(lastEntries[0].id),
-                    includeGift: Boolean(lastEntries[0].giftId),
-                } : null
-            };
-        });
-
-        reply.send({
-            success: true,
-            data: enhancedData,
-            pagination: {
-                page: currentPage,
-                pageSize: limit,
-                total,
-                totalPages: Math.ceil(total / limit)
-            }
-        });
-
-    } catch (error) {
-        console.error("Error in getChatsModels:", error);
-        reply.status(500).send({
-            success: false,
-            error: "Internal server error",
-            message: error instanceof Error ? error.message : "Unknown error"
-        });
+    // Search condition
+    if (search.trim()) {
+      whereClauses.push(
+        // @ts-ignore
+        or(
+          ilike(models.name, `%${search}%`),
+          ilike(models.description, `%${search}%`)
+        )
+      );
     }
+
+    // Filter by accessible models for non-admin users
+    if (request.role !== 'admin') {
+      const userModels = await db
+        .select({ modelId: model_profile_assignments.modelId })
+        .from(model_profile_assignments)
+        // @ts-ignore
+        .where(eq(model_profile_assignments.profileId, request.profileId));
+
+      if (userModels.length === 0) {
+        return reply.send({
+          success: true,
+          data: [],
+          pagination: {
+            page: 1,
+            pageSize: 10,
+            total: 0,
+            totalPages: 0,
+          },
+        });
+      }
+
+      whereClauses.push(
+        inArray(
+          models.id,
+          userModels.map(m => m.modelId)
+        )
+      );
+    }
+
+    const whereCondition = and(...whereClauses);
+
+    // Count total records
+    const totalResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(models)
+      .where(whereCondition);
+    const total = totalResult[0]?.count ?? 0;
+
+    // Pagination
+    const currentPage = Math.max(1, Number(page));
+    const limit = Math.min(100, Math.max(1, Number(pageSize)));
+    const offset = (currentPage - 1) * limit;
+
+    // Fetch models data
+    const data = await db
+      .select({
+        id: models.id,
+        userId: models.userId,
+        name: models.name,
+        avatar: models.avatar,
+        deactivatedAt: models.deactivatedAt,
+        createdAt: models.createdAt,
+      })
+      .from(models)
+      .where(whereCondition)
+      // @ts-ignore
+      .orderBy(
+        sortOrder === 'asc' ? asc(models[sortField]) : desc(models[sortField])
+      )
+      .limit(limit)
+      .offset(offset);
+
+    // Early return if no models found
+    if (data.length === 0) {
+      return reply.send({
+        success: true,
+        data: [],
+        pagination: {
+          page: currentPage,
+          pageSize: limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
+    }
+
+    // Get all model user IDs
+    const modelUserIds = data.map(model => model.userId);
+
+    // Get all chats for these models
+    const modelChats = await db
+      .select({
+        userId: chat_participants.userId,
+        chatId: chat_participants.chatId,
+      })
+      .from(chat_participants)
+      .where(inArray(chat_participants.userId, modelUserIds));
+
+    // Group chats by user
+    const chatsByUser = new Map<string, number[]>();
+    modelChats.forEach(chat => {
+      const userChats = chatsByUser.get(chat.userId) || [];
+      userChats.push(chat.chatId);
+      chatsByUser.set(chat.userId, userChats);
+    });
+
+    // Subquery to find last entry in each chat
+    const lastEntrySubquery = db
+      .select({
+        chatId: chat_entries.chatId,
+        lastCreatedAt: sql`MAX(${chat_entries.createdAt})`.as('lastCreatedAt'),
+      })
+      .from(chat_entries)
+      .groupBy(chat_entries.chatId)
+      .as('last_entries');
+
+    // Get all unique chat IDs
+    const allChatIds = Array.from(new Set(modelChats.map(c => c.chatId)));
+
+    // Get last messages for these chats
+    const lastMessages = await db
+      .select({
+        id: chat_entries.id,
+        chatId: chat_entries.chatId,
+        body: chat_entries.body,
+        type: chat_entries.type,
+        giftId: chat_entries.giftId,
+        createdAt: chat_entries.createdAt,
+        senderId: chat_entries.senderId,
+      })
+      .from(chat_entries)
+      .innerJoin(
+        lastEntrySubquery,
+        and(
+          eq(chat_entries.chatId, lastEntrySubquery.chatId),
+          eq(chat_entries.createdAt, lastEntrySubquery.lastCreatedAt)
+        )
+      )
+      .where(inArray(chat_entries.chatId, allChatIds));
+
+    // Create map of last messages by chat ID
+    const lastMessageMap = new Map<number, (typeof lastMessages)[0]>();
+    lastMessages.forEach(msg => {
+      lastMessageMap.set(msg.chatId!, msg);
+    });
+
+    // Get unread counts for each user
+    const unreadCounts = await db
+      .select({
+        userId: chat_entries_unread.userId,
+        count: sql<number>`COUNT(*)`.as('count'),
+      })
+      .from(chat_entries_unread)
+      .innerJoin(
+        chat_entries,
+        eq(chat_entries_unread.chatEntryId, chat_entries.id)
+      )
+      .where(inArray(chat_entries_unread.userId, modelUserIds))
+      .groupBy(chat_entries_unread.userId);
+
+    const unreadMap = new Map(
+      unreadCounts.map(item => [item.userId, item.count])
+    );
+
+    // Get file attachments for these messages
+    const entryIds = lastMessages.map(m => m.id);
+    const fileMappings = await db
+      .select({
+        chatEntryId: chat_entry_files.chatEntryId,
+        fileId: chat_entry_files.fileId,
+      })
+      .from(chat_entry_files)
+      .where(inArray(chat_entry_files.chatEntryId, entryIds));
+
+    const filesByEntryId = new Map<number, string[]>();
+    for (const f of fileMappings) {
+      const list = filesByEntryId.get(f.chatEntryId) ?? [];
+      list.push(f.fileId);
+      filesByEntryId.set(f.chatEntryId, list);
+    }
+
+    // Enhance the model data with chat information
+    const enhancedData = data.map(model => {
+      const userChats = chatsByUser.get(model.userId) || [];
+      const lastEntries = userChats
+        .map(chatId => lastMessageMap.get(chatId))
+        .filter(Boolean)
+        .sort(
+          (a, b) =>
+            new Date(b!.createdAt!).getTime() -
+            new Date(a!.createdAt!).getTime()
+        );
+
+      return {
+        ...model,
+        unreadCount: unreadMap.get(model.userId) || 0,
+        lastEntry: lastEntries[0]
+          ? {
+              id: lastEntries[0].id,
+              body: lastEntries[0].body,
+              type: lastEntries[0].type,
+              senderId: lastEntries[0].senderId,
+              createdAt: lastEntries[0].createdAt,
+              includeFile: filesByEntryId.has(lastEntries[0].id),
+              includeGift: Boolean(lastEntries[0].giftId),
+            }
+          : null,
+      };
+    });
+
+    reply.send({
+      success: true,
+      data: enhancedData,
+      pagination: {
+        page: currentPage,
+        pageSize: limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error('Error in getChatsModels:', error);
+    reply.status(500).send({
+      success: false,
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 };
