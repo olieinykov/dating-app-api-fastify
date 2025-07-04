@@ -115,10 +115,12 @@ export const telegramPaymentWebhook = async (
       const payload = JSON.parse(invoice_payload);
       const amount = parseInt(payload.amount);
       const paymentId = parseInt(payload.paymentId);
+      const profileId = parseInt(payload.profileId);
 
       console.log("amount", amount);
       console.log("payload", payload);
       console.log("total_amount", total_amount);
+      console.log("profileId", profileId);
       console.log("successful_payment", successful_payment);
 
       // if (total_amount !== amount) {
@@ -129,11 +131,13 @@ export const telegramPaymentWebhook = async (
         status: 'completed'
       }).where(and(eq(payments.id, paymentId))).returning()
 
-      // const [balanceRow] = await db
-      //     .select({ balance: profile_balances.balance })
-      //     .from(profile_balances)
-      //     .where(eq(profile_balances.profileId, existingProfile.id))
-      //     .limit(1);
+      const [existingBalance] = await db
+          .select({ balance: profile_balances.balance })
+          .from(profile_balances)
+          .where(eq(profile_balances.profileId, profileId))
+          .limit(1);
+
+      console.log("existingBalance", existingBalance)
 
       // const [profileBalance] = await db.select({ balance }).from(profile_balances).where()
       //
