@@ -2,6 +2,9 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import axios from 'axios';
 import { BuyTokensSchemaType } from "./schemas.js";
 import env from "../../../config/env.js";
+import {db} from "../../../db";
+import {payments} from "../../../db/schema/payment";
+import {and, eq} from "drizzle-orm";
 
 export const buyTokens = async (
   request: FastifyRequest<BuyTokensSchemaType>,
@@ -10,11 +13,20 @@ export const buyTokens = async (
   try {
     const { amount } = request.body;
     const tgUrl = `https://api.telegram.org/bot${env.telegram.botToken!}/createInvoiceLink`;
+
+    const [data] = await db.insert(payments).values({
+      profileId: request.profileId,
+      amount: amount,
+      status: "pending",
+
+    }).returning();
+
     const invoiceData = await axios.post(tgUrl, {
       title: "Buy tokens",
       description: "Buy tokens for Amorium",
       payload: {
         amount: amount.toString(),
+        paymentId: data.id,
         profileId: request.profileId,
         operation: "BUY_TOKENS"
       },
@@ -53,14 +65,16 @@ export const telegramPaymentWebhook = async (
   // @ts-ignore
   if (update.pre_checkout_query) {
     try {
+      const payload = JSON.parse(update.pre_checkout_query.invoice_payload);
       const tgUrl = `https://api.telegram.org/bot${env.telegram.botToken!}/answerPreCheckoutQuery`;
-      // const response = await axios.get(tgUrl);
+      const [updatedPayment] = await db.update(payments).set({
+        status: 'pre-checkout'
+      }).where(eq(payments.id, payload.paymentId))
 
-      console.log("HOOK checkout ask=>");
       const checkoutData = await axios.post(tgUrl, {
         // @ts-ignore
         pre_checkout_query_id: update.pre_checkout_query.id,
-        ok: true,
+        ok: !!updatedPayment,
       })
 
       console.log("HOOK checkout ask=>", checkoutData);
@@ -86,10 +100,15 @@ export const telegramPaymentWebhook = async (
     try {
       const payload = JSON.parse(invoice_payload);
       const amount = parseInt(payload.amount);
+      const paymentId = parseInt(payload.paymentId);
 
       if (total_amount !== amount) {
         return reply.send({ ok: false });
       }
+
+      const [updatedPayment] = await db.update(payments).set({
+        status: 'completed'
+      }).where(and(eq(payments.id, paymentId)))
 
       return reply.send({ ok: true });
 
