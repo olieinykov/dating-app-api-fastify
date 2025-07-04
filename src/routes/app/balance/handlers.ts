@@ -69,6 +69,7 @@ export const telegramPaymentWebhook = async (
       // @ts-ignore
       const payload = JSON.parse(update.pre_checkout_query.invoice_payload);
       console.log("payload", payload);
+      console.log("paymentId", payload.paymentId);
       const tgUrl = `https://api.telegram.org/bot${env.telegram.botToken!}/answerPreCheckoutQuery`;
 
       console.log("BEFORE updatedPayment");
@@ -81,6 +82,7 @@ export const telegramPaymentWebhook = async (
       const checkoutData = await axios.post(tgUrl, {
         // @ts-ignore
         pre_checkout_query_id: update.pre_checkout_query.id,
+        error_message: !updatedPayment ? "Failed to handle payment" : undefined,
         ok: !!updatedPayment,
       })
 
