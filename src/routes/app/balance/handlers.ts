@@ -2,8 +2,8 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import axios from 'axios';
 import { BuyTokensSchemaType } from "./schemas.js";
 import env from "../../../config/env.js";
-import {db} from "../../../db";
-import {payments} from "../../../db/schema/payment";
+import {db} from "../../../db/index.js";
+import {payments} from "../../../db/schema/payment.js";
 import {and, eq} from "drizzle-orm";
 
 export const buyTokens = async (

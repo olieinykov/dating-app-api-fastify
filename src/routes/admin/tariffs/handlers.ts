@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { db } from "../../../db";
-import { tariffs } from "../../../db/schema/tariff";
+import { db } from "../../../db/index.js";
+import { tariffs } from "../../../db/schema/tariff.js";
 
 export const getTariffs = async (
     request: FastifyRequest,
