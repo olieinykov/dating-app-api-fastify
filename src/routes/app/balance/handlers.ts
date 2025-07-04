@@ -127,25 +127,33 @@ export const telegramPaymentWebhook = async (
       //   return reply.send({ ok: false });
       // }
 
-      const [updatedPayment] = await db.update(payments).set({
-        status: 'completed'
-      }).where(and(eq(payments.id, paymentId))).returning()
+      const result = await db.transaction(async (tx) => {
+        try {
+          const [updatedPayment] = await tx.update(payments).set({
+            status: 'completed'
+          }).where(and(eq(payments.id, paymentId))).returning()
 
-      const [existingBalance] = await db
-          .select({ balance: profile_balances.balance })
-          .from(profile_balances)
-          .where(eq(profile_balances.profileId, profileId))
-          .limit(1);
+          const [existingBalance] = await tx
+              .select({ balance: profile_balances.balance })
+              .from(profile_balances)
+              .where(eq(profile_balances.profileId, profileId))
+              .limit(1);
 
-      console.log("existingBalance", existingBalance)
+          const currentUserBalance = existingBalance?.balance ?? 0;
 
-      // const [profileBalance] = await db.select({ balance }).from(profile_balances).where()
-      //
-      // const [balanceRow] = await db.update(profile_balances).set({
-      //   balance:
-      // })
+          const updatedBalance = await tx.update(profile_balances).set({
+            balance: currentUserBalance + (amount ?? 0)
+          }).returning();
 
-      return reply.send({ ok: !!updatedPayment });
+          return !(!updatedPayment || !updatedBalance);
+
+        } catch (error) {
+          console.log("Payment error", error)
+          return false;
+        }
+      });
+
+      return reply.send({ ok: result });
 
     } catch (error) {
       return reply.code(500).send({ ok: false });
