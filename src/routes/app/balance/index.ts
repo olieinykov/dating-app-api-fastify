@@ -6,7 +6,7 @@ import { userAuthenticated } from "../../../middleware/userAuthenticated.js";
 const routes = async (fastify: FastifyInstance) => {
   fastify.post('/buy-tokens', {
     schema: BuyTokensSchema,
-    // preHandler: [userAuthenticated],
+    preHandler: [userAuthenticated],
     handler: buyTokens
   })
 

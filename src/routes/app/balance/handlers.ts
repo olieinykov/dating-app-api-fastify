@@ -16,8 +16,8 @@ export const buyTokens = async (
     const tgUrl = `https://api.telegram.org/bot${env.telegram.botToken!}/createInvoiceLink`;
 
     const [data] = await db.insert(payments).values({
-      // profileId: request.profileId,
-      profileId: 4, ///Remove this mock
+      profileId: request.profileId,
+      // profileId: 4, ///Remove this mock
       amount: amount,
       status: "pending",
 
@@ -29,8 +29,8 @@ export const buyTokens = async (
       payload: {
         amount: amount.toString(),
         paymentId: data.id,
-        // profileId: request.profileId,
-        profileId: 4, ///Remove this mock
+        profileId: request.profileId,
+        // profileId: 4, ///Remove this mock
         operation: "BUY_TOKENS"
       },
       provider_token: env.telegram.botToken,
