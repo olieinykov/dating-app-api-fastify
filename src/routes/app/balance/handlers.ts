@@ -76,7 +76,7 @@ export const telegramPaymentWebhook = async (
       console.log("BEFORE updatedPayment");
       const [updatedPayment] = await db.update(payments).set({
         status: 'pre-checkout'
-      }).where(eq(payments.id, payload.paymentId))
+      }).where(eq(payments.id, payload.paymentId)).returning()
 
       console.log("AFTER updatedPayment", updatedPayment);
 
