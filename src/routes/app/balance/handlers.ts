@@ -68,6 +68,7 @@ export const telegramPaymentWebhook = async (
     try {
       // @ts-ignore
       const payload = JSON.parse(update.pre_checkout_query.invoice_payload);
+      console.log("payload", payload);
       const tgUrl = `https://api.telegram.org/bot${env.telegram.botToken!}/answerPreCheckoutQuery`;
 
       console.log("BEFORE updatedPayment");
