@@ -29,7 +29,8 @@ export const buyTokens = async (
       payload: {
         amount: amount.toString(),
         paymentId: data.id,
-        profileId: request.profileId,
+        // profileId: request.profileId,
+        profileId: 4, ///Remove this mock
         operation: "BUY_TOKENS"
       },
       provider_token: env.telegram.botToken,
