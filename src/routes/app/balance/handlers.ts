@@ -5,6 +5,7 @@ import env from "../../../config/env.js";
 import {db} from "../../../db/index.js";
 import {payments} from "../../../db/schema/payment.js";
 import {and, eq} from "drizzle-orm";
+import {profile_balances} from "../../../db/schema/profile_balances";
 
 export const buyTokens = async (
   request: FastifyRequest<BuyTokensSchemaType>,
@@ -115,18 +116,31 @@ export const telegramPaymentWebhook = async (
       const paymentId = parseInt(payload.paymentId);
 
       console.log("amount", amount);
+      console.log("payload", payload);
       console.log("total_amount", total_amount);
       console.log("successful_payment", successful_payment);
 
-      if (total_amount !== amount) {
-        return reply.send({ ok: false });
-      }
+      // if (total_amount !== amount) {
+      //   return reply.send({ ok: false });
+      // }
 
       const [updatedPayment] = await db.update(payments).set({
         status: 'completed'
-      }).where(and(eq(payments.id, paymentId)))
+      }).where(and(eq(payments.id, paymentId))).returning()
 
-      return reply.send({ ok: true });
+      // const [balanceRow] = await db
+      //     .select({ balance: profile_balances.balance })
+      //     .from(profile_balances)
+      //     .where(eq(profile_balances.profileId, existingProfile.id))
+      //     .limit(1);
+
+      // const [profileBalance] = await db.select({ balance }).from(profile_balances).where()
+      //
+      // const [balanceRow] = await db.update(profile_balances).set({
+      //   balance:
+      // })
+
+      return reply.send({ ok: !!updatedPayment });
 
     } catch (error) {
       return reply.code(500).send({ ok: false });
