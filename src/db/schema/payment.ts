@@ -1,4 +1,4 @@
-import { integer, pgEnum, pgTable, serial, timestamp } from 'drizzle-orm/pg-core';
+﻿import { integer, pgEnum, pgTable, serial, timestamp } from 'drizzle-orm/pg-core';
 import { profiles } from "./profile.js";
 export const paymentStatusEnum = pgEnum('status', ['pending', 'completed', 'failed', 'pre-checkout']);
 
