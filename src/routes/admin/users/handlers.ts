@@ -234,11 +234,11 @@ export const createUser = async (
         .returning();
 
       const currentUserId = request.userId;
-      await tx.insert(profiles_actions).values({
-        actorId: currentUserId!,
-        profileId: createdUser.id,
-        actionType: 'create',
-      });
+      // await tx.insert(profiles_actions).values({
+      //   actorId: currentUserId!,
+      //   profileId: createdUser.id,
+      //   actionType: 'create',
+      // });
       return createdUser;
     });
 
