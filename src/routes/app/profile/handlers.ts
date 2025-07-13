@@ -2,9 +2,11 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../../db/index.js";
 import { UpdateProfileSchemaType } from "./schemas.js";
 import {files, profiles, profiles_photos, profilesPreferences} from "../../../db/schema/index.js";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import {updateProfilePhotos} from "../../../utils/files/files.js";
 import {profile_balances} from "../../../db/schema/profile_balances.js";
+import { profiles_tariff } from "../../../db/schema/profile_tariff.js";
+import { tariffs } from "../../../db/schema/tariff.js";
 
 export const getProfile = async (
   request: FastifyRequest,
@@ -46,8 +48,25 @@ export const getProfile = async (
           .where(eq(profile_balances.profileId, profileData.id as number))
           .limit(1);
 
+      const [activeTariff] = await db
+          .select({
+              tariff: tariffs,
+              entriesSentToday: profiles_tariff.entriesSentToday,
+          })
+          .from(profiles_tariff)
+          .where(and(
+              eq(profiles_tariff.profileId, profileData.id!),
+              eq(profiles_tariff.isActive, true)
+          ))
+          .leftJoin(tariffs, eq(tariffs.id, profiles_tariff.tariffId))
+          .limit(1);    
+
     reply.code(200).send({
       ...profileData,
+      tariff: {
+        ...activeTariff?.tariff,
+        entriesSentToday: activeTariff?.entriesSentToday ?? 0,
+      },
       profile: {
         ...profileDetails,
         balance: balanceRow.balance,

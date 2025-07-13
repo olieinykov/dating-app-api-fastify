@@ -6,7 +6,6 @@ import { eq } from "drizzle-orm";
 
 export const userAuthenticated = async (request: FastifyRequest, reply: FastifyReply) => {
     const authHeader = request.headers.authorization;
-    console.log("authHeader", authHeader);
 
     if (!authHeader) {
         return reply.status(401).send({ success: false, message: 'Authorization header missing' });
@@ -28,7 +27,6 @@ export const userAuthenticated = async (request: FastifyRequest, reply: FastifyR
     const profile = await db.query.profiles.findFirst({
         where: eq(profiles.userId, data.user.id),
     });
-    console.log("User middle profile:", profile);
 
 
     if (!profile) {
@@ -38,8 +36,6 @@ export const userAuthenticated = async (request: FastifyRequest, reply: FastifyR
     if (profile?.deactivatedAt) {
         return reply.status(403).send({ success: false, message: 'User deactivated' });
     }
-
-    console.log("User middle user:", data.user);
 
     request.profileId = profile.id;
     request.userId = data.user.id;

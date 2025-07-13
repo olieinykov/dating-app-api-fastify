@@ -1,10 +1,10 @@
-import { Type, Static } from '@sinclair/typebox'
-import { PaginationSchema } from '../../../shared/schemas.js'
+import { Type, Static, Optional } from '@sinclair/typebox';
+import { PaginationSchema } from '../../../shared/schemas.js';
 
 export const CreateGiftSchema = {
   tags: ['Admin / Gifts'],
   body: Type.Object({
-    title: Type.String({ minLength: 1}),
+    title: Type.String({ minLength: 1 }),
     price: Type.Number({ exclusiveMinimum: 0 }),
     image: Type.String(),
     createdBy: Type.Integer({ minimum: 1 }),
@@ -21,13 +21,15 @@ export const UpdateGiftSchema = {
   parameters: Type.Object({
     giftId: Type.Integer(),
   }),
-  body: Type.Partial(Type.Object({
-    name: Type.String({ minLength: 1 }),
-    price: Type.Number({ exclusiveMinimum: 0 }),
-    image: Type.String(),
-    restrictedCountries: Type.Array(Type.String()),
-    isActive: Type.Boolean({ default: true }),
-  })),
+  body: Type.Partial(
+    Type.Object({
+      name: Type.String({ minLength: 1 }),
+      price: Type.Number({ exclusiveMinimum: 0 }),
+      image: Type.String(),
+      restrictedCountries: Type.Array(Type.String()),
+      isActive: Type.Boolean({ default: true }),
+    })
+  ),
 };
 export type UpdateGiftType = {
   Body: Static<typeof UpdateGiftSchema.body>;
@@ -37,10 +39,10 @@ export type UpdateGiftType = {
 export const GetAllGiftsSchema = {
   tags: ['Admin / Gifts'],
   querystring: PaginationSchema,
-}
+};
 export type GetAllGiftsType = {
-  Querystring: Static<typeof GetAllGiftsSchema.querystring>
-}
+  Querystring: Static<typeof GetAllGiftsSchema.querystring>;
+};
 
 export const GetOneGiftSchema = {
   tags: ['Admin / Gifts'],
@@ -49,7 +51,7 @@ export const GetOneGiftSchema = {
   }),
 };
 export type GetOneGiftType = {
-  Params: Static<typeof GetOneGiftSchema.parameters>
+  Params: Static<typeof GetOneGiftSchema.parameters>;
 };
 
 export const DeleteGiftSchema = {
@@ -59,5 +61,32 @@ export const DeleteGiftSchema = {
   }),
 };
 export type DeleteGiftType = {
-  Params: Static<typeof DeleteGiftSchema.parameters>
+  Params: Static<typeof DeleteGiftSchema.parameters>;
+};
+
+export const GetGiftActionsSchema = {
+  tags: ['Admin /Gifts'],
+  querystring: Type.Intersect([
+    PaginationSchema,
+    Type.Object({
+      giftId: Optional(Type.Integer()),
+      actionType: Optional(
+        Type.Enum({
+          create: 'create',
+          edit: 'edit',
+          delete: 'delete',
+        })
+      ),
+      sortOrder: Optional(
+        Type.Enum({
+          asc: 'asc',
+          desc: 'desc',
+        })
+      ),
+    }),
+  ]),
+};
+
+export type GetGiftActionsType = {
+  Querystring: Static<typeof GetGiftActionsSchema.querystring>;
 };

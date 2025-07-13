@@ -1,40 +1,60 @@
-import { FastifyInstance } from 'fastify'
-import { getAllModels, getOneModel, deleteModel, createModel, updateModel } from './handlers.js'
+import { FastifyInstance } from 'fastify';
+import {
+  getAllModels,
+  getOneModel,
+  deleteModel,
+  createModel,
+  updateModel,
+  getModelActions,
+  updateModelLastActiveTime,
+} from './handlers.js';
 import {
   CreateModelSchema,
   GetAllModelsSchema,
   DeleteModelSchema,
   UpdateModelSchema,
-  GetOneModelSchema
-} from "./schemas.js";
-import {adminAuthenticated} from "../../../middleware/adminAuthenticated.js";
+  GetOneModelSchema,
+  GetModelActionsSchema,
+  UpdateModelLastActiveTimeSchema,
+} from './schemas.js';
+import { adminAuthenticated } from '../../../middleware/adminAuthenticated.js';
 
 const routes = async (fastify: FastifyInstance) => {
   fastify.post('/', {
     schema: CreateModelSchema,
     preHandler: [adminAuthenticated],
-    handler: createModel
-  })
+    handler: createModel,
+  });
   fastify.put('/:modelId', {
     schema: UpdateModelSchema,
     preHandler: [adminAuthenticated],
-    handler: updateModel
-  })
+    handler: updateModel,
+  });
   fastify.get('/', {
     schema: GetAllModelsSchema,
     preHandler: [adminAuthenticated],
-    handler: getAllModels
-  })
+    handler: getAllModels,
+  });
   fastify.get('/:modelId', {
     schema: GetOneModelSchema,
     preHandler: [adminAuthenticated],
-    handler: getOneModel
-  })
+    handler: getOneModel,
+  });
   fastify.delete('/:modelId', {
     schema: DeleteModelSchema,
     preHandler: [adminAuthenticated],
-    handler: deleteModel
-  })
-}
+    handler: deleteModel,
+  });
+  fastify.get('/models-actions', {
+    schema: GetModelActionsSchema,
+    preHandler: [adminAuthenticated],
+    handler: getModelActions,
+  });
+  fastify.patch('/:modelId/last-active', {
+    schema: UpdateModelLastActiveTimeSchema,
+    preHandler: [adminAuthenticated],
+    handler: updateModelLastActiveTime,
+  });
+};
 
 export default routes;

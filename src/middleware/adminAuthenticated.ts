@@ -32,5 +32,6 @@ export const adminAuthenticated = async (request: FastifyRequest, reply: Fastify
 
 
     request.profileId = profile.id;
+    request.role = profile.role!;
     request.userId = data.user.id;
 };

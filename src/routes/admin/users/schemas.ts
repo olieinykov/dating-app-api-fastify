@@ -1,5 +1,5 @@
-import {Type, Static, Optional} from '@sinclair/typebox'
-import { PaginationSchema } from '../../../shared/schemas.js'
+import { Type, Static, Optional } from '@sinclair/typebox';
+import { PaginationSchema } from '../../../shared/schemas.js';
 
 export const CreateUserSchema = {
   tags: ['Admin / Users'],
@@ -13,7 +13,7 @@ export const CreateUserSchema = {
     // country: Type.Optional(Type.String()),
     // city: Type.Optional(Type.String()),
     // languageCode: Type.Optional(Type.String()),
-  })
+  }),
 };
 export type CreateUserType = {
   Body: Static<typeof CreateUserSchema.body>;
@@ -33,7 +33,7 @@ export const UpdateUsersSchema = {
     // country: Type.Optional(Type.String()),
     // city: Type.Optional(Type.String()),
     // languageCode: Type.Optional(Type.String()),
-  })
+  }),
 };
 export type UpdateUsersType = {
   Body: Static<typeof UpdateUsersSchema.body>;
@@ -42,31 +42,61 @@ export type UpdateUsersType = {
 
 export const GetAllUsersSchema = {
   tags: ['Admin / Users'],
-  querystring: Type.Intersect([PaginationSchema, Type.Object({
-    role: Type.String(),
-    deactivated: Optional(Type.Boolean())
-  })]),
-}
+  querystring: Type.Intersect([
+    PaginationSchema,
+    Type.Object({
+      role: Type.String(),
+      deactivated: Optional(Type.Boolean()),
+    }),
+  ]),
+};
 export type GetAllUsersType = {
-  Querystring: Static<typeof GetAllUsersSchema.querystring>
-}
+  Querystring: Static<typeof GetAllUsersSchema.querystring>;
+};
 
 export const GetOneUserSchema = {
   tags: ['Admin / Users'],
   parameters: Type.Object({
     userId: Type.Integer(),
-  })
+  }),
 };
 export type GetOneUserType = {
   Params: Static<typeof GetOneUserSchema.parameters>;
-}
+};
 
 export const DeleteUserSchema = {
   tags: ['Admin / Users'],
   parameters: Type.Object({
     userId: Type.Integer(),
-  })
+  }),
 };
 export type DeleteUserType = {
-  Params: Static<typeof DeleteUserSchema.parameters>
+  Params: Static<typeof DeleteUserSchema.parameters>;
+};
+
+export const GetUserActionsSchema = {
+  tags: ['Admin / Users'],
+  querystring: Type.Intersect([
+    PaginationSchema,
+    Type.Object({
+      profileId: Optional(Type.Integer()),
+      actionType: Optional(
+        Type.Enum({
+          create: 'create',
+          edit: 'edit',
+          delete: 'delete',
+        })
+      ),
+      sortOrder: Optional(
+        Type.Enum({
+          asc: 'asc',
+          desc: 'desc',
+        })
+      ),
+    }),
+  ]),
+};
+
+export type GetUserActionsType = {
+  Querystring: Static<typeof GetUserActionsSchema.querystring>;
 };
