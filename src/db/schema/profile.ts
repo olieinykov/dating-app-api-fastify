@@ -22,9 +22,9 @@ export const profiles = pgTable('profiles', {
   // role: userRoleEnum('role'),
   role: text('role'),
   avatar: text('avatar'),
-  lastActiveTime: timestamp('last_active_time'),
   activatedAt: timestamp('activated_at', { mode: 'date' }),
   deactivatedAt: timestamp('deactivated_at'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  lastActiveTime: timestamp('last_active_time'),
 });

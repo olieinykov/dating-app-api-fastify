@@ -20,6 +20,8 @@ import {
   ne,
   or,
   sql,
+  SQL,
+  SQLWrapper,
 } from 'drizzle-orm';
 import {
   GetAllModelsType,
@@ -86,6 +88,7 @@ export const getModelsChats = async (
         name?: string;
         avatar?: string;
         lastActiveTime?: Date | null;
+        deactivatedAt?: Date | null;
       }>
     >();
     for (const p of participants) {
@@ -96,6 +99,7 @@ export const getModelsChats = async (
           name: p.profile?.name!,
           avatar: p.profile?.avatar!,
           lastActiveTime: p.profile?.lastActiveTime,
+          deactivatedAt: p.profile?.deactivatedAt,
         });
       }
       participantMap.set(p.chatId, list);
@@ -313,35 +317,28 @@ export const getChatsModels = async (
   reply: FastifyReply
 ) => {
   try {
-    const {
-      search = '',
-      page = 1,
-      pageSize = 10,
-      sortField = 'createdAt',
-      sortOrder = 'desc',
-    } = request.query;
+    const { search = '', page = 1, pageSize = 10 } = request.query;
 
-    // Base conditions
     const whereClauses = [isNull(models.deactivatedAt)];
 
-    // Search condition
     if (search.trim()) {
-      whereClauses.push(
-        // @ts-ignore
-        or(
-          ilike(models.name, `%${search}%`),
-          ilike(models.description, `%${search}%`)
-        )
+      const searchCondition = or(
+        ilike(models.name, `%${search}%`),
+        ilike(models.description, `%${search}%`)
       );
+
+      if (searchCondition) {
+        whereClauses.push(searchCondition);
+      }
     }
 
-    // Filter by accessible models for non-admin users
     if (request.role !== 'admin') {
       const userModels = await db
         .select({ modelId: model_profile_assignments.modelId })
         .from(model_profile_assignments)
-        // @ts-ignore
-        .where(eq(model_profile_assignments.profileId, request.profileId));
+        .where(
+          eq(model_profile_assignments.profileId, request.profileId as number)
+        );
 
       if (userModels.length === 0) {
         return reply.send({
@@ -366,20 +363,17 @@ export const getChatsModels = async (
 
     const whereCondition = and(...whereClauses);
 
-    // Count total records
     const totalResult = await db
       .select({ count: sql<number>`count(*)` })
       .from(models)
       .where(whereCondition);
     const total = totalResult[0]?.count ?? 0;
 
-    // Pagination
     const currentPage = Math.max(1, Number(page));
     const limit = Math.min(100, Math.max(1, Number(pageSize)));
     const offset = (currentPage - 1) * limit;
 
-    // Fetch models data
-    const data = await db
+    const allData = await db
       .select({
         id: models.id,
         userId: models.userId,
@@ -389,17 +383,22 @@ export const getChatsModels = async (
         createdAt: models.createdAt,
       })
       .from(models)
+      .leftJoin(chat_participants, eq(models.userId, chat_participants.userId))
+      .leftJoin(chat_entries, eq(chat_participants.chatId, chat_entries.chatId))
       .where(whereCondition)
-      // @ts-ignore
-      .orderBy(
-          // @ts-ignore
-        sortOrder === 'asc' ? asc(models[sortField]) : desc(models[sortField])
+      .groupBy(
+        models.id,
+        models.userId,
+        models.name,
+        models.avatar,
+        models.deactivatedAt,
+        models.createdAt
       )
+      .orderBy(desc(sql`MAX(${chat_entries.createdAt})`))
       .limit(limit)
       .offset(offset);
 
-    // Early return if no models found
-    if (data.length === 0) {
+    if (allData.length === 0) {
       return reply.send({
         success: true,
         data: [],
@@ -412,10 +411,8 @@ export const getChatsModels = async (
       });
     }
 
-    // Get all model user IDs
-    const modelUserIds = data.map(model => model.userId);
+    const modelUserIds = allData.map(model => model.userId);
 
-    // Get all chats for these models
     const modelChats = await db
       .select({
         userId: chat_participants.userId,
@@ -424,7 +421,6 @@ export const getChatsModels = async (
       .from(chat_participants)
       .where(inArray(chat_participants.userId, modelUserIds));
 
-    // Group chats by user
     const chatsByUser = new Map<string, number[]>();
     modelChats.forEach(chat => {
       const userChats = chatsByUser.get(chat.userId) || [];
@@ -432,7 +428,6 @@ export const getChatsModels = async (
       chatsByUser.set(chat.userId, userChats);
     });
 
-    // Subquery to find last entry in each chat
     const lastEntrySubquery = db
       .select({
         chatId: chat_entries.chatId,
@@ -442,10 +437,27 @@ export const getChatsModels = async (
       .groupBy(chat_entries.chatId)
       .as('last_entries');
 
-    // Get all unique chat IDs
     const allChatIds = Array.from(new Set(modelChats.map(c => c.chatId)));
 
-    // Get last messages for these chats
+    if (allChatIds.length === 0) {
+      const enhancedData = allData.map(model => ({
+        ...model,
+        unreadCount: 0,
+        lastEntry: null,
+      }));
+
+      return reply.send({
+        success: true,
+        data: enhancedData,
+        pagination: {
+          page: currentPage,
+          pageSize: limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
+    }
+
     const lastMessages = await db
       .select({
         id: chat_entries.id,
@@ -466,13 +478,11 @@ export const getChatsModels = async (
       )
       .where(inArray(chat_entries.chatId, allChatIds));
 
-    // Create map of last messages by chat ID
     const lastMessageMap = new Map<number, (typeof lastMessages)[0]>();
     lastMessages.forEach(msg => {
       lastMessageMap.set(msg.chatId!, msg);
     });
 
-    // Get unread counts for each user
     const unreadCounts = await db
       .select({
         userId: chat_entries_unread.userId,
@@ -490,15 +500,18 @@ export const getChatsModels = async (
       unreadCounts.map(item => [item.userId, item.count])
     );
 
-    // Get file attachments for these messages
     const entryIds = lastMessages.map(m => m.id);
-    const fileMappings = await db
-      .select({
-        chatEntryId: chat_entry_files.chatEntryId,
-        fileId: chat_entry_files.fileId,
-      })
-      .from(chat_entry_files)
-      .where(inArray(chat_entry_files.chatEntryId, entryIds));
+
+    const fileMappings =
+      entryIds.length > 0
+        ? await db
+            .select({
+              chatEntryId: chat_entry_files.chatEntryId,
+              fileId: chat_entry_files.fileId,
+            })
+            .from(chat_entry_files)
+            .where(inArray(chat_entry_files.chatEntryId, entryIds))
+        : [];
 
     const filesByEntryId = new Map<number, string[]>();
     for (const f of fileMappings) {
@@ -507,17 +520,11 @@ export const getChatsModels = async (
       filesByEntryId.set(f.chatEntryId, list);
     }
 
-    // Enhance the model data with chat information
-    const enhancedData = data.map(model => {
+    const enhancedData = allData.map(model => {
       const userChats = chatsByUser.get(model.userId) || [];
       const lastEntries = userChats
         .map(chatId => lastMessageMap.get(chatId))
-        .filter(Boolean)
-        .sort(
-          (a, b) =>
-            new Date(b!.createdAt!).getTime() -
-            new Date(a!.createdAt!).getTime()
-        );
+        .filter(Boolean);
 
       return {
         ...model,

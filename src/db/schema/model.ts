@@ -19,8 +19,8 @@ export const models = pgTable('models', {
   bustSize: paramsBustSizeEnum('bust_size').notNull(),
   hairColor: paramsHairColorEnum('hair_color').notNull(),
   bodyType: paramsBodyTypeEnum('body_type').notNull(),
-  lastActiveTime: timestamp('last_active_time'),
   deactivatedAt: timestamp('deactivated_at'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  lastActiveTime: timestamp('last_active_time'),
 });

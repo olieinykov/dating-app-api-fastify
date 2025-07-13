@@ -105,7 +105,11 @@ export const getAllUsers = async (
       .limit(limit)
       .offset(offset);
 
-    const total = await db.$count(profiles);
+    const total = await db
+      .select({ count: sql`count(*)` })
+      .from(profiles)
+      .where(whereCondition)
+      .then(result => Number(result[0]?.count || 0));
 
     reply.send({
       success: true,
@@ -229,7 +233,7 @@ export const createUser = async (
         })
         .returning();
 
-      const currentUserId = createdUser.userId;
+      const currentUserId = request.userId;
       await tx.insert(profiles_actions).values({
         actorId: currentUserId!,
         profileId: createdUser.id,
