@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../../../db/index.js';
-import { eq } from 'drizzle-orm';
+import {asc, eq} from 'drizzle-orm';
 import { gifts, models, profiles } from '../../../db/schema/index.js';
 import { transactions } from "../../../db/schema/transaction.js";
 import { tariffs } from "../../../db/schema/tariff.js";
@@ -14,6 +14,7 @@ export const getTransactions = async (request: FastifyRequest, reply: FastifyRep
         profile: profiles,
         giftToModel: models,
         gift: gifts,
+        tariff: tariffs,
         tokensAmount: transactions.tokensAmount,
         status: transactions.status,
         createdAt: transactions.createdAt,
@@ -24,6 +25,7 @@ export const getTransactions = async (request: FastifyRequest, reply: FastifyRep
       .leftJoin(gifts, eq(transactions.giftId, gifts.id))
       .leftJoin(models, eq(transactions.modelId, models.id))
       .leftJoin(tariffs, eq(transactions.tariffId, tariffs.id))
+      .orderBy(asc(transactions.createdAt))
     return reply.code(200).send({
       success: true,
       data,
