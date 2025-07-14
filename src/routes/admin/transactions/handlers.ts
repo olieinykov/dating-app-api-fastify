@@ -39,7 +39,7 @@ export const getTransactions = async (request: FastifyRequest<GetTransactionSche
             .leftJoin(gifts, eq(transactions.giftId, gifts.id))
             .leftJoin(models, eq(transactions.modelId, models.id))
             .leftJoin(tariffs, eq(transactions.tariffId, tariffs.id))
-            .where(ilike(gifts.title, `%${search}%`))
+            // .where(ilike(tariffs.title, `%${search}%`))
             // @ts-ignore
             .orderBy(
                 sortOrder === 'asc'
