@@ -9,21 +9,12 @@ import {
   profiles,
   models_actions,
 } from '../../../db/schema/index.js';
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  ilike,
-  or,
-  isNull,
-  isNotNull,
-  sql,
-} from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, or, isNull, isNotNull, sql } from 'drizzle-orm';
 
 import {
   CreateModelType,
   DeleteModelType,
+  ActivateModelType,
   GetAllModelsType,
   GetOneModelType,
   UpdateModelType,
@@ -56,10 +47,7 @@ export const getAllModels = async (
 
     if (search.trim()) {
       whereClauses.push(
-        or(
-          ilike(models.name, `%${search}%`),
-          ilike(models.description, `%${search}%`)
-        )
+        or(ilike(models.name, `%${search}%`), ilike(models.description, `%${search}%`))
       );
     }
 
@@ -70,9 +58,7 @@ export const getAllModels = async (
       whereClauses.push(isNull(models.deactivatedAt));
     }
 
-    const whereCondition = whereClauses.length
-      ? and(...whereClauses)
-      : undefined;
+    const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
     const data = await db
       .select()
       .from(models)
@@ -182,7 +168,7 @@ export const deleteModel = async (
   try {
     const currentUserId = request.userId!;
     const modelId = request.params.modelId;
-    const result = await db.transaction(async tx => {
+    const result = await db.transaction(async (tx) => {
       const [updatedModel] = await tx
         .update(models)
         .set({
@@ -195,15 +181,53 @@ export const deleteModel = async (
         throw new Error(`No model found with id: ${request.params.modelId}`);
       }
 
-      await tx.insert(models_actions).values({
-        actorId: currentUserId,
-        modelId: modelId!,
-        actionType: 'delete',
-      }).returning();
+      await tx
+        .insert(models_actions)
+        .values({
+          actorId: currentUserId,
+          modelId: modelId!,
+          actionType: 'delete',
+        })
+        .returning();
 
       return updatedModel;
     });
 
+    reply.send({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    reply.status(400).send({
+      success: false,
+      error: (error as Error)?.message,
+    });
+  }
+};
+
+export const activateModel = async (
+  request: FastifyRequest<ActivateModelType>,
+  reply: FastifyReply
+) => {
+  try {
+    const currentUserId = request.userId!;
+    const modelId = request.params.modelId;
+    const result = await db.transaction(async (tx) => {
+      const [updatedModel] = await tx
+        .update(models)
+        .set({ deactivatedAt: null })
+        .where(eq(models.id, request.params.modelId))
+        .returning();
+      if (!updatedModel) {
+        throw new Error(`No model found with id: ${request.params.modelId}`);
+      }
+      await tx.insert(models_actions).values({
+        actorId: currentUserId,
+        modelId: modelId!,
+        actionType: 'edit',
+      });
+      return updatedModel;
+    });
     reply.send({
       success: true,
       data: result,
@@ -221,24 +245,18 @@ export const createModel = async (
   reply: FastifyReply
 ) => {
   try {
-    const {
-      photos = [],
-      favoriteGiftIds,
-      assignedChattersIds,
-      ...payload
-    } = request.body;
+    const { photos = [], favoriteGiftIds, assignedChattersIds, ...payload } = request.body;
 
     const currentUserId = request.userId;
 
-    const { data: authData, error: authError } =
-      await supabaseAdmin.auth.admin.createUser({
-        email: `${uuidv4()}@amorium-model.com`,
-        password: 'MOCKED_PASSWORD',
-        email_confirm: true,
-        user_metadata: {
-          role: 'model',
-        },
-      });
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: `${uuidv4()}@amorium-model.com`,
+      password: 'MOCKED_PASSWORD',
+      email_confirm: true,
+      user_metadata: {
+        role: 'model',
+      },
+    });
 
     if (authError) {
       return reply.code(400).send({
@@ -247,7 +265,7 @@ export const createModel = async (
       });
     }
 
-    const result = await db.transaction(async tx => {
+    const result = await db.transaction(async (tx) => {
       let [createdModel] = await tx
         .insert(models)
         .values({
@@ -256,15 +274,18 @@ export const createModel = async (
         })
         .returning();
 
-      await tx.insert(models_actions).values({
-        actorId: currentUserId!,
-        modelId: createdModel.id,
-        actionType: 'create',
-      }).returning();
+      await tx
+        .insert(models_actions)
+        .values({
+          actorId: currentUserId!,
+          modelId: createdModel.id,
+          actionType: 'create',
+        })
+        .returning();
 
       let modelPhotos = undefined;
       if (photos.length) {
-        const photosValues = photos.map(file => ({
+        const photosValues = photos.map((file) => ({
           modelId: createdModel?.id!,
           fileId: file.id,
           isAvatar: file.isAvatar,
@@ -285,7 +306,7 @@ export const createModel = async (
         const [data] = await tx
           .update(models)
           .set({
-            avatar: modelPhotos?.find(photo => photo?.isAvatar === true)?.url,
+            avatar: modelPhotos?.find((photo) => photo?.isAvatar === true)?.url,
           })
           .where(eq(models.id, createdModel.id))
           .returning();
@@ -293,7 +314,7 @@ export const createModel = async (
         createdModel = data;
 
         if (favoriteGiftIds?.length) {
-          const giftsValues = favoriteGiftIds.map(giftId => ({
+          const giftsValues = favoriteGiftIds.map((giftId) => ({
             modelId: createdModel?.id!,
             giftId: giftId,
           }));
@@ -301,15 +322,12 @@ export const createModel = async (
           await tx.insert(model_gifts).values(giftsValues).returning();
         }
         if (assignedChattersIds?.length) {
-          const modelAssignmentsValues = assignedChattersIds.map(id => ({
+          const modelAssignmentsValues = assignedChattersIds.map((id) => ({
             profileId: id!,
             modelId: createdModel.id!,
           }));
 
-          await tx
-            .insert(model_profile_assignments)
-            .values(modelAssignmentsValues)
-            .returning();
+          await tx.insert(model_profile_assignments).values(modelAssignmentsValues).returning();
         }
       }
 
@@ -337,16 +355,11 @@ export const updateModel = async (
   reply: FastifyReply
 ) => {
   try {
-    const {
-      photos = [],
-      favoriteGiftIds,
-      assignedChattersIds,
-      ...payload
-    } = request.body;
+    const { photos = [], favoriteGiftIds, assignedChattersIds, ...payload } = request.body;
     const modelId = request.params.modelId;
     const currentUserId = request.userId;
 
-    const result = await db.transaction(async tx => {
+    const result = await db.transaction(async (tx) => {
       try {
         let modelPhotos = undefined;
         let updatedModel = {};
@@ -356,9 +369,7 @@ export const updateModel = async (
         }
 
         if (Object.keys(payload ?? {}).length) {
-          const avatar = modelPhotos?.find(
-            photo => photo?.isAvatar === true
-          )?.url;
+          const avatar = modelPhotos?.find((photo) => photo?.isAvatar === true)?.url;
 
           const [data] = await tx
             .update(models)
@@ -372,26 +383,20 @@ export const updateModel = async (
         }
 
         if (favoriteGiftIds?.length === 0) {
-          await tx
-            .delete(model_gifts)
-            .where(eq(model_gifts.modelId, modelId))
-            .returning();
+          await tx.delete(model_gifts).where(eq(model_gifts.modelId, modelId)).returning();
         }
 
         if (favoriteGiftIds?.length) {
-          const giftsValues = favoriteGiftIds.map(giftId => ({
+          const giftsValues = favoriteGiftIds.map((giftId) => ({
             modelId: modelId!,
             giftId: giftId,
           }));
-          await tx
-            .delete(model_gifts)
-            .where(eq(model_gifts.modelId, modelId))
-            .returning();
+          await tx.delete(model_gifts).where(eq(model_gifts.modelId, modelId)).returning();
           await tx.insert(model_gifts).values(giftsValues).returning();
         }
 
         if (assignedChattersIds?.length) {
-          const modelAssignmentsValues = assignedChattersIds.map(id => ({
+          const modelAssignmentsValues = assignedChattersIds.map((id) => ({
             profileId: id!,
             modelId: modelId,
           }));
@@ -400,18 +405,17 @@ export const updateModel = async (
             .delete(model_profile_assignments)
             .where(eq(model_profile_assignments.modelId, modelId))
             .returning();
-          await tx
-            .insert(model_profile_assignments)
-            .values(modelAssignmentsValues)
-            .returning();
+          await tx.insert(model_profile_assignments).values(modelAssignmentsValues).returning();
         }
 
-
-        await tx.insert(models_actions).values({
-          actorId: currentUserId!,
-          modelId: modelId,
-          actionType: 'edit',
-        }).returning();
+        await tx
+          .insert(models_actions)
+          .values({
+            actorId: currentUserId!,
+            modelId: modelId,
+            actionType: 'edit',
+          })
+          .returning();
 
         return {
           ...updatedModel,
@@ -440,13 +444,7 @@ export const getModelActions = async (
   reply: FastifyReply
 ) => {
   try {
-    const {
-      modelId,
-      page = 1,
-      pageSize = 10,
-      sortOrder = 'desc',
-      actionType,
-    } = request.query;
+    const { modelId, page = 1, pageSize = 10, sortOrder = 'desc', actionType } = request.query;
 
     const currentPage = Math.max(1, Number(page));
     const limit = Math.min(100, Math.max(1, Number(pageSize)));
@@ -461,9 +459,7 @@ export const getModelActions = async (
       whereClauses.push(eq(models_actions.actionType, actionType));
     }
 
-    const whereCondition = whereClauses.length
-      ? and(...whereClauses)
-      : undefined;
+    const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
 
     const data = await db
       .select({
@@ -482,9 +478,7 @@ export const getModelActions = async (
       .leftJoin(models, eq(models.id, models_actions.modelId))
       .where(whereCondition)
       .orderBy(
-        sortOrder === 'asc'
-          ? asc(models_actions.actionTime)
-          : desc(models_actions.actionTime)
+        sortOrder === 'asc' ? asc(models_actions.actionTime) : desc(models_actions.actionTime)
       )
       .limit(limit)
       .offset(offset);
@@ -493,7 +487,7 @@ export const getModelActions = async (
       .select({ count: sql`count(*)` })
       .from(models_actions)
       .where(whereCondition)
-      .then(result => Number(result[0]?.count || 0));
+      .then((result) => Number(result[0]?.count || 0));
 
     reply.send({
       success: true,

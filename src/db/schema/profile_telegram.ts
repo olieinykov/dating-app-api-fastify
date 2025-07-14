@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, integer } from 'drizzle-orm/pg-core'
+import { pgTable, serial, text, timestamp, integer } from 'drizzle-orm/pg-core';
 
 export const profilesTelegram = pgTable('profiles_telegram', {
   id: serial('id').primaryKey(),
@@ -8,6 +8,6 @@ export const profilesTelegram = pgTable('profiles_telegram', {
   firstName: text('first_name'),
   lastName: text('last_name'),
   languageCode: text('language_code'),
-  createdAt: timestamp('created_at',).defaultNow(),
+  createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });

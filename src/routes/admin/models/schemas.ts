@@ -1,13 +1,4 @@
-import {
-  Type,
-  Static,
-  Array,
-  Object,
-  String,
-  Boolean,
-  Integer,
-  Optional,
-} from '@sinclair/typebox';
+import { Type, Static, Array, Object, String, Boolean, Integer, Optional } from '@sinclair/typebox';
 import { PaginationSchema } from '../../../shared/schemas.js';
 
 export const CreateModelSchema = {
@@ -112,6 +103,16 @@ export const DeleteModelSchema = {
 };
 export type DeleteModelType = {
   Params: Static<typeof DeleteModelSchema.parameters>;
+};
+
+export const ActivateModelSchema = {
+  tags: ['Admin / Models'],
+  parameters: Type.Object({
+    modelId: Type.Integer(),
+  }),
+};
+export type ActivateModelType = {
+  Params: Static<typeof ActivateModelSchema.parameters>;
 };
 
 export const GetModelActionsSchema = {

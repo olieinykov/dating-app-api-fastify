@@ -29,17 +29,14 @@ export const createChat = async (
 ) => {
   try {
     const profileUserId = request.userId;
-    const [model] = await db
-      .select()
-      .from(models)
-      .where(eq(models.id, request.body.modelId));
+    const [model] = await db.select().from(models).where(eq(models.id, request.body.modelId));
 
     const participantsA = await db
       .select({ chatId: chat_participants.chatId })
       .from(chat_participants)
       .where(eq(chat_participants.userId, profileUserId as string));
 
-    const chatIdsA = participantsA.map(p => p.chatId);
+    const chatIdsA = participantsA.map((p) => p.chatId);
     if (chatIdsA.length > 0) {
       const existingChat: Array<{ chatId: number }> = await db
         .select({ chatId: chat_participants.chatId })
@@ -60,7 +57,7 @@ export const createChat = async (
       }
     }
 
-    const data = await db.transaction(async tx => {
+    const data = await db.transaction(async (tx) => {
       const [chat] = await tx.insert(chats).values({}).returning();
 
       const participants: { chatId: number; userId: string }[] = [
@@ -74,9 +71,7 @@ export const createChat = async (
     });
 
     if (data) {
-      const userChannel = ablyClient.channels.get(
-        `user-events:${profileUserId}`
-      );
+      const userChannel = ablyClient.channels.get(`user-events:${profileUserId}`);
       const adminChannel = ablyClient.channels.get(`admin-events`);
       await userChannel.publish('chat-created', data);
       await adminChannel.publish('chat-created', data);
@@ -114,7 +109,7 @@ export const getAllChats = async (
       .limit(limit)
       .offset(offset);
 
-    const chatIds = userChatIds.map(c => c.chatId);
+    const chatIds = userChatIds.map((c) => c.chatId);
     if (chatIds.length === 0) {
       return reply.code(200).send({
         success: true,
@@ -194,7 +189,7 @@ export const getAllChats = async (
       )
       .where(inArray(chat_entries.chatId, chatIds));
 
-    const entryIds = lastMessages.map(m => m.id);
+    const entryIds = lastMessages.map((m) => m.id);
     const fileMappings = await db
       .select({
         chatEntryId: chat_entry_files.chatEntryId,
@@ -230,10 +225,7 @@ export const getAllChats = async (
         count: sql<number>`COUNT(*)`.as('count'),
       })
       .from(chat_entries_unread)
-      .innerJoin(
-        chat_entries,
-        eq(chat_entries_unread.chatEntryId, chat_entries.id)
-      )
+      .innerJoin(chat_entries, eq(chat_entries_unread.chatEntryId, chat_entries.id))
       .where(eq(chat_entries_unread.userId, userId as string))
       .groupBy(chat_entries.chatId);
 
@@ -248,7 +240,7 @@ export const getAllChats = async (
       return bDate - aDate;
     });
 
-    const chatsWithParticipants = sortedChatIds.map(chatId => ({
+    const chatsWithParticipants = sortedChatIds.map((chatId) => ({
       id: chatId,
       participants: participantMap.get(chatId) ?? [],
       lastEntry: lastMessageMap.get(chatId) ?? null,
@@ -283,14 +275,10 @@ export const createChatEntry = async (
   reply: FastifyReply
 ) => {
   try {
-    const { localEntryId, participantsIds, attachmentIds, ...payload } =
-      request.body;
+    const { localEntryId, participantsIds, attachmentIds, ...payload } = request.body;
 
-    const data = await db.transaction(async tx => {
-      const { allowSending, entriesSent } = await checkEntriesDailyLimit(
-        tx,
-        request.profileId!
-      );
+    const data = await db.transaction(async (tx) => {
+      const { allowSending, entriesSent } = await checkEntriesDailyLimit(tx, request.profileId!);
       if (!allowSending) {
         throw new Error('Daily limit of entries reached');
       }
@@ -311,27 +299,24 @@ export const createChatEntry = async (
         await tx
           .insert(chat_entry_files)
           .values(
-            attachmentIds.map(fileId => ({
+            attachmentIds.map((fileId) => ({
               chatEntryId: entry.id,
               fileId,
             }))
           )
           .returning();
 
-        attachments = await tx
-          .select()
-          .from(files)
-          .where(inArray(files.id, attachmentIds));
+        attachments = await tx.select().from(files).where(inArray(files.id, attachmentIds));
       }
 
       const participantsWithoutCurrentUser = participantsIds?.filter(
-        userId => userId !== request.userId
+        (userId) => userId !== request.userId
       );
 
       const data = await tx
         .insert(chat_entries_unread)
         .values(
-          participantsWithoutCurrentUser.map(userId => ({
+          participantsWithoutCurrentUser.map((userId) => ({
             userId,
             chatId: entry.chatId,
             chatEntryId: entry.id,
@@ -372,9 +357,7 @@ export const createChatEntry = async (
     });
 
     if (data) {
-      const usersChannel = ablyClient.channels.get(
-        `user-events:${request.userId}`
-      );
+      const usersChannel = ablyClient.channels.get(`user-events:${request.userId}`);
       const adminChannel = ablyClient.channels.get(`admin-events`);
       const eventData = { ...data, localEntryId };
 
@@ -452,7 +435,7 @@ export const getChatEntries = async (
       .limit(limit)
       .offset(Math.max(0, reverseOffset)); // Ensure offset isn't negative
 
-    const entriesIds = entries.map(entry => entry.id);
+    const entriesIds = entries.map((entry) => entry.id);
     const filesList =
       entriesIds.length > 0
         ? await db
@@ -465,12 +448,12 @@ export const getChatEntries = async (
             .where(inArray(chat_entry_files.chatEntryId, entriesIds))
         : [];
 
-    const entriesWithFiles = (entries || []).map(entry => {
+    const entriesWithFiles = (entries || []).map((entry) => {
       const { fromModel, unreadUserId, fromProfile, ...message } = entry;
       const sender = fromModel ?? fromProfile;
       const entryFiles = filesList
-        .filter(file => file.chatEntryId === entry.id)
-        .map(file => file.file);
+        .filter((file) => file.chatEntryId === entry.id)
+        .map((file) => file.file);
 
       if (!sender) {
         throw new Error('Sender information missing');

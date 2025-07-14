@@ -1,15 +1,15 @@
-import { Type, Static, Optional } from '@sinclair/typebox'
+import { Type, Static, Optional } from '@sinclair/typebox';
 
 export const CreateChatSchema = {
   tags: ['Chat'],
   body: Type.Object({
     modelId: Type.Integer(),
-  })
-}
+  }),
+};
 
 export type CreateChatSchemaBodyType = {
-  Body: Static<typeof CreateChatSchema.body>
-}
+  Body: Static<typeof CreateChatSchema.body>;
+};
 
 export const GetAllChatsSchema = {
   tags: ['Chat'],
@@ -18,10 +18,10 @@ export const GetAllChatsSchema = {
     page: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
     pageSize: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 50 })),
   }),
-}
+};
 export type GetAllChatsSchemaType = {
   Querystring: Static<typeof GetChatEntriesSchema.querystring>;
-}
+};
 
 export const GetChatEntriesSchema = {
   tags: ['Chat'],
@@ -33,12 +33,12 @@ export const GetChatEntriesSchema = {
     page: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
     pageSize: Type.Optional(Type.Integer({ minimum: 1, maximum: 1500, default: 50 })),
   }),
-}
+};
 
 export type GetChatEntriesSchemaType = {
   Params: Static<typeof GetChatEntriesSchema.parameters>;
   Querystring: Static<typeof GetChatEntriesSchema.querystring>;
-}
+};
 
 export const CreateChatEntrySchema = {
   tags: ['Chat'],
@@ -50,14 +50,13 @@ export const CreateChatEntrySchema = {
     attachmentIds: Optional(Type.Array(Type.String())),
     localEntryId: Type.String(),
     participantsIds: Type.Array(Type.String()),
-  })
-}
+  }),
+};
 
 export type CreateChatEntrySchemaType = {
   Body: Static<typeof CreateChatEntrySchema.body>;
   Params: Static<typeof CreateChatEntrySchema.parameters>;
-}
-
+};
 
 export const ReadChatEntriesSchema = {
   tags: ['Chat'],

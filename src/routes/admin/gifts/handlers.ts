@@ -63,10 +63,7 @@ export const getAllGifts = async (
   }
 };
 
-export const getOneGift = async (
-  request: FastifyRequest<GetOneGiftType>,
-  reply: FastifyReply
-) => {
+export const getOneGift = async (request: FastifyRequest<GetOneGiftType>, reply: FastifyReply) => {
   try {
     const data = await db.query.gifts.findFirst({
       where: eq(gifts.id, request.params.giftId),
@@ -91,13 +88,10 @@ export const getOneGift = async (
   }
 };
 
-export const deleteGift = async (
-  request: FastifyRequest<DeleteGiftType>,
-  reply: FastifyReply
-) => {
+export const deleteGift = async (request: FastifyRequest<DeleteGiftType>, reply: FastifyReply) => {
   try {
     const currentUserId = request.userId;
-    const result = await db.transaction(async tx => {
+    const result = await db.transaction(async (tx) => {
       const [updatedGift] = await tx
         .update(gifts)
         .set({
@@ -131,13 +125,10 @@ export const deleteGift = async (
   }
 };
 
-export const createGift = async (
-  request: FastifyRequest<CreateGiftType>,
-  reply: FastifyReply
-) => {
+export const createGift = async (request: FastifyRequest<CreateGiftType>, reply: FastifyReply) => {
   try {
     const currentUserId = request.userId;
-    const result = await db.transaction(async tx => {
+    const result = await db.transaction(async (tx) => {
       const [createdGift] = await db
         .insert(gifts)
         .values({
@@ -166,13 +157,10 @@ export const createGift = async (
   }
 };
 
-export const updateGift = async (
-  request: FastifyRequest<UpdateGiftType>,
-  reply: FastifyReply
-) => {
+export const updateGift = async (request: FastifyRequest<UpdateGiftType>, reply: FastifyReply) => {
   try {
     const currentUserId = request.userId;
-    const result = await db.transaction(async tx => {
+    const result = await db.transaction(async (tx) => {
       const [updatedGift] = await db
         .update(gifts)
         .set(request.body as any)
@@ -204,13 +192,7 @@ export const getGiftActions = async (
   reply: FastifyReply
 ) => {
   try {
-    const {
-      giftId,
-      page = 1,
-      pageSize = 10,
-      sortOrder = 'desc',
-      actionType,
-    } = request.query;
+    const { giftId, page = 1, pageSize = 10, sortOrder = 'desc', actionType } = request.query;
 
     const currentPage = Math.max(1, Number(page));
     const limit = Math.min(100, Math.max(1, Number(pageSize)));
@@ -226,9 +208,7 @@ export const getGiftActions = async (
       whereClauses.push(eq(gifts_actions.actionType, actionType));
     }
 
-    const whereCondition = whereClauses.length
-      ? and(...whereClauses)
-      : undefined;
+    const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
 
     const data = await db
       .select({
@@ -246,11 +226,7 @@ export const getGiftActions = async (
       .leftJoin(profiles, eq(profiles.userId, gifts_actions.actorId))
       .leftJoin(gifts, eq(gifts.id, gifts_actions.giftId))
       .where(whereCondition)
-      .orderBy(
-        sortOrder === 'asc'
-          ? asc(gifts_actions.actionTime)
-          : desc(gifts_actions.actionTime)
-      )
+      .orderBy(sortOrder === 'asc' ? asc(gifts_actions.actionTime) : desc(gifts_actions.actionTime))
       .limit(limit)
       .offset(offset);
 
@@ -258,7 +234,7 @@ export const getGiftActions = async (
       .select({ count: sql`count(*)` })
       .from(gifts_actions)
       .where(whereCondition)
-      .then(result => Number(result[0]?.count || 0));
+      .then((result) => Number(result[0]?.count || 0));
 
     reply.send({
       success: true,

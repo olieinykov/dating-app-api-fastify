@@ -3,6 +3,7 @@ import {
   getAllModels,
   getOneModel,
   deleteModel,
+  activateModel,
   createModel,
   updateModel,
   getModelActions,
@@ -12,6 +13,7 @@ import {
   CreateModelSchema,
   GetAllModelsSchema,
   DeleteModelSchema,
+  ActivateModelSchema,
   UpdateModelSchema,
   GetOneModelSchema,
   GetModelActionsSchema,
@@ -44,6 +46,11 @@ const routes = async (fastify: FastifyInstance) => {
     schema: DeleteModelSchema,
     preHandler: [adminAuthenticated],
     handler: deleteModel,
+  });
+  fastify.patch('/:modelId', {
+    schema: ActivateModelSchema,
+    preHandler: [adminAuthenticated],
+    handler: activateModel,
   });
   fastify.get('/models-actions', {
     schema: GetModelActionsSchema,

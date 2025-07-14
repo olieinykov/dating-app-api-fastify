@@ -1,11 +1,5 @@
-import {
-  integer,
-  pgTable,
-  serial,
-  timestamp,
-  uniqueIndex,
-} from 'drizzle-orm/pg-core';
-import { chats } from './chat.js';
+import { integer, pgTable, serial, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { chats } from './chat';
 import { uuid } from 'drizzle-orm/pg-core';
 
 export const chat_participants = pgTable(
@@ -18,7 +12,7 @@ export const chat_participants = pgTable(
     userId: uuid('user_id').notNull(),
     lastReadAt: timestamp('last_read_at'),
   },
-  table => {
+  (table) => {
     const { chatId, userId } = table;
     return {
       uniqueChatParticipant: uniqueIndex('unique_chat_user').on(chatId, userId),

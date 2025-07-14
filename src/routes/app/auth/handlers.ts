@@ -1,11 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../../../db/index.js';
 import { eq } from 'drizzle-orm';
-import {
-  profiles,
-  profilesPreferences,
-  profilesTelegram,
-} from '../../../db/schema/index.js';
+import { profiles, profilesPreferences, profilesTelegram } from '../../../db/schema/index.js';
 import { ActivateProfileSchemaType, LoginSchemaType } from './schemas.js';
 import { supabase, supabaseAdmin } from '../../../services/supabase.js';
 import { updateProfilePhotos } from '../../../utils/files/files.js';
@@ -34,15 +30,11 @@ export const createOrLogin = async (
       isInitDataValid = true;
     } else {
       isInitDataValid = isValid(request.body.initData!, env.telegram.botToken!);
-      telegram = isInitDataValid
-        ? parse(request.body.initData ?? '').user
-        : null;
+      telegram = isInitDataValid ? parse(request.body.initData ?? '').user : null;
     }
 
     if (!isInitDataValid || !telegram?.id) {
-      return reply
-        .code(400)
-        .send({ success: false, error: 'Invalid Telegram data' });
+      return reply.code(400).send({ success: false, error: 'Invalid Telegram data' });
     }
 
     const profile = await db.query.profiles.findFirst({
@@ -60,11 +52,10 @@ export const createOrLogin = async (
     }
 
     if (profile && profile.activatedAt) {
-      const { data: sessionData, error: signInError } =
-        await supabase.auth.signInWithPassword({
-          email: `${telegram.id}.mock@amorium.com`,
-          password: 'TEST_MOCK_PASSWORD',
-        });
+      const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: `${telegram.id}.mock@amorium.com`,
+        password: 'TEST_MOCK_PASSWORD',
+      });
 
       if (signInError || !sessionData?.session) {
         return reply.status(401).send({
@@ -116,22 +107,23 @@ export const createOrLogin = async (
       });
     }
 
-    const { data: createdUser, error: createUserError } =
-      await supabaseAdmin.auth.admin.createUser({
+    const { data: createdUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser(
+      {
         email: `${telegram.id}.mock@amorium.com`,
         password: 'TEST_MOCK_PASSWORD',
         email_confirm: true,
         user_metadata: {
           telegram_id: telegram.id,
         },
-      });
+      }
+    );
 
     if (createUserError) {
       throw createUserError;
     }
 
     try {
-      const result = await db.transaction(async tx => {
+      const result = await db.transaction(async (tx) => {
         const [telegramData] = await tx
           .insert(profilesTelegram)
           .values({
@@ -217,22 +209,18 @@ export const activateProfile = async (
       throw new Error();
     }
 
-    const result = await db.transaction(async tx => {
+    const result = await db.transaction(async (tx) => {
       let profilePhotos = undefined;
 
       if (photos?.length) {
-        profilePhotos = await updateProfilePhotos(
-          tx,
-          existingProfile.id,
-          photos
-        );
+        profilePhotos = await updateProfilePhotos(tx, existingProfile.id, photos);
       }
 
       const [profileData] = await db
         .update(profiles)
         .set({
           name: payload.name,
-          avatar: profilePhotos?.find(photo => photo?.isAvatar === true)?.url,
+          avatar: profilePhotos?.find((photo) => photo?.isAvatar === true)?.url,
           activatedAt: new Date(),
         })
         .where(eq(profiles.id, existingProfile.id))
@@ -277,7 +265,7 @@ export const activateProfile = async (
 export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
   const userId = request.userId!;
   try {
-    await db.transaction(async tx => {
+    await db.transaction(async (tx) => {
       await supabaseAdmin.auth.admin.signOut(userId);
       await tx
         .update(profiles)

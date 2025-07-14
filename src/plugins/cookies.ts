@@ -4,11 +4,11 @@ import { FastifyInstance } from 'fastify';
 import type { FastifyCookieOptions } from '@fastify/cookie';
 
 async function cookiePlugin(fastify: FastifyInstance) {
-    await fastify.register(fastifyCookie, {
-        secret: 'my-secret-key',
-    } as FastifyCookieOptions);
+  await fastify.register(fastifyCookie, {
+    secret: 'my-secret-key',
+  } as FastifyCookieOptions);
 }
 
 export default fp(cookiePlugin, {
-    name: 'cookie-plugin',
+  name: 'cookie-plugin',
 });
