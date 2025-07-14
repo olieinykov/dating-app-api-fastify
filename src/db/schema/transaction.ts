@@ -3,6 +3,7 @@ import { profiles } from './profile.js';
 import { gifts } from "./gift.js";
 import { models } from "./model.js";
 import { pgEnum } from "drizzle-orm/pg-core";
+import { tariffs } from "./tariff";
 
 export const transactionOperationEnum = pgEnum('operation', [
   'gift',
@@ -23,6 +24,7 @@ export const transactions = pgTable('transactions', {
   profileId: integer('profile_id').references(() => profiles.id),
   giftId: integer('gift_id').references(() => gifts.id),
   modelId: integer('model_id').references(() => models.id),
+  tariffId: integer('tariff_id').references(() => tariffs.id),
   tokensAmount: integer('tokens_amount'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),

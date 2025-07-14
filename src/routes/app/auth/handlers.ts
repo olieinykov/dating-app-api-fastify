@@ -161,12 +161,24 @@ export const createOrLogin = async (
           })
           .returning();
 
+        const tariffId = 1;
+
         await tx.insert(profiles_tariff).values({
+          tariffId,
           profileId: profileData.id,
-          tariffId: 1,
           isActive: true,
           entriesSentToday: 0,
         });
+
+        await tx
+            .insert(transactions)
+            .values({
+              tariffId,
+              profileId: profileData.id,
+              status: 'completed',
+              type: 'tariff'
+            })
+            .returning();
 
         return profileData;
       });
@@ -243,15 +255,6 @@ export const activateProfile = async (
         })
         .where(eq(profilesPreferences.profileId, existingProfile.id))
         .returning();
-
-      await tx
-          .insert(transactions)
-          .values({
-            profileId: profileData.id,
-            status: 'completed',
-            type: 'tariff'
-          })
-          .returning();
 
       return {
         ...profileData,
