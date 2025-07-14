@@ -11,7 +11,7 @@ import { and, eq } from 'drizzle-orm';
 import { profile_gift_transactions } from '../../../db/schema/profile_gift_transactions.js';
 import { profile_balances } from '../../../db/schema/profile_balances.js';
 import ablyClient from '../../../services/ably.js';
-import {transactions} from "../../../db/schema/transaction";
+import {transactions} from "../../../db/schema/transaction.js";
 
 export const getGifts = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
