@@ -1,7 +1,7 @@
 ﻿import { integer, pgTable, serial, timestamp } from 'drizzle-orm/pg-core';
-import { profiles } from './profile';
-import { gifts } from "./gift";
-import { models } from "./model";
+import { profiles } from './profile.js';
+import { gifts } from "./gift.js";
+import { models } from "./model.js";
 import { pgEnum } from "drizzle-orm/pg-core";
 
 export const transactionOperationEnum = pgEnum('operation', [

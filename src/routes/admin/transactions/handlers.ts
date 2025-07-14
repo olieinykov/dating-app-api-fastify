@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../../../db/index.js';
 import { eq } from 'drizzle-orm';
 import { gifts, models, profiles } from '../../../db/schema/index.js';
-import { transactions } from "../../../db/schema/transaction";
+import { transactions } from "../../../db/schema/transaction.js";
 
 export const getTransactions = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
