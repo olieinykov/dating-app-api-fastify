@@ -1,4 +1,4 @@
 export interface ProfileFile {
-    id: string;
-    isAvatar: boolean;
+  id: string;
+  isAvatar: boolean;
 }

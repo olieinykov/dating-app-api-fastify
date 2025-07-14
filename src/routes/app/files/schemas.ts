@@ -1,4 +1,4 @@
-import { Type, Static } from '@sinclair/typebox'
+import { Type, Static } from '@sinclair/typebox';
 export const UploadFileSchema = {
   tags: ['App / Files'],
   body: Type.Any(),

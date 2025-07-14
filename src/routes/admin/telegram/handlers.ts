@@ -1,15 +1,17 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import env from "../../../config/env.js"
-import { SetupTelegramHooksSchemaType } from "./schemas.js";
-import axios from "axios";
+import env from '../../../config/env.js';
+import { SetupTelegramHooksSchemaType } from './schemas.js';
+import axios from 'axios';
 
 export const setupTelegramHooks = async (
-    request: FastifyRequest<SetupTelegramHooksSchemaType>,
-    reply: FastifyReply
+  request: FastifyRequest<SetupTelegramHooksSchemaType>,
+  reply: FastifyReply
 ) => {
   try {
     const webhookUrl = request.body.webhookUrl;
-    const response =  await axios.post(`https://api.telegram.org/bot${env.telegram.botToken!}/setWebhook?url=${webhookUrl}`);
+    const response = await axios.post(
+      `https://api.telegram.org/bot${env.telegram.botToken!}/setWebhook?url=${webhookUrl}`
+    );
     return reply.code(200).send({
       success: true,
     });
@@ -18,4 +20,4 @@ export const setupTelegramHooks = async (
       success: false,
     });
   }
-}
+};

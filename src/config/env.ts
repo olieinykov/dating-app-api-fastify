@@ -1,9 +1,9 @@
-import dotenv from 'dotenv'
+import dotenv from 'dotenv';
 
-dotenv.config()
+dotenv.config();
 
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-  throw new Error('Missing Supabase credentials')
+  throw new Error('Missing Supabase credentials');
 }
 
 const env = {
@@ -29,7 +29,7 @@ const env = {
   server: {
     port: Number(process.env.PORT) || 3000,
     host: process.env.HOST || 'localhost',
-  }
-} as const
+  },
+} as const;
 
-export default env 
+export default env;

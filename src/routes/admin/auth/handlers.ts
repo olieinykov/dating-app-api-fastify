@@ -1,8 +1,8 @@
-import { supabase } from '../../../services/supabase.js'
-import { FastifyRequest, FastifyReply } from 'fastify'
-import { LoginBodyType } from './schemas.js'
-import {CookieSerializeOptions} from "@fastify/cookie";
-import env from "../../../config/env.js";
+import { supabase } from '../../../services/supabase.js';
+import { FastifyRequest, FastifyReply } from 'fastify';
+import { LoginBodyType } from './schemas.js';
+import { CookieSerializeOptions } from '@fastify/cookie';
+import env from '../../../config/env.js';
 
 const cookiesConfig: CookieSerializeOptions = {
   httpOnly: true,
@@ -10,12 +10,9 @@ const cookiesConfig: CookieSerializeOptions = {
   sameSite: 'none',
   // path: '/',
   path: '/api/admin',
-}
+};
 
-export const login = async (
-    request: FastifyRequest<LoginBodyType>,
-    reply: FastifyReply
-) => {
+export const login = async (request: FastifyRequest<LoginBodyType>, reply: FastifyReply) => {
   try {
     const { email, password } = request.body;
 
@@ -32,8 +29,8 @@ export const login = async (
     }
 
     reply
-        .clearCookie('adminAccessToken', cookiesConfig)
-        .clearCookie('adminRefreshToken', cookiesConfig);
+      .clearCookie('adminAccessToken', cookiesConfig)
+      .clearCookie('adminRefreshToken', cookiesConfig);
 
     reply.setCookie('adminAccessToken', authData?.session?.access_token!, {
       ...cookiesConfig,
@@ -48,28 +45,24 @@ export const login = async (
     reply.code(200);
   } catch (error) {
     reply.code(401).send({
-      success: false, error: 'User creation failed'
-    })
+      success: false,
+      error: 'User creation failed',
+    });
   }
-}
+};
 
-export const logout = async (
-    request: FastifyRequest,
-    reply: FastifyReply
-) => {
+export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-
     await supabase.auth.signOut();
     return reply
-        .clearCookie('adminAccessToken', cookiesConfig)
-        .clearCookie('adminRefreshToken', cookiesConfig)
-        .code(200)
-        .send({ success: true });
-
+      .clearCookie('adminAccessToken', cookiesConfig)
+      .clearCookie('adminRefreshToken', cookiesConfig)
+      .code(200)
+      .send({ success: true });
   } catch (error) {
     return reply.code(500).send({
       success: false,
-      error: 'Logout failed'
+      error: 'Logout failed',
     });
   }
 };

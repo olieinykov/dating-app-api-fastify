@@ -1,7 +1,7 @@
 import fp from 'fastify-plugin';
 import cors from '@fastify/cors';
 import { FastifyInstance } from 'fastify';
-import env from "../config/env.js";
+import env from '../config/env.js';
 
 async function corsPlugin(fastify: FastifyInstance) {
   await fastify.register(cors, {
@@ -12,7 +12,7 @@ async function corsPlugin(fastify: FastifyInstance) {
     credentials: true,
     maxAge: 86400,
     preflightContinue: false,
-    optionsSuccessStatus: 204
+    optionsSuccessStatus: 204,
   });
 }
 

@@ -12,7 +12,7 @@ export const chat_entry_files = pgTable(
       .references(() => files.id, { onDelete: 'cascade' })
       .notNull(),
   },
-  t => ({
+  (t) => ({
     pk: primaryKey({ columns: [t.chatEntryId, t.fileId] }),
   })
 );

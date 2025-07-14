@@ -1,21 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../../../db/index.js';
-import {
-  profiles,
-  profilesPreferences,
-  profiles_actions,
-} from '../../../db/schema/index.js';
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  ilike,
-  isNotNull,
-  isNull,
-  or,
-  sql,
-} from 'drizzle-orm';
+import { profiles, profilesPreferences, profiles_actions } from '../../../db/schema/index.js';
+import { and, asc, desc, eq, ilike, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import {
   CreateUserType,
   DeleteUserType,
@@ -71,9 +57,8 @@ export const getAllUsers = async (
     //     );
     // }
 
-    const whereCondition = whereClauses.length
-      ? and(...whereClauses)
-      : undefined;
+    const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
+
     const users = await db
       .select({
         id: profiles.id,
@@ -90,10 +75,7 @@ export const getAllUsers = async (
         city: profilesPreferences.city,
       })
       .from(profiles)
-      .leftJoin(
-        profilesPreferences,
-        eq(profilesPreferences.profileId, profiles.id)
-      )
+      .leftJoin(profilesPreferences, eq(profilesPreferences.profileId, profiles.id))
       .where(whereCondition)
       .orderBy(
         sortOrder === 'asc'
@@ -109,7 +91,7 @@ export const getAllUsers = async (
       .select({ count: sql`count(*)` })
       .from(profiles)
       .where(whereCondition)
-      .then(result => Number(result[0]?.count || 0));
+      .then((result) => Number(result[0]?.count || 0));
 
     reply.send({
       success: true,
@@ -129,10 +111,7 @@ export const getAllUsers = async (
   }
 };
 
-export const getOneUser = async (
-  request: FastifyRequest<GetOneUserType>,
-  reply: FastifyReply
-) => {
+export const getOneUser = async (request: FastifyRequest<GetOneUserType>, reply: FastifyReply) => {
   try {
     const data = await db.query.profiles.findFirst({
       where: eq(profiles.id, request.params.userId),
@@ -157,13 +136,10 @@ export const getOneUser = async (
   }
 };
 
-export const deleteUser = async (
-  request: FastifyRequest<DeleteUserType>,
-  reply: FastifyReply
-) => {
+export const deleteUser = async (request: FastifyRequest<DeleteUserType>, reply: FastifyReply) => {
   try {
     const currentUserId = request.userId;
-    const result = await db.transaction(async tx => {
+    const result = await db.transaction(async (tx) => {
       const [updatedProfile] = await tx
         .update(profiles)
         .set({
@@ -197,25 +173,21 @@ export const deleteUser = async (
   }
 };
 
-export const createUser = async (
-  request: FastifyRequest<CreateUserType>,
-  reply: FastifyReply
-) => {
+export const createUser = async (request: FastifyRequest<CreateUserType>, reply: FastifyReply) => {
   try {
     const payload = {
       ...request.body,
       role: request.body.role || 'chatter',
     };
 
-    const { data: authData, error: authError } =
-      await supabaseAdmin.auth.admin.createUser({
-        email: request.body.email,
-        password: request.body.password,
-        email_confirm: true,
-        user_metadata: {
-          role: payload.role,
-        },
-      });
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: request.body.email,
+      password: request.body.password,
+      email_confirm: true,
+      user_metadata: {
+        role: payload.role,
+      },
+    });
 
     if (authError) {
       return reply.code(400).send({
@@ -224,7 +196,7 @@ export const createUser = async (
       });
     }
 
-    const result = await db.transaction(async tx => {
+    const result = await db.transaction(async (tx) => {
       const [createdUser] = await db
         .insert(profiles)
         .values({
@@ -234,11 +206,11 @@ export const createUser = async (
         .returning();
 
       const currentUserId = request.userId;
-      // await tx.insert(profiles_actions).values({
-      //   actorId: currentUserId!,
-      //   profileId: createdUser.id,
-      //   actionType: 'create',
-      // });
+      await tx.insert(profiles_actions).values({
+        actorId: currentUserId!,
+        profileId: createdUser.id,
+        actionType: 'create',
+      });
       return createdUser;
     });
 
@@ -254,12 +226,9 @@ export const createUser = async (
   }
 };
 
-export const updateUser = async (
-  request: FastifyRequest<UpdateUsersType>,
-  reply: FastifyReply
-) => {
+export const updateUser = async (request: FastifyRequest<UpdateUsersType>, reply: FastifyReply) => {
   try {
-    const result = await db.transaction(async tx => {
+    const result = await db.transaction(async (tx) => {
       const currentUserId = request.userId;
       const [updatedUser] = await tx
         .update(profiles)
@@ -293,13 +262,7 @@ export const getUserActions = async (
   reply: FastifyReply
 ) => {
   try {
-    const {
-      profileId,
-      page = 1,
-      pageSize = 10,
-      sortOrder = 'desc',
-      actionType,
-    } = request.query;
+    const { profileId, page = 1, pageSize = 10, sortOrder = 'desc', actionType } = request.query;
 
     const currentPage = Math.max(1, Number(page));
     const limit = Math.min(100, Math.max(1, Number(pageSize)));
@@ -314,9 +277,7 @@ export const getUserActions = async (
       whereClauses.push(eq(profiles_actions.actionType, actionType));
     }
 
-    const whereCondition = whereClauses.length
-      ? and(...whereClauses)
-      : undefined;
+    const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
 
     const data = await db
       .select({
@@ -334,9 +295,7 @@ export const getUserActions = async (
       .leftJoin(profiles, eq(profiles.userId, profiles_actions.actorId))
       .where(whereCondition)
       .orderBy(
-        sortOrder === 'asc'
-          ? asc(profiles_actions.actionTime)
-          : desc(profiles_actions.actionTime)
+        sortOrder === 'asc' ? asc(profiles_actions.actionTime) : desc(profiles_actions.actionTime)
       )
       .limit(limit)
       .offset(offset);
@@ -345,7 +304,7 @@ export const getUserActions = async (
       .select({ count: sql`count(*)` })
       .from(profiles_actions)
       .where(whereCondition)
-      .then(result => Number(result[0]?.count || 0));
+      .then((result) => Number(result[0]?.count || 0));
 
     reply.send({
       success: true,
