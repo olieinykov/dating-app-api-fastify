@@ -39,7 +39,6 @@ export const getTransactions = async (request: FastifyRequest<GetTransactionSche
             .leftJoin(gifts, eq(transactions.giftId, gifts.id))
             .leftJoin(models, eq(transactions.modelId, models.id))
             .leftJoin(tariffs, eq(transactions.tariffId, tariffs.id))
-            .orderBy(desc(transactions.createdAt))
             .where(ilike(gifts.title, `%${search}%`))
             // @ts-ignore
             .orderBy(
@@ -51,9 +50,18 @@ export const getTransactions = async (request: FastifyRequest<GetTransactionSche
             )
             .limit(limit)
             .offset(offset);
+
+        const total = await db.$count(transactions);
+
         return reply.code(200).send({
                 success: true,
                 data,
+                pagination: {
+                    page: currentPage,
+                    pageSize: limit,
+                    total,
+                    totalPages: Math.ceil(total / limit),
+                },
             });
   } catch (error) {
       return reply.code(400).send({
