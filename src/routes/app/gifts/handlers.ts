@@ -135,7 +135,7 @@ export const sendGiftToModel = async (
       const balance = balanceRow?.balance ?? 0;
       const giftPrice = gift.price ?? 0;
 
-      if (balance <= giftPrice) {
+      if (balance < giftPrice) {
         throw new Error('Insufficient balance');
       }
 
