@@ -6,6 +6,7 @@ import { ActivateProfileSchemaType, LoginSchemaType } from './schemas.js';
 import { supabase, supabaseAdmin } from '../../../services/supabase.js';
 import { updateProfilePhotos } from '../../../utils/files/files.js';
 import { profile_balances } from '../../../db/schema/profile_balances.js';
+import { transactions } from '../../../db/schema/transaction.js';
 import env from '../../../config/env.js';
 import { isValid, parse } from '@telegram-apps/init-data-node';
 import { profiles_tariff } from '../../../db/schema/profile_tariff.js';
@@ -216,7 +217,7 @@ export const activateProfile = async (
         profilePhotos = await updateProfilePhotos(tx, existingProfile.id, photos);
       }
 
-      const [profileData] = await db
+      const [profileData] = await tx
         .update(profiles)
         .set({
           name: payload.name,
@@ -226,7 +227,7 @@ export const activateProfile = async (
         .where(eq(profiles.id, existingProfile.id))
         .returning();
 
-      const [profileDetails] = await db
+      const [profileDetails] = await tx
         .update(profilesPreferences)
         .set({
           about: payload.about,
@@ -242,6 +243,15 @@ export const activateProfile = async (
         })
         .where(eq(profilesPreferences.profileId, existingProfile.id))
         .returning();
+
+      await tx
+          .insert(transactions)
+          .values({
+            profileId: request.profileId,
+            status: 'completed',
+            type: 'tariff'
+          })
+          .returning();
 
       return {
         ...profileData,

@@ -23,7 +23,7 @@ export const transactions = pgTable('transactions', {
   profileId: integer('profile_id').references(() => profiles.id),
   giftId: integer('gift_id').references(() => gifts.id),
   modelId: integer('model_id').references(() => models.id),
-  tokensAmount: integer('tokens_amount').notNull(),
+  tokensAmount: integer('tokens_amount'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });

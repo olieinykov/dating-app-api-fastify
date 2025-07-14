@@ -197,7 +197,7 @@ export const createUser = async (request: FastifyRequest<CreateUserType>, reply:
     }
 
     const result = await db.transaction(async (tx) => {
-      const [createdUser] = await db
+      const [createdUser] = await tx
         .insert(profiles)
         .values({
           ...payload,
