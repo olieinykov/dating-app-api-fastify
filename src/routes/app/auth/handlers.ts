@@ -247,7 +247,7 @@ export const activateProfile = async (
       await tx
           .insert(transactions)
           .values({
-            profileId: request.profileId,
+            profileId: profileData.id,
             status: 'completed',
             type: 'tariff'
           })
