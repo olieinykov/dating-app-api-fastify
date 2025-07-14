@@ -22,7 +22,7 @@ import adminMeRoutes from './routes/admin/me/index.js';
 import adminChatsRoutes from './routes/admin/chat/index.js';
 import adminTelegramRoutes from './routes/admin/telegram/index.js';
 import adminTariffsRoutes from './routes/admin/tariffs/index.js';
-import adminPaymentsRoutes from './routes/admin/transactions/index.js';
+import adminTransactionsRoutes from './routes/admin/transactions/index.js';
 
 const fastify = Fastify({
   logger: true,
@@ -52,7 +52,7 @@ async function initialize() {
   await fastify.register(adminChatsRoutes, { prefix: '/api/admin/chats' });
   await fastify.register(adminTelegramRoutes, { prefix: '/api/admin/telegram' });
   await fastify.register(adminTariffsRoutes, { prefix: '/api/admin/tariffs' });
-  await fastify.register(adminPaymentsRoutes, { prefix: '/api/admin/transactions' });
+  await fastify.register(adminTransactionsRoutes, { prefix: '/api/admin/transactions' });
 
   try {
     await fastify.listen({ port: env.server.port, host: env.server.host });

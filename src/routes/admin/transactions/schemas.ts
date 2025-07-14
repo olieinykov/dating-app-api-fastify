@@ -1,3 +1,3 @@
-export const GetPaymentsSchema = {
+export const GetTransactionSchema = {
   tags: ['Admin / Transactions'],
 };

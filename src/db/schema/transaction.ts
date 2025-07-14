@@ -2,7 +2,7 @@
 import { profiles } from './profile';
 import { gifts } from "./gift";
 import { models } from "./model";
-import { pgEnum } from "drizzle-orm/pg-core/index";
+import { pgEnum } from "drizzle-orm/pg-core";
 
 export const transactionOperationEnum = pgEnum('operation', [
   'gift',
