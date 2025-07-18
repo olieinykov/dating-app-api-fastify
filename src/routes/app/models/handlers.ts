@@ -1,8 +1,13 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { models, profilesPreferences } from '../../../db/schema/index.js';
+import {
+  models,
+  profilesPreferences,
+  disliked_models,
+  chat_participants,
+} from '../../../db/schema/index.js';
 import { db } from '../../../db/index.js';
-import { GetModelsByPreferencesSchemaType } from './schemas.js';
-import { isNull, eq, sql } from 'drizzle-orm';
+import { GetModelsByPreferencesSchemaType, DislikeModelSchemaType } from './schemas.js';
+import { isNull, eq, sql, inArray, and, notInArray } from 'drizzle-orm';
 
 export const getModelsByPreferences = async (
   request: FastifyRequest<GetModelsByPreferencesSchemaType>,
@@ -11,6 +16,7 @@ export const getModelsByPreferences = async (
   try {
     const { page, pageSize } = request.query;
     const profileId = request.profileId;
+    const userId = request.userId;
 
     const currentPage = Math.max(1, Number(page));
     const limit = Math.min(100, Math.max(1, Number(pageSize)));
@@ -35,6 +41,33 @@ export const getModelsByPreferences = async (
       bodyType: sql`CASE WHEN ${models.bodyType} = ${preferences.paramsBodyType} THEN 20 ELSE 0 END`,
       country: sql`CASE WHEN ${models.country} = ${preferences.country} THEN 5 ELSE 0 END`,
     };
+
+    const likedModelsIds = await db
+      .select({ userId: chat_participants.userId })
+      .from(chat_participants)
+      .where(
+        inArray(
+          chat_participants.chatId,
+          db
+            .select({ chatId: chat_participants.chatId })
+            .from(chat_participants)
+            .where(eq(chat_participants.userId, userId as string))
+        )
+      );
+
+    const excludedModelsIds = likedModelsIds.map((m) => m.userId);
+
+    const dislikedModelsIds = await db
+      .select({ modelId: disliked_models.modelId })
+      .from(disliked_models)
+      .where(eq(disliked_models.profileId, profileId as number));
+
+    const dislikedIds = dislikedModelsIds.map((m) => m.modelId);
+
+    const orderByDislike = sql`CASE WHEN ${models.id} IN (${sql.join(dislikedIds, sql`, `)}) THEN 1 ELSE 0 END`;
+    const orderByArr = dislikedIds.length
+      ? [orderByDislike, sql`match_score DESC`]
+      : [sql`match_score DESC`];
 
     const query = db
       .select({
@@ -65,8 +98,8 @@ export const getModelsByPreferences = async (
       //     profilesPreferences,
       //     eq(profilesPreferences.profileId, profileId)
       // )
-      .where(isNull(models.deactivatedAt))
-      .orderBy(sql`match_score DESC`)
+      .where(and(isNull(models.deactivatedAt), notInArray(models.userId, excludedModelsIds)))
+      .orderBy(...orderByArr)
       .limit(limit)
       .offset(offset);
 
@@ -76,7 +109,7 @@ export const getModelsByPreferences = async (
         .select({ count: sql<number>`count(*)` })
         .from(models)
         .innerJoin(profilesPreferences, eq(profilesPreferences.profileId, profileId as number))
-        .where(isNull(models.deactivatedAt))
+        .where(and(isNull(models.deactivatedAt), notInArray(models.userId, excludedModelsIds)))
         .then((res) => res[0]?.count ?? 0),
     ]);
 
@@ -89,6 +122,52 @@ export const getModelsByPreferences = async (
         total,
         totalPages: Math.ceil(total / limit),
       },
+    });
+  } catch (error) {
+    reply.status(400).send({
+      status: 'error',
+      error: (error as Error)?.message,
+    });
+  }
+};
+
+export const dislikeModel = async (
+  request: FastifyRequest<DislikeModelSchemaType>,
+  reply: FastifyReply
+) => {
+  try {
+    const { modelId } = request.params;
+    const profileId = request.profileId;
+
+    const existingDislike = await db
+      .select()
+      .from(disliked_models)
+      .where(
+        and(
+          eq(disliked_models.profileId, profileId as number),
+          eq(disliked_models.modelId, modelId as number)
+        )
+      );
+
+    if (existingDislike.length > 0) {
+      reply.send({
+        status: 'success',
+        data: existingDislike[0],
+      });
+      return;
+    }
+
+    const [dislikedModel] = await db
+      .insert(disliked_models)
+      .values({
+        profileId: profileId as number,
+        modelId,
+      })
+      .returning();
+
+    reply.send({
+      status: 'success',
+      data: dislikedModel,
     });
   } catch (error) {
     reply.status(400).send({

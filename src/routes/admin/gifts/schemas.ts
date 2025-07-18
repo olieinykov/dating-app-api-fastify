@@ -64,6 +64,16 @@ export type DeleteGiftType = {
   Params: Static<typeof DeleteGiftSchema.parameters>;
 };
 
+export const ActivateGiftSchema = {
+  tags: ['Admin / Gifts'],
+  parameters: Type.Object({
+    giftId: Type.Integer(),
+  }),
+};
+export type ActivateGiftType = {
+  Params: Static<typeof ActivateGiftSchema.parameters>;
+};
+
 export const GetGiftActionsSchema = {
   tags: ['Admin /Gifts'],
   querystring: Type.Intersect([

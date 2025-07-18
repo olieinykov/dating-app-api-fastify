@@ -4,6 +4,7 @@ import {
   createGift,
   updateGift,
   deleteGift,
+  activateGift,
   getOneGift,
   getGiftActions,
 } from './handlers.js';
@@ -11,6 +12,7 @@ import {
   CreateGiftSchema,
   GetAllGiftsSchema,
   DeleteGiftSchema,
+  ActivateGiftSchema,
   UpdateGiftSchema,
   GetOneGiftSchema,
   GetGiftActionsSchema,
@@ -44,6 +46,11 @@ const routes = async (fastify: FastifyInstance) => {
     schema: DeleteGiftSchema,
     preHandler: [adminAuthenticated],
     handler: deleteGift,
+  });
+  fastify.patch('/:giftId', {
+    schema: ActivateGiftSchema,
+    preHandler: [adminAuthenticated],
+    handler: activateGift,
   });
   fastify.get('/models/:modelId/favorite-gifts', {
     schema: GetModelFavoritesSchema,

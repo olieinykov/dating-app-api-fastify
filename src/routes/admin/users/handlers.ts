@@ -5,6 +5,7 @@ import { and, asc, desc, eq, ilike, isNotNull, isNull, or, sql } from 'drizzle-o
 import {
   CreateUserType,
   DeleteUserType,
+  ActivateUserType,
   GetAllUsersType,
   GetOneUserType,
   UpdateUsersType,
@@ -161,6 +162,41 @@ export const deleteUser = async (request: FastifyRequest<DeleteUserType>, reply:
       return updatedProfile;
     });
 
+    reply.send({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    reply.status(400).send({
+      success: false,
+      error: (error as Error)?.message,
+    });
+  }
+};
+
+export const activateUser = async (
+  request: FastifyRequest<ActivateUserType>,
+  reply: FastifyReply
+) => {
+  try {
+    const currentUserId = request.userId;
+
+    const result = await db.transaction(async (tx) => {
+      const [updatedProfile] = await tx
+        .update(profiles)
+        .set({ deactivatedAt: null })
+        .where(eq(profiles.id, request.params.userId))
+        .returning();
+      if (!updatedProfile) {
+        throw new Error(`No model found with id: ${request.params.userId}`);
+      }
+      await tx.insert(profiles_actions).values({
+        actorId: currentUserId!,
+        profileId: updatedProfile.id,
+        actionType: 'edit',
+      });
+      return updatedProfile;
+    });
     reply.send({
       success: true,
       data: result,
