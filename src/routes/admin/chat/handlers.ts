@@ -41,14 +41,29 @@ export const getModelsChats = async (
     const limit = Math.min(1000, Math.max(1, pageSize));
     const offset = (currentPage - 1) * limit;
 
-    const userChatIds = await db
-      .select({ chatId: chat_participants.chatId })
+    const lastEntrySubquery = db
+      .select({
+        chatId: chat_entries.chatId,
+        lastCreatedAt: sql`MAX(${chat_entries.createdAt})`.as('lastCreatedAt'),
+      })
+      .from(chat_entries)
+      .groupBy(chat_entries.chatId)
+      .as('last_entries');
+
+    const userChats = await db
+      .select({ chatId: chat_participants.chatId, lastCreatedAt: lastEntrySubquery.lastCreatedAt })
       .from(chat_participants)
+      .leftJoin(lastEntrySubquery, eq(chat_participants.chatId, lastEntrySubquery.chatId))
       .where(eq(chat_participants.userId, userId as string))
+      .orderBy(
+        sql`CASE WHEN ${lastEntrySubquery.lastCreatedAt} IS NULL THEN 1 ELSE 0 END`,
+        desc(lastEntrySubquery.lastCreatedAt)
+      )
       .limit(limit)
       .offset(offset);
 
-    const chatIds = userChatIds.map((c) => c.chatId);
+    const chatIds = userChats.map((c) => c.chatId);
+
     if (chatIds.length === 0) {
       return reply.code(200).send({
         success: true,
@@ -74,6 +89,24 @@ export const getModelsChats = async (
       .leftJoin(models, eq(chat_participants.userId, models.userId))
       .where(inArray(chat_participants.chatId, chatIds));
 
+    const lastMessages = await db
+      .select({
+        id: chat_entries.id,
+        chatId: chat_entries.chatId,
+        body: chat_entries.body,
+        createdAt: chat_entries.createdAt,
+        senderId: chat_entries.senderId,
+      })
+      .from(chat_entries)
+      .innerJoin(
+        lastEntrySubquery,
+        and(
+          eq(chat_entries.chatId, lastEntrySubquery.chatId),
+          eq(chat_entries.createdAt, lastEntrySubquery.lastCreatedAt)
+        )
+      )
+      .where(inArray(chat_entries.chatId, chatIds));
+
     const participantMap = new Map<
       number,
       Array<{
@@ -98,34 +131,8 @@ export const getModelsChats = async (
       participantMap.set(p.chatId, list);
     }
 
-    const lastEntrySubquery = db
-      .select({
-        chatId: chat_entries.chatId,
-        lastCreatedAt: sql`MAX(${chat_entries.createdAt})`.as('lastCreatedAt'),
-      })
-      .from(chat_entries)
-      .groupBy(chat_entries.chatId)
-      .as('last_entries');
-
-    const lastMessages = await db
-      .select({
-        id: chat_entries.id,
-        chatId: chat_entries.chatId,
-        body: chat_entries.body,
-        createdAt: chat_entries.createdAt,
-        senderId: chat_entries.senderId,
-      })
-      .from(chat_entries)
-      .innerJoin(
-        lastEntrySubquery,
-        and(
-          eq(chat_entries.chatId, lastEntrySubquery.chatId),
-          eq(chat_entries.createdAt, lastEntrySubquery.lastCreatedAt)
-        )
-      )
-      .where(inArray(chat_entries.chatId, chatIds));
-
     const entryIds = lastMessages.map((m) => m.id);
+
     const fileMappings = await db
       .select({
         chatEntryId: chat_entry_files.chatEntryId,
@@ -168,13 +175,7 @@ export const getModelsChats = async (
       unreadMap.set(u.chatId!, u.count);
     }
 
-    const sortedChatIds = [...chatIds].sort((a, b) => {
-      const aDate = lastMessageMap.get(a)?.createdAt?.getTime() ?? 0;
-      const bDate = lastMessageMap.get(b)?.createdAt?.getTime() ?? 0;
-      return bDate - aDate;
-    });
-
-    const chatsWithParticipants = sortedChatIds.map((chatId) => ({
+    const chatsWithParticipants = chatIds.map((chatId) => ({
       id: chatId,
       participants: participantMap.get(chatId) ?? [],
       lastEntry: lastMessageMap.get(chatId) ?? null,

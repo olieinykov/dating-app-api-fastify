@@ -10,3 +10,13 @@ export const GetModelsByPreferencesSchema = {
 export type GetModelsByPreferencesSchemaType = {
   Querystring: Static<typeof GetModelsByPreferencesSchema.querystring>;
 };
+
+export const DislikeModelSchema = {
+  tags: ['App / Models'],
+  params: Type.Object({
+    modelId: Type.Integer(),
+  }),
+};
+export type DislikeModelSchemaType = {
+  Params: Static<typeof DislikeModelSchema.params>;
+};

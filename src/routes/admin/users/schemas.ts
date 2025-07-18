@@ -74,6 +74,16 @@ export type DeleteUserType = {
   Params: Static<typeof DeleteUserSchema.parameters>;
 };
 
+export const ActivateUserSchema = {
+  tags: ['Admin / Users'],
+  parameters: Type.Object({
+    userId: Type.Integer(),
+  }),
+};
+export type ActivateUserType = {
+  Params: Static<typeof ActivateUserSchema.parameters>;
+};
+
 export const GetUserActionsSchema = {
   tags: ['Admin / Users'],
   querystring: Type.Intersect([

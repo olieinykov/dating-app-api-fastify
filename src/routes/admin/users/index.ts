@@ -3,6 +3,7 @@ import {
   getAllUsers,
   getOneUser,
   deleteUser,
+  activateUser,
   createUser,
   updateUser,
   getUserActions,
@@ -11,6 +12,7 @@ import {
   CreateUserSchema,
   GetOneUserSchema,
   DeleteUserSchema,
+  ActivateUserSchema,
   GetAllUsersSchema,
   UpdateUsersSchema,
   GetUserActionsSchema,
@@ -20,7 +22,7 @@ import { adminAuthenticated } from '../../../middleware/adminAuthenticated.js';
 const routes = async (fastify: FastifyInstance) => {
   fastify.post('/', {
     schema: CreateUserSchema,
-    // preHandler: [adminAuthenticated],
+    preHandler: [adminAuthenticated],
     handler: createUser,
   });
   fastify.put('/:userId', {
@@ -42,6 +44,11 @@ const routes = async (fastify: FastifyInstance) => {
     schema: DeleteUserSchema,
     preHandler: [adminAuthenticated],
     handler: deleteUser,
+  });
+  fastify.patch('/:userId', {
+    schema: ActivateUserSchema,
+    preHandler: [adminAuthenticated],
+    handler: activateUser,
   });
   fastify.get('/users-actions', {
     schema: GetUserActionsSchema,

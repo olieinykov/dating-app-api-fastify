@@ -16,6 +16,7 @@ import {
   chat_entry_files,
   chat_participants,
   gifts,
+  disliked_models,
 } from '../../../db/schema/index.js';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import ablyClient from '../../../services/ably.js';
@@ -66,6 +67,15 @@ export const createChat = async (
       ];
 
       await tx.insert(chat_participants).values(participants);
+
+      await tx
+        .delete(disliked_models)
+        .where(
+          and(
+            eq(disliked_models.profileId, request.profileId as number),
+            eq(disliked_models.modelId, model.id)
+          )
+        );
 
       return chat;
     });

@@ -5,6 +5,7 @@ import { asc, desc, eq, ilike, and, sql } from 'drizzle-orm';
 import {
   CreateGiftType,
   DeleteGiftType,
+  ActivateGiftType,
   GetAllGiftsType,
   GetOneGiftType,
   UpdateGiftType,
@@ -108,6 +109,46 @@ export const deleteGift = async (request: FastifyRequest<DeleteGiftType>, reply:
         actorId: currentUserId!,
         giftId: request.params.giftId,
         actionType: 'delete',
+      });
+
+      return updatedGift;
+    });
+
+    reply.send({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    reply.status(400).send({
+      success: false,
+      error: (error as Error)?.message,
+    });
+  }
+};
+
+export const activateGift = async (
+  request: FastifyRequest<ActivateGiftType>,
+  reply: FastifyReply
+) => {
+  try {
+    const currentUserId = request.userId;
+    const result = await db.transaction(async (tx) => {
+      const [updatedGift] = await tx
+        .update(gifts)
+        .set({
+          deactivatedAt: null,
+        })
+        .where(eq(gifts.id, request.params.giftId))
+        .returning();
+
+      if (!updatedGift) {
+        throw new Error(`No gift found with id: ${request.params.giftId}`);
+      }
+
+      await tx.insert(gifts_actions).values({
+        actorId: currentUserId!,
+        giftId: request.params.giftId,
+        actionType: 'edit',
       });
 
       return updatedGift;

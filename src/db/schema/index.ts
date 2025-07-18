@@ -14,3 +14,4 @@ export * from './model_profile_assignments.js';
 export * from './model_action.js';
 export * from './gift_action.js';
 export * from './profile_action.js';
+export * from './disliked_models.js';
