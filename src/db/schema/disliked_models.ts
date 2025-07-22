@@ -1,5 +1,5 @@
 import { pgTable, serial, integer } from 'drizzle-orm/pg-core';
-import { profiles, models } from './';
+import { profiles, models } from './index.js';
 
 export const disliked_models = pgTable('disliked_models', {
   id: serial('id').primaryKey(),
