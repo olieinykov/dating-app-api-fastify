@@ -117,7 +117,7 @@ export const updateProfile = async (
           // profileId: request.params.profileId,
           dateOfBirth: payload.dateOfBirth,
           gender: payload.gender,
-          hobbies: payload.hobbies,
+          hobbies: payload.hobbies?.length ? payload.hobbies : [],
           city: payload.city,
           paramsAge: payload.paramsAge,
           paramsBustSize: payload.paramsBustSize,
