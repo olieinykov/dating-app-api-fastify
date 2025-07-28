@@ -5,6 +5,7 @@ import { tariffs } from "../../../db/schema/tariff.js";
 import { eq } from "drizzle-orm";
 import { profile_balances } from "../../../db/schema/profile_balances.js";
 import { profiles_subscriptions } from "../../../db/schema/index.js";
+import { transactions } from "../../../db/schema/transaction.js";
 
 export const getTariffs = async (
     request: FastifyRequest,
@@ -77,7 +78,7 @@ export const buyTariff = async (
         expirationAt.setDate(now.getDate() + tariffDays);
       }
 
-      const [data] = await tx.update(profiles_subscriptions)
+      const [subscriptionData] = await tx.update(profiles_subscriptions)
           .set({
             profileId: request.profileId,
             isTrial: false,
@@ -86,7 +87,17 @@ export const buyTariff = async (
           })
           .where(eq(profiles_subscriptions.profileId, request.profileId as number)).returning();
 
-      return data;
+      await tx
+          .insert(transactions)
+          .values({
+            profileId: request.profileId,
+            tariffId: tariff.id,
+            type: 'tariff',
+            status: 'completed'
+          })
+          .returning();
+
+      return subscriptionData;
     })
 
     reply.code(200).send({

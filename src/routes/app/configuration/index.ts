@@ -6,7 +6,7 @@ import { userAuthenticated } from '../../../middleware/userAuthenticated.js';
 const routes = async (fastify: FastifyInstance) => {
   fastify.get('/', {
     schema: GetConfigurationSchema,
-    preHandler: [userAuthenticated],
+    preHandler: [userAuthenticated()],
     handler: getConfiguration,
   });
 };

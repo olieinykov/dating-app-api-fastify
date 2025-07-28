@@ -5,7 +5,6 @@ import { userAuthenticated } from '../../../middleware/userAuthenticated.js';
 
 const authRoutes = async (fastify: FastifyInstance) => {
   fastify.post('/login', {
-    // schema: LoginSchema,
     handler: createOrLogin,
   });
 
@@ -14,7 +13,7 @@ const authRoutes = async (fastify: FastifyInstance) => {
     handler: activateProfile,
   });
   fastify.post('/logout', {
-    preHandler: [userAuthenticated],
+    preHandler: [userAuthenticated(true)],
     handler: logout,
   });
 };
