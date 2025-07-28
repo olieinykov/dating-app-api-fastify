@@ -42,7 +42,7 @@ export const buyTariff = async (
 
 
       const tariffPrice = tariff.price;
-      const tariffDays = tariff.daysPeriod;
+      const tariffDays = tariff.daysPeriod ?? 0;
       // console.log("buyTariff", tariffId);
       console.log("price", tariffPrice);
 
@@ -64,7 +64,7 @@ export const buyTariff = async (
           .set({ balance: profileBalance.balance - tariffPrice })
           .where(eq(profile_balances.profileId, request.profileId as number));
 
-      const [currentSubscription] = await db.select().from(profiles_subscriptions).where(eq(profiles_subscriptions.profileId, request.profileId));
+      const [currentSubscription] = await db.select().from(profiles_subscriptions).where(eq(profiles_subscriptions.profileId, request.profileId as number));
 
       const currentExpirationAt = currentSubscription.expirationAt;
       const now = new Date();
@@ -84,7 +84,7 @@ export const buyTariff = async (
             prolongedAt: new Date(),
             expirationAt,
           })
-          .where(eq(profiles_subscriptions.profileId, request.profileId)).returning();
+          .where(eq(profiles_subscriptions.profileId, request.profileId as number)).returning();
 
       return data;
     })
