@@ -1,10 +1,10 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { BuyTariffSchemaType } from './schemas.js';
-import { db } from "../../../db";
-import { tariffs } from "../../../db/schema/tariff";
+import { db } from "../../../db/index.js";
+import { tariffs } from "../../../db/schema/tariff.js";
 import { eq } from "drizzle-orm";
-import { profile_balances } from "../../../db/schema/profile_balances";
-import { profiles_subscriptions } from "../../../db/schema";
+import { profile_balances } from "../../../db/schema/profile_balances.js";
+import { profiles_subscriptions } from "../../../db/schema/index.js";
 
 export const getTariffs = async (
     request: FastifyRequest,
