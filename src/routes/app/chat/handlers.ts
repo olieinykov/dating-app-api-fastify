@@ -21,8 +21,6 @@ import {
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import ablyClient from '../../../services/ably.js';
 import { chat_entries_unread } from '../../../db/schema/chat_entries_unread.js';
-import { profiles_tariff } from '../../../db/schema/profile_tariff.js';
-import { checkEntriesDailyLimit } from '../../../utils/tariffs/tariffs.js';
 
 export const createChat = async (
   request: FastifyRequest<CreateChatSchemaBodyType>,
@@ -288,10 +286,10 @@ export const createChatEntry = async (
     const { localEntryId, participantsIds, attachmentIds, ...payload } = request.body;
 
     const data = await db.transaction(async (tx) => {
-      const { allowSending, entriesSent } = await checkEntriesDailyLimit(tx, request.profileId!);
-      if (!allowSending) {
-        throw new Error('Daily limit of entries reached');
-      }
+      // const { allowSending, entriesSent } = await checkEntriesDailyLimit(tx, request.profileId!);
+      // if (!allowSending) {
+      //   throw new Error('Daily limit of entries reached');
+      // }
 
       const [entry] = await tx
         .insert(chat_entries)
@@ -333,15 +331,6 @@ export const createChatEntry = async (
           }))
         )
         .onConflictDoNothing();
-
-      await tx
-        .update(profiles_tariff)
-        .set({
-          entriesSentToday: entriesSent + 1,
-          lastResetDate: new Date(),
-        })
-        .where(eq(profiles_tariff.profileId, request.profileId!))
-        .returning();
 
       const [entryWithSender] = await tx
         .select({

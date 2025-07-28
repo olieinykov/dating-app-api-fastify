@@ -1,6 +1,5 @@
-import { pgTable, serial, varchar, text, timestamp, uuid, integer } from 'drizzle-orm/pg-core';
-import { profilesTelegram } from './profile_telegram.js';
-import { pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, timestamp, uuid, integer, pgEnum } from 'drizzle-orm/pg-core';
+import { profilesTelegram } from './profile_telegram';
 
 export const userRoleEnum = pgEnum('role', ['admin', 'chatter', 'user']);
 export const profiles = pgTable('profiles', {

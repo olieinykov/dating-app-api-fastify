@@ -1,7 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { supabase } from '../services/supabase.js';
 import { db } from '../db/index.js';
-import { profiles } from '../db/schema/index.js';
+import { profiles, profiles_subscriptions } from '../db/schema/index.js';
 import { eq } from 'drizzle-orm';
 
 export const userAuthenticated = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -34,6 +34,18 @@ export const userAuthenticated = async (request: FastifyRequest, reply: FastifyR
 
   if (profile?.deactivatedAt) {
     return reply.status(403).send({ success: false, message: 'User deactivated' });
+  }
+
+  const subscription = await db.query.profiles_subscriptions.findFirst({
+    where: eq(profiles_subscriptions.profileId, profile.id),
+  });
+
+  const now = new Date();
+  const isExpired = !subscription?.expirationAt || subscription.expirationAt < now;
+
+
+  if (!subscription || isExpired) {
+    return reply.status(403).send({ success: false, message: 'Subscription expired' });
   }
 
   request.profileId = profile.id;
