@@ -11,6 +11,7 @@ import { and, eq } from 'drizzle-orm';
 import { profile_gift_transactions } from '../../../db/schema/profile_gift_transactions.js';
 import { profile_balances } from '../../../db/schema/profile_balances.js';
 import ablyClient from '../../../services/ably.js';
+import {transactions} from "../../../db/schema/transaction.js";
 
 export const getGifts = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
@@ -134,7 +135,7 @@ export const sendGiftToModel = async (
       const balance = balanceRow?.balance ?? 0;
       const giftPrice = gift.price ?? 0;
 
-      if (balance <= giftPrice) {
+      if (balance < giftPrice) {
         throw new Error('Insufficient balance');
       }
 
@@ -149,6 +150,17 @@ export const sendGiftToModel = async (
         giftId,
         price: giftPrice,
       });
+
+      await tx
+          .insert(transactions)
+          .values({
+            profileId,
+            giftId,
+            modelId,
+            status: 'completed',
+            type: 'gift'
+          })
+          .returning();
 
       const [newEntry] = await tx
         .insert(chat_entries)

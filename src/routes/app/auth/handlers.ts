@@ -6,6 +6,7 @@ import { ActivateProfileSchemaType, LoginSchemaType } from './schemas.js';
 import { supabase, supabaseAdmin } from '../../../services/supabase.js';
 import { updateProfilePhotos } from '../../../utils/files/files.js';
 import { profile_balances } from '../../../db/schema/profile_balances.js';
+import { transactions } from '../../../db/schema/transaction.js';
 import env from '../../../config/env.js';
 import { isValid, parse } from '@telegram-apps/init-data-node';
 import { profiles_tariff } from '../../../db/schema/profile_tariff.js';
@@ -160,12 +161,24 @@ export const createOrLogin = async (
           })
           .returning();
 
+        const tariffId = 1;
+
         await tx.insert(profiles_tariff).values({
+          tariffId,
           profileId: profileData.id,
-          tariffId: 1,
           isActive: true,
           entriesSentToday: 0,
         });
+
+        await tx
+            .insert(transactions)
+            .values({
+              tariffId,
+              profileId: profileData.id,
+              status: 'completed',
+              type: 'tariff'
+            })
+            .returning();
 
         return profileData;
       });
@@ -216,7 +229,7 @@ export const activateProfile = async (
         profilePhotos = await updateProfilePhotos(tx, existingProfile.id, photos);
       }
 
-      const [profileData] = await db
+      const [profileData] = await tx
         .update(profiles)
         .set({
           name: payload.name,
@@ -226,14 +239,14 @@ export const activateProfile = async (
         .where(eq(profiles.id, existingProfile.id))
         .returning();
 
-      const [profileDetails] = await db
+      const [profileDetails] = await tx
         .update(profilesPreferences)
         .set({
           about: payload.about,
           // profileId: request.params.profileId,
           dateOfBirth: payload.dateOfBirth,
           gender: payload.gender,
-          hobbies: payload.hobbies,
+          hobbies: payload.hobbies?.length ? payload.hobbies : [],
           city: payload.city,
           paramsAge: payload.paramsAge,
           paramsBustSize: payload.paramsBustSize,
