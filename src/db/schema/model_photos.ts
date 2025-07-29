@@ -1,5 +1,4 @@
-import { pgTable, serial, boolean } from 'drizzle-orm/pg-core';
-import { uuid } from 'drizzle-orm/pg-core';
+import { pgTable, serial, boolean, uuid } from 'drizzle-orm/pg-core';
 import { files } from './file.js';
 import { models } from './model.js';
 

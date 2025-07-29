@@ -1,12 +1,16 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../../../db/index.js';
 import { UpdateProfileSchemaType } from './schemas.js';
-import { files, profiles, profiles_photos, profilesPreferences } from '../../../db/schema/index.js';
-import { eq, and } from 'drizzle-orm';
+import {
+  files,
+  profiles,
+  profiles_photos,
+  profiles_subscriptions,
+  profilesPreferences
+} from '../../../db/schema/index.js';
+import { eq } from 'drizzle-orm';
 import { updateProfilePhotos } from '../../../utils/files/files.js';
 import { profile_balances } from '../../../db/schema/profile_balances.js';
-import { profiles_tariff } from '../../../db/schema/profile_tariff.js';
-import { tariffs } from '../../../db/schema/tariff.js';
 
 export const getProfile = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
@@ -44,23 +48,22 @@ export const getProfile = async (request: FastifyRequest, reply: FastifyReply) =
       .where(eq(profile_balances.profileId, profileData.id as number))
       .limit(1);
 
-    const [activeTariff] = await db
-      .select({
-        tariff: tariffs,
-        entriesSentToday: profiles_tariff.entriesSentToday,
-      })
-      .from(profiles_tariff)
+    const [profileSubscription] = await db
+      .select()
+      .from(profiles_subscriptions)
       .where(
-        and(eq(profiles_tariff.profileId, profileData.id!), eq(profiles_tariff.isActive, true))
+          eq(profiles_subscriptions.profileId, profileData.id!)
       )
-      .leftJoin(tariffs, eq(tariffs.id, profiles_tariff.tariffId))
       .limit(1);
+
+    const now = new Date();
+    const isExpired = !profileSubscription.expirationAt || profileSubscription.expirationAt < now;
 
     reply.code(200).send({
       ...profileData,
-      tariff: {
-        ...activeTariff?.tariff,
-        entriesSentToday: activeTariff?.entriesSentToday ?? 0,
+      subscription: {
+        expirationAt: profileSubscription.expirationAt,
+        isExpired,
       },
       profile: {
         ...profileDetails,
@@ -69,7 +72,6 @@ export const getProfile = async (request: FastifyRequest, reply: FastifyReply) =
       },
     });
   } catch (error) {
-    console.log('error', error);
     reply.code(404).send({
       success: false,
       message: 'User not found',

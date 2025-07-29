@@ -8,17 +8,17 @@ import { GetOneModelSchema } from '../../admin/models/schemas.js';
 const routes = async (fastify: FastifyInstance) => {
   fastify.get('/', {
     schema: GetModelsByPreferencesSchema,
-    preHandler: [userAuthenticated],
+    preHandler: [userAuthenticated(true)],
     handler: getModelsByPreferences,
   });
   fastify.get('/:modelId', {
     schema: GetOneModelSchema,
-    preHandler: [userAuthenticated],
+    preHandler: [userAuthenticated(true)],
     handler: getOneModel,
   });
   fastify.post('/:modelId/dislike', {
     schema: DislikeModelSchema,
-    preHandler: [userAuthenticated],
+    preHandler: [userAuthenticated()],
     handler: dislikeModel,
   });
 };

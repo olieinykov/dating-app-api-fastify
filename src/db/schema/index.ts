@@ -15,3 +15,4 @@ export * from './model_action.js';
 export * from './gift_action.js';
 export * from './profile_action.js';
 export * from './disliked_models.js';
+export * from './profile_subscriptions.js';

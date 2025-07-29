@@ -1,5 +1,4 @@
-import { pgTable, serial, integer } from 'drizzle-orm/pg-core';
-import { uuid, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, serial, integer, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { profiles } from './profile.js';
 import { actionTypeEnum } from './enum.js';
 

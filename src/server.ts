@@ -13,6 +13,7 @@ import appFilesRoutes from './routes/app/files/index.js';
 import appConfigRoutes from './routes/app/configuration/index.js';
 import appGiftsRoutes from './routes/app/gifts/index.js';
 import appBalanceRoutes from './routes/app/balance/index.js';
+import appTariffRoutes from './routes/app/tariff/index.js';
 
 import adminUsersRoutes from './routes/admin/users/index.js';
 import adminModelsRoutes from './routes/admin/models/index.js';
@@ -43,6 +44,7 @@ async function initialize() {
   await fastify.register(appConfigRoutes, { prefix: '/api/app/configuration' });
   await fastify.register(appGiftsRoutes, { prefix: '/api/app/gifts' });
   await fastify.register(appBalanceRoutes, { prefix: '/api/app/balance' });
+  await fastify.register(appTariffRoutes, { prefix: '/api/app/tariffs' });
 
   await fastify.register(adminAuthRoutes, { prefix: '/api/admin/auth' });
   await fastify.register(adminUsersRoutes, { prefix: '/api/admin/users' });

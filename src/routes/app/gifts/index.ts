@@ -16,22 +16,22 @@ import { userAuthenticated } from '../../../middleware/userAuthenticated.js';
 const routes = async (fastify: FastifyInstance) => {
   fastify.get('/', {
     schema: GetGiftsSchema,
-    preHandler: [userAuthenticated],
+    preHandler: [userAuthenticated(true)],
     handler: getGifts,
   });
   fastify.get('/models/:modelId/favorite-gifts', {
     schema: GetModelFavoritesSchema,
-    preHandler: [userAuthenticated],
+    preHandler: [userAuthenticated(true)],
     handler: getModelFavoriteGifts,
   });
   fastify.get('/models/:modelId/from-me', {
     schema: GetGiftsSentFromMeSchema,
-    preHandler: [userAuthenticated],
+    preHandler: [userAuthenticated(true)],
     handler: getGiftsSentFromMe,
   });
   fastify.post('/give', {
     schema: SendGiftsToModelSchema,
-    preHandler: [userAuthenticated],
+    preHandler: [userAuthenticated()],
     handler: sendGiftToModel,
   });
 };

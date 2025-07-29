@@ -1,27 +1,18 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../../../db/index.js';
 import { eq } from 'drizzle-orm';
-import { profiles, profilesPreferences, profilesTelegram } from '../../../db/schema/index.js';
+import { profiles, profilesPreferences, profilesTelegram, profiles_subscriptions } from '../../../db/schema/index.js';
 import { ActivateProfileSchemaType, LoginSchemaType } from './schemas.js';
 import { supabase, supabaseAdmin } from '../../../services/supabase.js';
 import { updateProfilePhotos } from '../../../utils/files/files.js';
 import { profile_balances } from '../../../db/schema/profile_balances.js';
-import { transactions } from '../../../db/schema/transaction.js';
 import env from '../../../config/env.js';
 import { isValid, parse } from '@telegram-apps/init-data-node';
-import { profiles_tariff } from '../../../db/schema/profile_tariff.js';
 
 export const createOrLogin = async (
   request: FastifyRequest<LoginSchemaType>,
   reply: FastifyReply
 ) => {
-  // const clientCookiesConfig: CookieSerializeOptions = {
-  //   path: '/api/app',
-  //   httpOnly: true,
-  //   secure: true,
-  //   sameSite: 'none',
-  // };
-
   try {
     let telegram = null;
     let isInitDataValid = false;
@@ -64,37 +55,6 @@ export const createOrLogin = async (
           error: 'USER_ACTIVATED_LOGIN_FAILED',
         });
       }
-
-      // return reply.code(200).send({
-      //   success: true,
-      //   data: {
-      //     accessToken: authData.session.access_token,
-      //     refreshToken: authData.session.refresh_token,
-      //     expiresIn: env.appConfig.adminTokenExpirationTime,
-      //   }
-      // });
-
-      // reply
-      //     .clearCookie('userAccessToken', clientCookiesConfig)
-      //     .clearCookie('userRefreshToken', clientCookiesConfig)
-      //     .clearCookie('adminAccessToken', clientCookiesConfig) //remove
-      //     .clearCookie('adminRefreshToken', clientCookiesConfig) //remove
-      //     .setCookie('userAccessToken', sessionData.session.access_token, {
-      //       ...clientCookiesConfig,
-      //       maxAge: env.appConfig.userTokenExpirationTime,
-      //     })
-      //     .setCookie('userRefreshToken', sessionData.session.refresh_token, {
-      //       ...clientCookiesConfig,
-      //       maxAge: env.appConfig.userRefreshTokenExpirationTime,
-      //     });
-      //
-      // return reply.code(200).send({
-      //   success: true,
-      //   data: {
-      //     authStatus: "USER_AUTHENTICATED",
-      //     user: profile,
-      //   }
-      // });
 
       return reply.code(200).send({
         success: true,
@@ -160,25 +120,6 @@ export const createOrLogin = async (
             balance: 0,
           })
           .returning();
-
-        const tariffId = 1;
-
-        await tx.insert(profiles_tariff).values({
-          tariffId,
-          profileId: profileData.id,
-          isActive: true,
-          entriesSentToday: 0,
-        });
-
-        await tx
-            .insert(transactions)
-            .values({
-              tariffId,
-              profileId: profileData.id,
-              status: 'completed',
-              type: 'tariff'
-            })
-            .returning();
 
         return profileData;
       });
@@ -256,8 +197,22 @@ export const activateProfile = async (
         .where(eq(profilesPreferences.profileId, existingProfile.id))
         .returning();
 
+      const expirationDate = new Date();
+      const tariffTime = 5 * 60 * 1000;
+      expirationDate.setTime(expirationDate.getTime() + (tariffTime));
+
+      const [trialSubscription] = await tx.insert(profiles_subscriptions).values({
+        profileId: profileData.id,
+        isTrial: true,
+        expirationAt: expirationDate,
+      }).returning();
+
       return {
         ...profileData,
+        subscription: {
+          expirationAt: trialSubscription.expirationAt,
+          isExpired: false,
+        },
         profile: {
           ...profileDetails,
           photos: profilePhotos,

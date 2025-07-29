@@ -1,19 +1,18 @@
 import { FastifyInstance } from 'fastify';
-import { getProfile, updateProfile } from './handlers.js';
-import { GetProfileSchema, UpdateProfileSchema } from './schemas.js';
+import { buyTariff, getTariffs } from './handlers.js';
+import { BuyTariffSchema, GetTariffSchema } from './schemas.js';
 import { userAuthenticated } from '../../../middleware/userAuthenticated.js';
 
 const routes = async (fastify: FastifyInstance) => {
   fastify.get('/', {
-    schema: GetProfileSchema,
+    schema: GetTariffSchema,
     preHandler: [userAuthenticated(true)],
-    handler: getProfile,
+    handler: getTariffs,
   });
-
-  fastify.put('/', {
-    schema: UpdateProfileSchema,
+  fastify.post('/buy', {
+    schema: BuyTariffSchema,
     preHandler: [userAuthenticated(true)],
-    handler: updateProfile,
+    handler: buyTariff,
   });
 };
 
