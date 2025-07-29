@@ -117,6 +117,7 @@ export const getModelsChats = async (
         avatar?: string;
         lastActiveTime?: Date | null;
         deactivatedAt?: Date | null;
+        telegramId: number;
       }>
     >();
     for (const p of participants) {
