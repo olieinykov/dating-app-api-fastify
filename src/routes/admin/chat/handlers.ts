@@ -27,7 +27,7 @@ import { GetAllModelsType, CreateChatEntrySchemaType, GetChatModelsSchemaType } 
 import ablyClient from '../../../services/ably.js';
 import { chat_entries_unread } from '../../../db/schema/chat_entries_unread.js';
 import axios from "axios";
-import env from "../../../config/env";
+import env from "../../../config/env.js";
 
 export const getModelsChats = async (
   request: FastifyRequest<GetAllModelsType>,
