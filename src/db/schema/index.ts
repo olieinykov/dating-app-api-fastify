@@ -16,3 +16,5 @@ export * from './gift_action.js';
 export * from './profile_action.js';
 export * from './disliked_models.js';
 export * from './profile_subscriptions.js';
+export * from './transaction.js';
+export * from './chat_entries_unread.js';

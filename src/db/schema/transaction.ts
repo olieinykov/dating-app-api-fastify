@@ -1,19 +1,15 @@
 ﻿import { integer, pgTable, serial, timestamp, pgEnum } from 'drizzle-orm/pg-core';
 import { profiles } from './profile.js';
-import { gifts } from "./gift.js";
-import { models } from "./model.js";
-import { tariffs } from "./tariff.js";
+import { gifts } from './gift.js';
+import { models } from './model.js';
+import { tariffs } from './tariff.js';
 
-export const transactionOperationEnum = pgEnum('operation', [
-  'gift',
-  'balance',
-  'tariff',
-]);
+export const transactionOperationEnum = pgEnum('operation', ['gift', 'balance', 'tariff']);
 export const transactionStatusEnum = pgEnum('status', [
   'pending',
   'completed',
   'failed',
-  'pre-checkout'
+  'pre-checkout',
 ]);
 
 export const transactions = pgTable('transactions', {

@@ -6,7 +6,7 @@ import {
   profiles,
   profiles_photos,
   profiles_subscriptions,
-  profilesPreferences
+  profilesPreferences,
 } from '../../../db/schema/index.js';
 import { eq } from 'drizzle-orm';
 import { updateProfilePhotos } from '../../../utils/files/files.js';
@@ -51,9 +51,7 @@ export const getProfile = async (request: FastifyRequest, reply: FastifyReply) =
     const [profileSubscription] = await db
       .select()
       .from(profiles_subscriptions)
-      .where(
-          eq(profiles_subscriptions.profileId, profileData.id!)
-      )
+      .where(eq(profiles_subscriptions.profileId, profileData.id!))
       .limit(1);
 
     const now = new Date();

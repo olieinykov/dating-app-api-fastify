@@ -1,6 +1,11 @@
 import { FastifyInstance } from 'fastify';
-import { getModelsChats, createChatEntry, getChatsModels } from './handlers.js';
-import { GetModelsChatsSchema, CreateChatEntrySchema, GetChatModelsSchema } from './schemas.js';
+import { getModelsChats, createChatEntry, getChatsModels, getGiftsInChat } from './handlers.js';
+import {
+  GetModelsChatsSchema,
+  CreateChatEntrySchema,
+  GetChatModelsSchema,
+  GetGiftsInChatSchema,
+} from './schemas.js';
 import { adminAuthenticated } from '../../../middleware/adminAuthenticated.js';
 import { getChatEntries, readChatEntries } from '../../app/chat/handlers.js';
 import { GetChatEntriesSchema, ReadChatEntriesSchema } from '../../app/chat/schemas.js';
@@ -34,6 +39,12 @@ const routes = async (fastify: FastifyInstance) => {
     handler: readChatEntries,
     preHandler: [adminAuthenticated],
     schema: ReadChatEntriesSchema,
+  });
+
+  fastify.get('/gifts/:modelId/:profileId', {
+    handler: getGiftsInChat,
+    preHandler: [adminAuthenticated],
+    schema: GetGiftsInChatSchema,
   });
 };
 

@@ -8,6 +8,8 @@ import {
   chat_entry_files,
   files,
   model_profile_assignments,
+  transactions,
+  gifts,
 } from '../../../db/schema/index.js';
 import {
   and,
@@ -23,11 +25,16 @@ import {
   SQL,
   SQLWrapper,
 } from 'drizzle-orm';
-import { GetAllModelsType, CreateChatEntrySchemaType, GetChatModelsSchemaType } from './schemas.js';
+import {
+  GetAllModelsType,
+  CreateChatEntrySchemaType,
+  GetChatModelsSchemaType,
+  GetGiftsInChatSchemaType,
+} from './schemas.js';
 import ablyClient from '../../../services/ably.js';
 import { chat_entries_unread } from '../../../db/schema/chat_entries_unread.js';
-import axios from "axios";
-import env from "../../../config/env.js";
+import axios from 'axios';
+import env from '../../../config/env.js';
 
 export const getModelsChats = async (
   request: FastifyRequest<GetAllModelsType>,
@@ -96,6 +103,7 @@ export const getModelsChats = async (
         id: chat_entries.id,
         chatId: chat_entries.chatId,
         body: chat_entries.body,
+        type: chat_entries.type,
         createdAt: chat_entries.createdAt,
         senderId: chat_entries.senderId,
       })
@@ -112,7 +120,8 @@ export const getModelsChats = async (
     const participantMap = new Map<
       number,
       Array<{
-        id: string;
+        id: number;
+        userId: string;
         name?: string;
         avatar?: string;
         lastActiveTime?: Date | null;
@@ -124,7 +133,8 @@ export const getModelsChats = async (
       const list = participantMap.get(p.chatId) ?? [];
       if (p.userId !== userId) {
         list.push({
-          id: p.userId,
+          id: p.profile?.id!,
+          userId: p.userId,
           name: p.profile?.name!,
           avatar: p.profile?.avatar!,
           telegramId: p.profile?.telegramId!,
@@ -158,6 +168,7 @@ export const getModelsChats = async (
       lastMessageMap.set(message.chatId, {
         id: message.id,
         body: message.body,
+        type: message.type,
         senderId: message.senderId,
         createdAt: message.createdAt,
         includeFile: filesByEntryId.has(message.id),
@@ -290,28 +301,30 @@ export const createChatEntry = async (
       await adminChannel.publish('entry-created', eventData);
       let notificationText = request?.body?.body;
 
-        if (!notificationText?.length && request?.body?.attachmentIds?.length) {
-            notificationText = "Файл добавлено"
+      if (!notificationText?.length && request?.body?.attachmentIds?.length) {
+        notificationText = 'Файл добавлено';
+      }
+
+      const response = await axios.post(
+        `https://api.telegram.org/bot${env.telegram.botToken}/sendMessage`,
+        {
+          chat_id: request.body.telegramId,
+          text: notificationText,
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: 'Open Chat',
+                  web_app: { url: 'https://dating-mini-app.vercel.app' },
+                },
+              ],
+            ],
+          },
         }
+      );
 
-        const response = await axios.post(
-            `https://api.telegram.org/bot${env.telegram.botToken}/sendMessage`,
-            {
-                chat_id: request.body.telegramId,
-                text: notificationText,
-                parse_mode: 'HTML',
-                reply_markup: {
-                    inline_keyboard: [[
-                        {
-                            text: 'Open Chat',
-                            web_app: { url: 'https://dating-mini-app.vercel.app' }
-                        }
-                    ]]
-                }
-            }
-        );
-
-        console.log("response ==>", response);
+      console.log('response ==>', response);
     }
 
     reply.code(200).send({
@@ -577,6 +590,85 @@ export const getChatsModels = async (
       success: false,
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+export const getGiftsInChat = async (
+  request: FastifyRequest<GetGiftsInChatSchemaType>,
+  reply: FastifyReply
+) => {
+  try {
+    const modelId = request.params.modelId;
+    const profileId = request.params.profileId;
+
+    if (!modelId || !profileId) {
+      return reply.status(400).send({
+        success: false,
+        error: 'Model ID and Profile ID are required',
+      });
+    }
+
+    const { page = 1, pageSize = 10 } = request.query;
+    const currentPage = Math.max(1, Number(page));
+    const limit = Math.min(100, Math.max(1, Number(pageSize)));
+    const offset = (currentPage - 1) * limit;
+
+    const whereCondition = and(
+      eq(transactions.modelId, modelId),
+      eq(transactions.profileId, profileId),
+      eq(transactions.type, 'gift'),
+      eq(transactions.status, 'completed')
+    );
+
+    const totalResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(transactions)
+      .where(whereCondition);
+    const total = totalResult[0]?.count ?? 0;
+
+    const data = await db
+      .select({
+        id: transactions.id,
+        giftId: gifts.id,
+        title: gifts.title,
+        image: gifts.image,
+        createdAt: transactions.createdAt,
+      })
+      .from(transactions)
+      .innerJoin(gifts, eq(transactions.giftId, gifts.id))
+      .where(whereCondition)
+      .orderBy(desc(transactions.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    if (data.length === 0) {
+      return reply.send({
+        success: true,
+        data: [],
+        pagination: {
+          page: currentPage,
+          pageSize: limit,
+          total: 0,
+          totalPages: 0,
+        },
+      });
+    }
+
+    reply.send({
+      success: true,
+      data,
+      pagination: {
+        page: currentPage,
+        pageSize: limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    reply.status(400).send({
+      success: false,
+      error: (error as Error)?.message,
     });
   }
 };
