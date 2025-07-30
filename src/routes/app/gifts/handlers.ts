@@ -144,12 +144,12 @@ export const sendGiftToModel = async (
         .set({ balance: balance - giftPrice })
         .where(eq(profile_balances.profileId, profileId as number));
 
-      await tx.insert(profile_gift_transactions).values({
-        profileId,
-        modelId,
-        giftId,
-        price: giftPrice,
-      });
+      // await tx.insert(profile_gift_transactions).values({
+      //   profileId,
+      //   modelId,
+      //   giftId,
+      //   price: giftPrice,
+      // });
 
       await tx
         .insert(transactions)

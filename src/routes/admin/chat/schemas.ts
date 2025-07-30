@@ -41,3 +41,17 @@ export const GetChatModelsSchema = {
 export type GetChatModelsSchemaType = {
   Querystring: Static<typeof GetChatModelsSchema.querystring>;
 };
+
+export const GetGiftsInChatSchema = {
+  tags: ['Admin / Chat'],
+  querystring: PaginationSchema,
+  parameters: Type.Object({
+    modelId: Type.Integer(),
+    profileId: Type.Integer(),
+  }),
+};
+
+export type GetGiftsInChatSchemaType = {
+  Querystring: Static<typeof GetGiftsInChatSchema.querystring>;
+  Params: Static<typeof GetGiftsInChatSchema.parameters>;
+};
