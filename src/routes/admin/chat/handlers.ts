@@ -8,6 +8,8 @@ import {
   chat_entry_files,
   files,
   model_profile_assignments,
+  transactions,
+  gifts,
 } from '../../../db/schema/index.js';
 import {
   and,
