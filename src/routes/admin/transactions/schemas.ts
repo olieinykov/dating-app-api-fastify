@@ -1,5 +1,5 @@
-import { PaginationSchema } from "../../../shared/schemas.js";
-import {Static} from "@sinclair/typebox";
+import { PaginationSchema } from '../../../shared/schemas.js';
+import { Static } from '@sinclair/typebox';
 
 export const GetTransactionSchema = {
   tags: ['Admin / Transactions'],

@@ -26,8 +26,8 @@ import {
 import { GetAllModelsType, CreateChatEntrySchemaType, GetChatModelsSchemaType } from './schemas.js';
 import ablyClient from '../../../services/ably.js';
 import { chat_entries_unread } from '../../../db/schema/chat_entries_unread.js';
-import axios from "axios";
-import env from "../../../config/env.js";
+import axios from 'axios';
+import env from '../../../config/env.js';
 
 export const getModelsChats = async (
   request: FastifyRequest<GetAllModelsType>,
@@ -290,28 +290,30 @@ export const createChatEntry = async (
       await adminChannel.publish('entry-created', eventData);
       let notificationText = request?.body?.body;
 
-        if (!notificationText?.length && request?.body?.attachmentIds?.length) {
-            notificationText = "Файл добавлено"
+      if (!notificationText?.length && request?.body?.attachmentIds?.length) {
+        notificationText = 'Файл добавлено';
+      }
+
+      const response = await axios.post(
+        `https://api.telegram.org/bot${env.telegram.botToken}/sendMessage`,
+        {
+          chat_id: request.body.telegramId,
+          text: notificationText,
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: 'Open Chat',
+                  web_app: { url: 'https://dating-mini-app.vercel.app' },
+                },
+              ],
+            ],
+          },
         }
+      );
 
-        const response = await axios.post(
-            `https://api.telegram.org/bot${env.telegram.botToken}/sendMessage`,
-            {
-                chat_id: request.body.telegramId,
-                text: notificationText,
-                parse_mode: 'HTML',
-                reply_markup: {
-                    inline_keyboard: [[
-                        {
-                            text: 'Open Chat',
-                            web_app: { url: 'https://dating-mini-app.vercel.app' }
-                        }
-                    ]]
-                }
-            }
-        );
-
-        console.log("response ==>", response);
+      console.log('response ==>', response);
     }
 
     reply.code(200).send({

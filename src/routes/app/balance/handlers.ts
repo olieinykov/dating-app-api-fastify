@@ -21,7 +21,7 @@ export const buyTokens = async (
         profileId: request.profileId,
         tokensAmount: amount,
         status: 'pending',
-        type: 'balance'
+        type: 'balance',
       })
       .returning();
 

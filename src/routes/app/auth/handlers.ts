@@ -1,7 +1,12 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../../../db/index.js';
 import { eq } from 'drizzle-orm';
-import { profiles, profilesPreferences, profilesTelegram, profiles_subscriptions } from '../../../db/schema/index.js';
+import {
+  profiles,
+  profilesPreferences,
+  profilesTelegram,
+  profiles_subscriptions,
+} from '../../../db/schema/index.js';
 import { ActivateProfileSchemaType, LoginSchemaType } from './schemas.js';
 import { supabase, supabaseAdmin } from '../../../services/supabase.js';
 import { updateProfilePhotos } from '../../../utils/files/files.js';
@@ -199,13 +204,16 @@ export const activateProfile = async (
 
       const expirationDate = new Date();
       const tariffTime = 5 * 60 * 1000;
-      expirationDate.setTime(expirationDate.getTime() + (tariffTime));
+      expirationDate.setTime(expirationDate.getTime() + tariffTime);
 
-      const [trialSubscription] = await tx.insert(profiles_subscriptions).values({
-        profileId: profileData.id,
-        isTrial: true,
-        expirationAt: expirationDate,
-      }).returning();
+      const [trialSubscription] = await tx
+        .insert(profiles_subscriptions)
+        .values({
+          profileId: profileData.id,
+          isTrial: true,
+          expirationAt: expirationDate,
+        })
+        .returning();
 
       return {
         ...profileData,

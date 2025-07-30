@@ -4,9 +4,8 @@ import { db } from '../db/index.js';
 import { profiles, profiles_subscriptions } from '../db/schema/index.js';
 import { eq } from 'drizzle-orm';
 
-
 export function userAuthenticated(allowWithoutSubscription = false) {
-  return  async (request: FastifyRequest, reply: FastifyReply) => {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
     const authHeader = request.headers.authorization;
 
     if (!authHeader) {
@@ -45,7 +44,6 @@ export function userAuthenticated(allowWithoutSubscription = false) {
 
       const now = new Date();
       const isExpired = !subscription?.expirationAt || subscription.expirationAt < now;
-
 
       if (!subscription || isExpired) {
         return reply.status(403).send({ success: false, message: 'Subscription expired' });

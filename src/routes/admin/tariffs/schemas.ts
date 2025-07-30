@@ -1,4 +1,4 @@
-import {Integer, Object, Static, Type} from "@sinclair/typebox";
+import { Integer, Object, Static, Type } from '@sinclair/typebox';
 
 export const GetTariffsSchema = {
   tags: ['Admin / Tariffs'],
@@ -31,4 +31,3 @@ export type UpdateTariffsSchemaType = {
   Body: Static<typeof CreateTariffsSchema.body>;
   Params: Static<typeof UpdateTariffsSchema.parameters>;
 };
-
