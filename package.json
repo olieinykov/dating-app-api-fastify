@@ -10,7 +10,8 @@
     "start": "node ./dist/server.js",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "format": "prettier --write ."
   },
   "author": "",
   "license": "ISC",
