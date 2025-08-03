@@ -43,6 +43,7 @@ export const createOrLogin = async (
     });
 
     if (profile && !profile.activatedAt) {
+      console.log("[DEBUG AUTH]: REGISTERED NOT ACTIVATED:", profile);
       return reply.code(200).send({
         success: true,
         data: {
@@ -53,17 +54,21 @@ export const createOrLogin = async (
     }
 
     if (profile && profile.activatedAt) {
+      console.log("[DEBUG AUTH]: ACTIVATED:", profile);
       const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({
         email: `${telegram.id}.mock@amorium.com`,
         password: 'TEST_MOCK_PASSWORD',
       });
 
       if (signInError || !sessionData?.session) {
+        console.log("[DEBUG AUTH]: SIGN IN ERROR:", signInError);
         return reply.status(401).send({
           success: false,
           error: 'USER_ACTIVATED_LOGIN_FAILED',
         });
       }
+
+      console.log("[DEBUG AUTH]: CREATED SESSION:", sessionData.session.access_token);
 
       return reply.code(200).send({
         success: true,
@@ -147,6 +152,8 @@ export const createOrLogin = async (
       throw error;
     }
   } catch (error) {
+
+    console.log("[DEBUG AUTH]: ERROR:", error);
     return reply.code(200).send({
       success: false,
       error: 'Internal server error',
