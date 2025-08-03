@@ -23,6 +23,7 @@ export const createOrLogin = async (
     let isInitDataValid = false;
 
     if (request.body.bypassData) {
+      console.log("[DEBUG AUTH]: BYPASS DATA:", request.body.bypassData);
       telegram = request.body.bypassData;
       isInitDataValid = true;
     } else {
@@ -94,6 +95,7 @@ export const createOrLogin = async (
     );
 
     if (createUserError) {
+      console.log("[DEBUG AUTH]: CREATED USER ERROR:", createUserError);
       throw createUserError;
     }
 
@@ -146,6 +148,7 @@ export const createOrLogin = async (
         },
       });
     } catch (error) {
+      console.log("[DEBUG AUTH]: TRANSACTION ERROR:", error);
       if (createdUser?.user?.id) {
         await supabaseAdmin.auth.admin.deleteUser(createdUser.user.id);
       }
