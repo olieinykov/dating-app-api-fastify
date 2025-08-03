@@ -315,7 +315,7 @@ export const createChatEntry = async (
             inline_keyboard: [
               [
                 {
-                  text: 'Open Chat',
+                  text: 'Open App',
                   web_app: { url: 'https://dating-mini-app.vercel.app' },
                 },
               ],

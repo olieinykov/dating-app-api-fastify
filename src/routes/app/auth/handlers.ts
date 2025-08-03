@@ -26,8 +26,12 @@ export const createOrLogin = async (
       telegram = request.body.bypassData;
       isInitDataValid = true;
     } else {
+
+      console.log("[DEBUG AUTH]: INIT DATA:", request.body.initData);
       isInitDataValid = isValid(request.body.initData!, env.telegram.botToken!);
+      console.log("[DEBUG AUTH]: IS VALID:", isInitDataValid);
       telegram = isInitDataValid ? parse(request.body.initData ?? '').user : null;
+      console.log("[DEBUG AUTH]: TG DATA:", telegram);
     }
 
     if (!isInitDataValid || !telegram?.id) {
