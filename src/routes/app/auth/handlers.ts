@@ -217,7 +217,8 @@ export const activateProfile = async (
         .returning();
 
       const expirationDate = new Date();
-      const tariffTime = 5 * 60 * 1000;
+      // const tariffTime = 5 * 60 * 1000;
+      const tariffTime = 24 * 60 * 60 * 1000;
       expirationDate.setTime(expirationDate.getTime() + tariffTime);
 
       const [trialSubscription] = await tx
