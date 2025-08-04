@@ -225,6 +225,10 @@ export const createChatEntry = async (
   reply: FastifyReply
 ) => {
   try {
+    const participantsWithoutCurrentUser = request.body?.participantsIds?.filter(
+        (userId) => userId !== request.body.fromModelId
+    ) ?? [];
+
     const data = await db.transaction(async (tx) => {
       const fileIds = request.body?.attachmentIds;
 
@@ -254,9 +258,9 @@ export const createChatEntry = async (
         attachments = await db.select().from(files).where(inArray(files.id, fileIds));
       }
 
-      const participantsWithoutCurrentUser = request.body?.participantsIds?.filter(
-        (userId) => userId !== request.body.fromModelId
-      );
+      // const participantsWithoutCurrentUser = request.body?.participantsIds?.filter(
+      //   (userId) => userId !== request.body.fromModelId
+      // );
 
       await tx
         .insert(chat_entries_unread)
@@ -295,9 +299,10 @@ export const createChatEntry = async (
 
     if (data) {
       const eventData = { ...data, localEntryId: request.body.localEntryId };
-      // const usersChannel = ablyClient.channels.get(`user-events:${request.body.fromModelId}`);
+      const userId = participantsWithoutCurrentUser?.[0];
+      const usersChannel = ablyClient.channels.get(`user-events:${userId}`);
       const adminChannel = ablyClient.channels.get(`admin-events`);
-      // await usersChannel.publish('entry-created', eventData);
+      await usersChannel.publish('entry-created', eventData);
       await adminChannel.publish('entry-created', eventData);
       let notificationText = request?.body?.body;
 
