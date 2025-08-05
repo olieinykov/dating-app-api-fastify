@@ -5,6 +5,7 @@ import {
   getAllChats,
   createChatEntry,
   readChatEntries,
+  getTotalUnreadEntries,
 } from './handlers.js';
 import {
   CreateChatEntrySchema,
@@ -12,6 +13,7 @@ import {
   GetChatEntriesSchema,
   GetAllChatsSchema,
   ReadChatEntriesSchema,
+  GetTotalUnreadMessagesSchema,
 } from './schemas.js';
 import { userAuthenticated } from '../../../middleware/userAuthenticated.js';
 
@@ -32,6 +34,12 @@ const routes = async (fastify: FastifyInstance) => {
     handler: getChatEntries,
     preHandler: [userAuthenticated()],
     schema: GetChatEntriesSchema,
+  });
+
+  fastify.get('/total-unread-entries', {
+    handler: getTotalUnreadEntries,
+    preHandler: [userAuthenticated()],
+    schema: GetTotalUnreadMessagesSchema,
   });
 
   fastify.post('/:chatId/entries', {
