@@ -525,3 +525,32 @@ export const readChatEntries = async (
     });
   }
 };
+
+
+export const getTotalUnreadEntries = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const currentUserId = request.userId as string;
+
+    const totalCounter = await db
+        .select({ count: sql`count(*)` })
+        .from(chat_entries_unread)
+        .where(eq(chat_entries_unread.userId, currentUserId))
+        .then((result) => Number(result[0]?.count || 0));
+
+    reply.code(200).send({
+      success: true,
+      data: {
+        totalCounter,
+      },
+    });
+
+  } catch (error) {
+    reply.code(500).send({
+      success: false,
+      error: (error as Error).message,
+    });
+  }
+};

@@ -23,6 +23,10 @@ export type GetAllChatsSchemaType = {
   Querystring: Static<typeof GetChatEntriesSchema.querystring>;
 };
 
+export const GetTotalUnreadMessagesSchema = {
+  tags: ['Chat'],
+};
+
 export const GetChatEntriesSchema = {
   tags: ['Chat'],
   parameters: Type.Object({
