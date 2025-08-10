@@ -6,7 +6,7 @@ export const model_profile_assignments = pgTable('model_profile_assignments', {
   id: serial('id').primaryKey(),
   profileId: integer('profile_id')
     .notNull()
-    .references(() => profiles.id),
+    .references(() => profiles.id, { onDelete: 'cascade' }),
   modelId: integer('model_id')
     .notNull()
     .references(() => models.id),

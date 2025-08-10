@@ -1,7 +1,18 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../../../db/index.js';
-import { profiles, profilesPreferences, profiles_actions } from '../../../db/schema/index.js';
-import { and, asc, desc, eq, ilike, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import {
+  profiles_actions,
+  files,
+  profiles,
+  profiles_photos,
+  profiles_subscriptions,
+  profilesPreferences,
+  profile_balances,
+  profilesTelegram,
+  chat_participants,
+  chats,
+} from '../../../db/schema/index.js';
+import { and, asc, desc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import {
   CreateUserType,
   DeleteUserType,
@@ -10,6 +21,8 @@ import {
   GetOneUserType,
   UpdateUsersType,
   GetUserActionsType,
+  GetUserDetailsType,
+  DeleteUserCompleteType,
 } from './schemas.js';
 import { supabaseAdmin } from '../../../services/supabase.js';
 
@@ -354,6 +367,141 @@ export const getUserActions = async (
     });
   } catch (error) {
     reply.status(400).send({
+      success: false,
+      error: (error as Error)?.message,
+    });
+  }
+};
+
+export const getUserDetails = async (
+  request: FastifyRequest<GetUserDetailsType>,
+  reply: FastifyReply
+) => {
+  try {
+    const userId = request.params.userId;
+
+    const [profileData] = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1);
+
+    if (!profileData) {
+      throw new Error();
+    }
+
+    const [profileDetails] = await db
+      .select()
+      .from(profilesPreferences)
+      .where(eq(profilesPreferences.profileId, profileData.id))
+      .limit(1);
+
+    const photos = await db
+      .select({
+        id: profiles_photos.fileId,
+        url: files.url,
+        isAvatar: profiles_photos.isAvatar,
+      })
+      .from(profiles_photos)
+      .where(eq(profiles_photos.profileId, profileData.id))
+      .leftJoin(files, eq(files.id, profiles_photos.fileId));
+
+    const [balanceRow] = await db
+      .select({ balance: profile_balances.balance })
+      .from(profile_balances)
+      .where(eq(profile_balances.profileId, profileData.id))
+      .limit(1);
+
+    const [profileSubscription] = await db
+      .select()
+      .from(profiles_subscriptions)
+      .where(eq(profiles_subscriptions.profileId, profileData.id))
+      .limit(1);
+
+    const now = new Date();
+    const isExpired = !profileSubscription.expirationAt || profileSubscription.expirationAt < now;
+
+    reply.code(200).send({
+      ...profileData,
+      subscription: {
+        expirationAt: profileSubscription.expirationAt,
+        isExpired,
+      },
+      profile: {
+        ...profileDetails,
+        balance: balanceRow.balance,
+        photos,
+      },
+    });
+  } catch (error) {
+    reply.code(404).send({
+      success: false,
+      message: 'User not found',
+      error: (error as Error)?.message,
+    });
+  }
+};
+
+export const deleteUserComplete = async (
+  request: FastifyRequest<DeleteUserCompleteType>,
+  reply: FastifyReply
+) => {
+  try {
+    const profileId = request.params.userId;
+
+    const [existingUser] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.id, profileId))
+      .limit(1);
+
+    if (!existingUser) {
+      return reply.code(404).send({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    const telegramId = existingUser.telegramId;
+    const userId = existingUser.userId;
+
+    const chatIds = await db
+      .select({ id: chat_participants.chatId })
+      .from(chat_participants)
+      .where(eq(chat_participants.userId, userId as string));
+
+    const data = await db.transaction(async (tx) => {
+      for (const chatId of chatIds) {
+        await tx.delete(chats).where(eq(chats.id, chatId.id));
+      }
+
+      const [deletedProfile] = await tx
+        .delete(profiles)
+        .where(eq(profiles.id, profileId as number))
+        .returning();
+
+      if (telegramId !== null && telegramId !== undefined) {
+        await tx
+          .delete(profilesTelegram)
+          .where(eq(profilesTelegram.telegramId, telegramId as number));
+      }
+
+      if (userId) {
+        try {
+          const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId as string);
+          if (authError) {
+            throw new Error(`Auth deletion failed: ${authError.message}`);
+          }
+        } catch (authError) {
+          throw new Error(`Auth deletion failed: ${authError as Error}`);
+        }
+      }
+
+      return deletedProfile;
+    });
+
+    return reply.code(200).send({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    reply.code(400).send({
       success: false,
       error: (error as Error)?.message,
     });

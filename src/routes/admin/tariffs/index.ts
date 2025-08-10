@@ -1,6 +1,11 @@
 import { FastifyInstance } from 'fastify';
-import { getTariffs, createTariff, updateTariff } from './handlers.js';
-import { GetTariffsSchema, CreateTariffsSchema, UpdateTariffsSchema } from './schemas.js';
+import { getTariffs, createTariff, updateTariff, deleteTariff } from './handlers.js';
+import {
+  GetTariffsSchema,
+  CreateTariffsSchema,
+  UpdateTariffsSchema,
+  DeleteTariffSchema,
+} from './schemas.js';
 import { adminAuthenticated } from '../../../middleware/adminAuthenticated.js';
 
 const tariffsRoutes = async (fastify: FastifyInstance) => {
@@ -18,6 +23,11 @@ const tariffsRoutes = async (fastify: FastifyInstance) => {
     schema: UpdateTariffsSchema,
     preHandler: [adminAuthenticated],
     handler: updateTariff,
+  });
+  fastify.delete('/:tariffId', {
+    schema: DeleteTariffSchema,
+    preHandler: [adminAuthenticated],
+    handler: deleteTariff,
   });
 };
 

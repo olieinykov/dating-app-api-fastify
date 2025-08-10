@@ -110,3 +110,23 @@ export const GetUserActionsSchema = {
 export type GetUserActionsType = {
   Querystring: Static<typeof GetUserActionsSchema.querystring>;
 };
+
+export const GetUserDetailsSchema = {
+  tags: ['Admin / Users'],
+  parameters: Type.Object({
+    userId: Type.Integer(),
+  }),
+};
+export type GetUserDetailsType = {
+  Params: Static<typeof GetUserDetailsSchema.parameters>;
+};
+
+export const DeleteUserCompleteSchema = {
+  tags: ['Admin / Users'],
+  parameters: Type.Object({
+    userId: Type.Integer(),
+  }),
+};
+export type DeleteUserCompleteType = {
+  Params: Static<typeof DeleteUserCompleteSchema.parameters>;
+};
