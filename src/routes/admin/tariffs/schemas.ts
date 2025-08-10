@@ -1,5 +1,5 @@
 import { Integer, Object, Static, Type } from '@sinclair/typebox';
-import { PaginationSchema } from '../../../shared/schemas';
+import { PaginationSchema } from '../../../shared/schemas.js';
 
 export const GetTariffsSchema = {
   tags: ['Admin / Tariffs'],
