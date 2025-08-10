@@ -1,5 +1,11 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { chat_entries, model_gifts, models, profiles } from '../../../db/schema/index.js';
+import {
+  chat_entries,
+  chat_entries_unread,
+  model_gifts,
+  models,
+  profiles,
+} from '../../../db/schema/index.js';
 import { db } from '../../../db/index.js';
 import {
   GetGiftsSentFromMeSchemaType,
@@ -171,6 +177,15 @@ export const sendGiftToModel = async (
           giftId: gift.id,
         })
         .returning();
+
+      await tx
+        .insert(chat_entries_unread)
+        .values({
+          userId: model.userId,
+          chatId: newEntry.chatId,
+          chatEntryId: newEntry.id,
+        })
+        .onConflictDoNothing();
 
       const [entryWithSender] = await tx
         .select({

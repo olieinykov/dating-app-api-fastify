@@ -5,7 +5,7 @@ import { actionTypeEnum } from './enum.js';
 export const profiles_actions = pgTable('profiles_actions', {
   id: serial('id').primaryKey(),
   actorId: uuid('actor_id').notNull(),
-  profileId: integer('profile_id').references(() => profiles.id),
+  profileId: integer('profile_id').references(() => profiles.id, { onDelete: 'cascade' }),
   actionType: actionTypeEnum('action_type').notNull(),
   actionTime: timestamp('action_time').defaultNow(),
 });

@@ -17,13 +17,14 @@ export const uploadFile = async (request: FastifyRequest<UploadFileType>, reply:
     }
 
     const fileBuffer = await file.toBuffer();
-    const fileName = `${uuidv4()}-${file?.filename}`;
     const contentType = file?.type;
 
     const originalName = file.filename!;
     const size = fileBuffer.length;
     const mimeType = file.mimetype;
     const extension = originalName.split('.').pop();
+    const fileName = `${uuidv4()}.${extension}`;
+
     const { data, error } = await supabase.storage.from('uploads').upload(fileName, fileBuffer, {
       contentType,
       upsert: false,

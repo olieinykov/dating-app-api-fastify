@@ -16,7 +16,7 @@ export const transactions = pgTable('transactions', {
   id: serial('id').primaryKey(),
   type: transactionOperationEnum('operation').notNull(),
   status: transactionStatusEnum('status').notNull(),
-  profileId: integer('profile_id').references(() => profiles.id),
+  profileId: integer('profile_id').references(() => profiles.id, { onDelete: 'cascade' }),
   giftId: integer('gift_id').references(() => gifts.id),
   modelId: integer('model_id').references(() => models.id),
   tariffId: integer('tariff_id').references(() => tariffs.id),

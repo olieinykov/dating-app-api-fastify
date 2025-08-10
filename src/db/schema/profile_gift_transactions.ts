@@ -5,7 +5,7 @@ import { gifts } from './gift.js';
 
 export const profile_gift_transactions = pgTable('profile_gift_transactions', {
   id: serial('id').primaryKey(),
-  profileId: serial('profile_id').references(() => profiles.id),
+  profileId: serial('profile_id').references(() => profiles.id, { onDelete: 'cascade' }),
   modelId: serial('model_id').references(() => models.id),
   giftId: serial('gift_id').references(() => gifts.id),
   price: integer('price').notNull(),

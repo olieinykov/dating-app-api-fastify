@@ -16,7 +16,7 @@ export const paramsBodyTypeEnum = pgEnum('params_body_type', ['athletic', 'curvy
 // Use them in the table
 export const profilesPreferences = pgTable('profiles_preferences', {
   id: serial('id').primaryKey(),
-  profileId: serial('profile_id').references(() => profiles.id),
+  profileId: serial('profile_id').references(() => profiles.id, { onDelete: 'cascade' }),
   about: text('about'),
   dateOfBirth: date('date_of_birth'),
   gender: genderEnum('gender'),
