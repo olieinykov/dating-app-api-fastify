@@ -3,7 +3,7 @@ import { profiles } from './profile.js';
 
 export const profile_balances = pgTable('profile_balances', {
   id: serial('id').primaryKey(),
-  profileId: serial('profile_id').references(() => profiles.id),
+  profileId: serial('profile_id').references(() => profiles.id, { onDelete: 'cascade' }),
   balance: integer('balance').notNull().default(0),
   updatedAt: timestamp('updated_at').defaultNow(),
 });

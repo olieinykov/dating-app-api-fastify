@@ -30,10 +30,18 @@ export const getAllGifts = async (
     const limit = Math.min(100, Math.max(1, Number(pageSize)));
     const offset = (currentPage - 1) * limit;
 
+    const whereClauses = [];
+
+    if (search.trim()) {
+      whereClauses.push(ilike(gifts.title, `%${search}%`));
+    }
+
+    const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
+
     const data = await db
       .select()
       .from(gifts)
-      .where(ilike(gifts.title, `%${search}%`))
+      .where(whereCondition)
       .orderBy(
         sortOrder === 'asc'
           ? // @ts-ignore
@@ -44,7 +52,11 @@ export const getAllGifts = async (
       .limit(limit)
       .offset(offset);
 
-    const total = await db.$count(gifts);
+    const total = await db
+      .select({ count: sql`count(*)` })
+      .from(gifts)
+      .where(whereCondition)
+      .then((result) => Number(result[0]?.count || 0));
 
     reply.send({
       success: true,

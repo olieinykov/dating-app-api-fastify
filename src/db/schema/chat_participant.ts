@@ -7,7 +7,7 @@ export const chat_participants = pgTable(
     id: serial('id').primaryKey(),
     chatId: integer('chat_id')
       .notNull()
-      .references(() => chats.id),
+      .references(() => chats.id, { onDelete: 'cascade' }),
     userId: uuid('user_id').notNull(),
     lastReadAt: timestamp('last_read_at'),
   },

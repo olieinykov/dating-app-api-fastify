@@ -73,7 +73,11 @@ export const getAllModels = async (
       .limit(limit)
       .offset(offset);
 
-    const total = await db.$count(models);
+    const total = await db
+      .select({ count: sql`count(*)` })
+      .from(models)
+      .where(whereCondition)
+      .then((result) => Number(result[0]?.count || 0));
 
     reply.send({
       success: true,

@@ -7,6 +7,8 @@ import {
   createUser,
   updateUser,
   getUserActions,
+  getUserDetails,
+  deleteUserComplete,
 } from './handlers.js';
 import {
   CreateUserSchema,
@@ -16,6 +18,8 @@ import {
   GetAllUsersSchema,
   UpdateUsersSchema,
   GetUserActionsSchema,
+  GetUserDetailsSchema,
+  DeleteUserCompleteSchema,
 } from './schemas.js';
 import { adminAuthenticated } from '../../../middleware/adminAuthenticated.js';
 
@@ -54,6 +58,16 @@ const routes = async (fastify: FastifyInstance) => {
     schema: GetUserActionsSchema,
     preHandler: [adminAuthenticated],
     handler: getUserActions,
+  });
+  fastify.get('/details/:userId', {
+    schema: GetUserDetailsSchema,
+    preHandler: [adminAuthenticated],
+    handler: getUserDetails,
+  });
+  fastify.delete('/delete-user-complete/:userId', {
+    schema: DeleteUserCompleteSchema,
+    preHandler: [adminAuthenticated],
+    handler: deleteUserComplete,
   });
 };
 

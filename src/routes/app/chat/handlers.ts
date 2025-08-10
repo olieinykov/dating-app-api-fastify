@@ -399,6 +399,7 @@ export const getChatEntries = async (
     const totalPages = Math.ceil(total / limit);
     const effectivePage = Math.min(currentPage, totalPages);
     const reverseOffset = Math.max(0, total - effectivePage * limit);
+    const actualLimit = Math.min(limit, total - (effectivePage - 1) * limit);
 
     const entries = await db
       .select({
@@ -431,7 +432,7 @@ export const getChatEntries = async (
         )
       )
       .orderBy(asc(chat_entries.createdAt)) // Newest messages first
-      .limit(limit)
+      .limit(actualLimit)
       .offset(Math.max(0, reverseOffset)); // Ensure offset isn't negative
 
     const entriesIds = entries.map((entry) => entry.id);
