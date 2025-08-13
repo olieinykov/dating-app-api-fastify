@@ -5,7 +5,8 @@ export const CreateUserSchema = {
   tags: ['Admin / Users'],
   body: Type.Object({
     email: Type.String(),
-    password: Type.String(),
+    // password: Type.String(),
+    password: Type.String({ minLength: 6 }),
     name: Type.String(),
     role: Type.String(),
     avatar: Type.Optional(Type.String()),
@@ -29,6 +30,7 @@ export const UpdateUsersSchema = {
     // lastName: Type.String(),
     // role: Type.String(),
     avatar: Type.Optional(Type.String()),
+    password: Type.Optional(Type.String({ minLength: 6 })),
     // about: Type.Optional(Type.String()),
     // country: Type.Optional(Type.String()),
     // city: Type.Optional(Type.String()),
