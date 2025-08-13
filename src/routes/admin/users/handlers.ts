@@ -279,9 +279,33 @@ export const updateUser = async (request: FastifyRequest<UpdateUsersType>, reply
   try {
     const result = await db.transaction(async (tx) => {
       const currentUserId = request.userId;
+
+      const [user] = await tx
+        .select()
+        .from(profiles)
+        .where(eq(profiles.id, request.params.userId))
+        .limit(1);
+
+      if (!user) {
+        throw new Error(`No user found with id: ${request.params.userId}`);
+      }
+
+      if (request.body.password && user.role === 'chatter') {
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+          user.userId as string,
+          {
+            password: request.body.password,
+          }
+        );
+        if (authError) {
+          throw new Error(`Failed to update password: ${authError.message}`);
+        }
+      }
+      const { password, ...profileUpdateData } = request.body;
+
       const [updatedUser] = await tx
         .update(profiles)
-        .set(request.body as any)
+        .set(profileUpdateData as any)
         .where(eq(profiles.id, request.params.userId))
         .returning();
 
