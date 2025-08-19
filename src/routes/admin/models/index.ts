@@ -59,7 +59,6 @@ const routes = async (fastify: FastifyInstance) => {
   });
   fastify.patch('/:modelId/last-active', {
     schema: UpdateModelLastActiveTimeSchema,
-    preHandler: [adminAuthenticated],
     handler: updateModelLastActiveTime,
   });
 };

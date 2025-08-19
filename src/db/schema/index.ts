@@ -21,3 +21,4 @@ export * from './chat_entries_unread.js';
 export * from './profile_balances.js';
 export * from './profile_gift_transactions.js';
 export * from './model_profile_assignments.js';
+export * from './model_photos.js';

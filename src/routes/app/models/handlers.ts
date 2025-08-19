@@ -1,9 +1,11 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import {
   models,
+  models_photos,
   profilesPreferences,
   disliked_models,
   chat_participants,
+  files,
 } from '../../../db/schema/index.js';
 import { db } from '../../../db/index.js';
 import { GetModelsByPreferencesSchemaType, DislikeModelSchemaType } from './schemas.js';
@@ -69,6 +71,17 @@ export const getModelsByPreferences = async (
       ? [orderByDislike, sql`match_score DESC`]
       : [sql`match_score DESC`];
 
+    const photosSubquery = db
+      .select({
+        modelId: models_photos.modelId,
+        fileUrls: sql`array_agg(${files.url})`.as('file_urls'),
+      })
+      .from(models_photos)
+      .innerJoin(files, eq(files.id, models_photos.fileId))
+      .where(eq(models_photos.isAvatar, false))
+      .groupBy(models_photos.modelId)
+      .as('photos_subquery');
+
     const query = db
       .select({
         id: models.id,
@@ -77,6 +90,7 @@ export const getModelsByPreferences = async (
         country: models.country,
         description: models.description,
         avatar: models.avatar,
+        photos: photosSubquery.fileUrls,
         age: models.age,
         gender: models.gender,
         bustSize: models.bustSize,
@@ -94,6 +108,7 @@ export const getModelsByPreferences = async (
                 `.as('match_score'),
       })
       .from(models)
+      .leftJoin(photosSubquery, eq(photosSubquery.modelId, models.id))
       // .innerJoin(
       //     profilesPreferences,
       //     eq(profilesPreferences.profileId, profileId)
