@@ -290,7 +290,7 @@ export const updateUser = async (request: FastifyRequest<UpdateUsersType>, reply
         throw new Error(`No user found with id: ${request.params.userId}`);
       }
 
-      if (request.body.password && user.role === 'chatter') {
+      if (request.body.password) {
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.updateUserById(
           user.userId as string,
           {

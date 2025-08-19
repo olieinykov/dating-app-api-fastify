@@ -23,6 +23,7 @@ export const UpdateProfileSchema = {
     gender: Optional(Enum({ male: 'male', female: 'female' })),
     hobbies: Optional(Array(String())),
     city: Optional(String()),
+    country: Optional(String()),
     paramsAge: Optional(
       Union([Literal('18-24'), Literal('25-34'), Literal('35-44'), Literal('45+')])
     ),

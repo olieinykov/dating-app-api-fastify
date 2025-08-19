@@ -13,19 +13,47 @@ import {
   SendGiftsToModelSchemaType,
 } from './schemas.js';
 import { gifts } from '../../../db/schema/gift.js';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull, or, sql } from 'drizzle-orm';
 import { profile_gift_transactions } from '../../../db/schema/profile_gift_transactions.js';
 import { profile_balances } from '../../../db/schema/profile_balances.js';
+import { profilesPreferences } from '../../../db/schema/profile_preferences.js';
 import ablyClient from '../../../services/ably.js';
 import { transactions } from '../../../db/schema/transaction.js';
 
 export const getGifts = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
-    const data = await db.select().from(gifts);
+    const profileId = request.profileId;
+
+    const [userCountry] = await db
+      .select({ country: profilesPreferences.country })
+      .from(profilesPreferences)
+      .where(eq(profilesPreferences.profileId, profileId as number))
+      .limit(1);
+
+    if (!userCountry?.country) {
+      const allGifts = await db.select().from(gifts);
+      return reply.send({
+        status: 'success',
+        data: allGifts,
+      });
+    }
+
+    const giftsQuery = await db
+      .select()
+      .from(gifts)
+      .where(
+        or(
+          isNull(gifts.restrictedCountries),
+          sql`NOT EXISTS (
+        SELECT 1 FROM json_array_elements_text(${gifts.restrictedCountries}) AS country 
+        WHERE country = ${userCountry?.country}
+      )`
+        )
+      );
 
     return reply.send({
       status: 'success',
-      data,
+      data: giftsQuery,
     });
   } catch (error) {
     reply.status(400).send({
@@ -41,6 +69,12 @@ export const getModelFavoriteGifts = async (
 ) => {
   try {
     const { modelId } = request.params;
+    const profileId = request.profileId;
+    const [userCountry] = await db
+      .select({ country: profilesPreferences.country })
+      .from(profilesPreferences)
+      .where(eq(profilesPreferences.profileId, profileId as number))
+      .limit(1);
 
     const data = await db
       .select({
@@ -52,7 +86,15 @@ export const getModelFavoriteGifts = async (
         updatedAt: gifts.updatedAt,
       })
       .from(model_gifts)
-      .where(eq(model_gifts.modelId, modelId!))
+      .where(
+        and(
+          eq(model_gifts.modelId, modelId!),
+          sql`NOT EXISTS (
+        SELECT 1 FROM json_array_elements_text(${gifts.restrictedCountries}) AS country 
+        WHERE country = ${userCountry?.country ?? ''}
+      )`
+        )
+      )
       .innerJoin(gifts, eq(model_gifts.giftId, gifts.id));
 
     return reply.send({
