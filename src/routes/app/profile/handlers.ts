@@ -118,6 +118,7 @@ export const updateProfile = async (
           dateOfBirth: payload.dateOfBirth,
           gender: payload.gender,
           hobbies: payload.hobbies?.length ? payload.hobbies : [],
+          country: payload.country,
           city: payload.city,
           paramsAge: payload.paramsAge,
           paramsBustSize: payload.paramsBustSize,
