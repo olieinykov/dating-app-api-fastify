@@ -4,7 +4,12 @@ import { gifts } from './gift';
 import { models } from './model';
 import { tariffs } from './tariff';
 
-export const transactionOperationEnum = pgEnum('operation', ['gift', 'balance', 'tariff']);
+export const transactionOperationEnum = pgEnum('operation', [
+  'gift',
+  'balance',
+  'tariff',
+  'paid-chat-entry',
+]);
 export const transactionStatusEnum = pgEnum('status', [
   'pending',
   'completed',

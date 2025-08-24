@@ -11,30 +11,20 @@ import {
   transactions,
   gifts,
 } from '../../../db/schema/index.js';
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  ilike,
-  inArray,
-  isNull,
-  ne,
-  or,
-  sql,
-  SQL,
-  SQLWrapper,
-} from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 import {
   GetAllModelsType,
   CreateChatEntrySchemaType,
   GetChatModelsSchemaType,
   GetGiftsInChatSchemaType,
 } from './schemas.js';
+import { GetChatEntriesSchemaType } from '../../app/chat/schemas.js';
 import ablyClient from '../../../services/ably.js';
 import { chat_entries_unread } from '../../../db/schema/chat_entries_unread.js';
 import axios from 'axios';
 import env from '../../../config/env.js';
+import { createBlurredVersion } from '../../../services/imageBlurService.js';
+import { supabase } from '../../../services/supabase.js';
 
 export const getModelsChats = async (
   request: FastifyRequest<GetAllModelsType>,
@@ -239,12 +229,56 @@ export const createChatEntry = async (
           body: request.body.body,
           senderId: request.body.fromModelId as string,
           chatId: request.params.chatId,
+          isPremiumMessage: request.body.isPremiumMessage ?? false,
+          ...(request.body.isPremiumMessage && { entryPrice: request.body.entryPrice }),
         })
         .returning();
 
       let attachments = undefined;
 
       if (fileIds?.length) {
+        if (request.body.isPremiumMessage) {
+          for (const fileId of fileIds) {
+            try {
+              const originalFile = await tx.query.files.findFirst({
+                where: (files, { eq }) => eq(files.id, fileId),
+              });
+
+              if (!originalFile) {
+                continue;
+              }
+
+              const { data: fileData, error: downloadError } = await supabase.storage
+                .from('uploads')
+                .download(originalFile.fileName);
+
+              if (downloadError) {
+                continue;
+              }
+
+              let fileBuffer: Buffer;
+              if (fileData instanceof Blob) {
+                const arrayBuffer = await fileData.arrayBuffer();
+                fileBuffer = Buffer.from(arrayBuffer);
+              } else {
+                fileBuffer = fileData;
+              }
+
+              const blurredFile = await createBlurredVersion(fileBuffer, originalFile.fileName, 50);
+
+              await tx
+                .update(files)
+                .set({
+                  blurredUrl: blurredFile.url,
+                  blurredFileName: blurredFile.fileName,
+                })
+                .where(eq(files.id, fileId));
+            } catch (blurError) {
+              console.error('Error creating blur for file:', fileId, blurError);
+            }
+          }
+        }
+
         await tx
           .insert(chat_entry_files)
           .values(
@@ -255,7 +289,7 @@ export const createChatEntry = async (
           )
           .returning();
 
-        attachments = await db.select().from(files).where(inArray(files.id, fileIds));
+        attachments = await tx.select().from(files).where(inArray(files.id, fileIds));
       }
 
       // const participantsWithoutCurrentUser = request.body?.participantsIds?.filter(
@@ -280,6 +314,8 @@ export const createChatEntry = async (
           body: chat_entries.body,
           createdAt: chat_entries.createdAt,
           chatId: chat_entries.chatId,
+          isPremiumMessage: chat_entries.isPremiumMessage,
+          entryPrice: chat_entries.entryPrice,
           sender: {
             id: models.id,
             senderId: models.userId,
@@ -298,7 +334,14 @@ export const createChatEntry = async (
     });
 
     if (data) {
-      const eventData = { ...data, localEntryId: request.body.localEntryId };
+      const eventData = {
+        ...data,
+        localEntryId: request.body.localEntryId,
+        attachments: data?.attachments?.map((file) => ({
+          ...file,
+          url: request.body.isPremiumMessage ? file.blurredUrl : file.url,
+        })),
+      };
       const userId = participantsWithoutCurrentUser?.[0];
       const usersChannel = ablyClient.channels.get(`user-events:${userId}`);
       const adminChannel = ablyClient.channels.get(`admin-events`);
@@ -310,7 +353,7 @@ export const createChatEntry = async (
         notificationText = 'Файл добавлено';
       }
 
-      const response = await axios.post(
+      await axios.post(
         `https://api.telegram.org/bot${env.telegram.botToken}/sendMessage`,
         {
           chat_id: request.body.telegramId,
@@ -328,8 +371,6 @@ export const createChatEntry = async (
           },
         }
       );
-
-      console.log('response ==>', response);
     }
 
     reply.code(200).send({
@@ -672,6 +713,119 @@ export const getGiftsInChat = async (
     });
   } catch (error) {
     reply.status(400).send({
+      success: false,
+      error: (error as Error)?.message,
+    });
+  }
+};
+
+export const getModelsChatEntries = async (
+  request: FastifyRequest<GetChatEntriesSchemaType>,
+  reply: FastifyReply
+) => {
+  try {
+    const page = Number(request.query?.page) || 1;
+    const pageSize = Number(request.query?.pageSize) || 20;
+    const currentPage = Math.max(1, page);
+    const limit = Math.max(1, pageSize);
+    const fromModelId = request.query?.fromModelId;
+
+    const [{ count: total }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(chat_entries)
+      .where(eq(chat_entries.chatId, request.params.chatId));
+
+    const totalPages = Math.ceil(total / limit);
+    const effectivePage = Math.min(currentPage, totalPages);
+    const reverseOffset = Math.max(0, total - effectivePage * limit);
+    const actualLimit = Math.min(limit, total - (effectivePage - 1) * limit);
+
+    const entries = await db
+      .select({
+        id: chat_entries.id,
+        body: chat_entries.body,
+        type: chat_entries.type,
+        chatId: chat_entries.chatId,
+        gift: {
+          id: gifts.id,
+          title: gifts.title,
+          price: gifts.price,
+          image: gifts.image,
+        },
+        createdAt: chat_entries.createdAt,
+        updatedAt: chat_entries.updatedAt,
+        fromProfile: profiles,
+        fromModel: models,
+        unreadUserId: chat_entries_unread.userId,
+        isPremiumMessage: chat_entries.isPremiumMessage,
+        entryPrice: chat_entries.entryPrice,
+      })
+      .from(chat_entries)
+      .where(eq(chat_entries.chatId, request.params.chatId))
+      .leftJoin(profiles, eq(chat_entries.senderId, profiles.userId))
+      .leftJoin(models, eq(chat_entries.senderId, models.userId))
+      .leftJoin(gifts, eq(chat_entries.giftId, gifts.id))
+      .leftJoin(
+        chat_entries_unread,
+        and(
+          eq(chat_entries_unread.chatEntryId, chat_entries.id),
+          eq(chat_entries_unread.userId, fromModelId ?? request.userId!)
+        )
+      )
+      .orderBy(asc(chat_entries.createdAt))
+      .limit(actualLimit)
+      .offset(Math.max(0, reverseOffset));
+
+    const entriesIds = entries.map((entry) => entry.id);
+    const filesList =
+      entriesIds.length > 0
+        ? await db
+            .select({
+              chatEntryId: chat_entry_files.chatEntryId,
+              file: files,
+            })
+            .from(chat_entry_files)
+            .leftJoin(files, eq(chat_entry_files.fileId, files.id))
+            .where(inArray(chat_entry_files.chatEntryId, entriesIds))
+        : [];
+
+    const entriesWithFiles = (entries || []).map((entry) => {
+      const { fromModel, unreadUserId, fromProfile, ...message } = entry;
+      const sender = fromModel ?? fromProfile;
+      const entryFiles = filesList
+        .filter((file) => file.chatEntryId === entry.id)
+        .map((file) => file.file);
+
+      if (!sender) {
+        throw new Error('Sender information missing');
+      }
+
+      return {
+        ...message,
+        attachments: entryFiles,
+        isRead: unreadUserId == null,
+        sender: {
+          id: sender.id,
+          senderId: sender.userId,
+          name: sender.name,
+          avatar: sender.avatar,
+        },
+      };
+    });
+
+    reply.code(200).send({
+      success: true,
+      data: entriesWithFiles,
+      pagination: {
+        page: effectivePage,
+        pageSize: limit,
+        total,
+        totalPages,
+        hasMore: effectivePage < totalPages,
+      },
+    });
+  } catch (error) {
+    reply.code(400).send({
       success: false,
       error: (error as Error)?.message,
     });
