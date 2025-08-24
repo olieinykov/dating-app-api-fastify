@@ -5,6 +5,7 @@ import {
   GetAllChatsSchemaType,
   GetChatEntriesSchemaType,
   ReadChatEntriesSchemaType,
+  BuyChatEntrySchemaType,
 } from './schemas.js';
 import { db } from '../../../db/index.js';
 import {
@@ -17,10 +18,13 @@ import {
   chat_participants,
   gifts,
   disliked_models,
+  profile_balances,
+  transactions,
+  chat_entries_unread,
 } from '../../../db/schema/index.js';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import ablyClient from '../../../services/ably.js';
-import { chat_entries_unread } from '../../../db/schema/chat_entries_unread.js';
+import { supabase } from '../../../services/supabase.js';
 
 export const createChat = async (
   request: FastifyRequest<CreateChatSchemaBodyType>,
@@ -418,6 +422,8 @@ export const getChatEntries = async (
         fromProfile: profiles,
         fromModel: models,
         unreadUserId: chat_entries_unread.userId,
+        isPremiumMessage: chat_entries.isPremiumMessage,
+        entryPrice: chat_entries.entryPrice,
       })
       .from(chat_entries)
       .where(eq(chat_entries.chatId, request.params.chatId))
@@ -458,10 +464,24 @@ export const getChatEntries = async (
       if (!sender) {
         throw new Error('Sender information missing');
       }
+      let filesToShow = entryFiles;
+
+      if (message.isPremiumMessage) {
+        filesToShow = entryFiles.map((file: any) => {
+          if (file.blurredUrl) {
+            return {
+              ...file,
+              url: file.blurredUrl,
+              fileName: file.blurredFileName,
+            };
+          }
+          return file;
+        });
+      }
 
       return {
         ...message,
-        attachments: entryFiles,
+        attachments: filesToShow,
         isRead: unreadUserId == null,
         sender: {
           id: sender.id,
@@ -552,6 +572,131 @@ export const getTotalUnreadEntries = async (
     reply.code(500).send({
       success: false,
       error: (error as Error).message,
+    });
+  }
+};
+
+export const buyChatEntry = async (
+  request: FastifyRequest<BuyChatEntrySchemaType>,
+  reply: FastifyReply
+) => {
+  try {
+    const { modelId } = request.body;
+    const { entryId, chatId } = request.params;
+    const profileId = request.profileId;
+
+    const [existingEntry] = await db
+      .select()
+      .from(chat_entries)
+      .where(eq(chat_entries.id, entryId))
+      .limit(1);
+
+    if (!existingEntry) {
+      return reply.code(404).send({
+        success: false,
+        error: 'Chat entry not found',
+      });
+    }
+
+    if (!existingEntry.isPremiumMessage) {
+      return reply.code(400).send({
+        success: false,
+        error: 'Message is already unblurred',
+      });
+    }
+
+    const data = await db.transaction(async (tx) => {
+      const [balanceRow] = await tx
+        .select({ balance: profile_balances.balance })
+        .from(profile_balances)
+        .where(eq(profile_balances.profileId, profileId as number))
+        .limit(1);
+
+      const balance = balanceRow?.balance ?? 0;
+      const entryPrice = existingEntry.entryPrice ?? 0;
+
+      if (balance < entryPrice) {
+        throw new Error('Insufficient balance');
+      }
+
+      await tx
+        .update(profile_balances)
+        .set({ balance: balance - entryPrice })
+        .where(eq(profile_balances.profileId, profileId as number));
+
+      const [entry] = await tx
+          .update(chat_entries)
+          .set({
+            isPremiumMessage: false,
+          })
+          .where(eq(chat_entries.id, entryId))
+          .returning();
+
+      const blurredFiles = await tx
+        .select({
+          id: files.id,
+          blurredFileName: files.blurredFileName,
+          url: files.url,
+        })
+        .from(files)
+        .innerJoin(chat_entry_files, eq(files.id, chat_entry_files.fileId))
+        .where(eq(chat_entry_files.chatEntryId, entryId));
+
+      await tx.insert(transactions).values({
+        profileId,
+        modelId,
+        tokensAmount: entryPrice,
+        status: 'completed',
+        type: 'paid-chat-entry',
+      });
+
+      const adminChannel = ablyClient.channels.get(`admin-updates-entries`);
+      const usersChannel = ablyClient.channels.get(`user-updates-entries:${request.userId}`);
+      await adminChannel.publish('entry-bought', {
+        blurredFiles,
+        chatId,
+        modelId,
+        entryId,
+      });
+      await usersChannel.publish('entry-bought', {
+        blurredFiles,
+        chatId,
+        modelId,
+        entryId,
+      });
+
+      const { error } = await supabase.storage
+        .from('uploads')
+        .remove(blurredFiles.map((file) => file.blurredFileName!));
+
+      if (error) {
+        throw new Error('Failed to remove blurred files');
+      }
+
+      await tx
+        .update(files)
+        .set({
+          blurredFileName: null,
+          blurredUrl: null,
+        })
+        .where(
+          inArray(
+            files.id,
+            blurredFiles.map((file) => file.id)
+          )
+        );
+
+      return entry;
+    });
+
+    reply.code(200).send({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    reply.code(400).send({
+      success: false,
+      error: (error as Error)?.message,
     });
   }
 };

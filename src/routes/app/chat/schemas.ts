@@ -73,3 +73,19 @@ export const ReadChatEntriesSchema = {
 export type ReadChatEntriesSchemaType = {
   Body: Static<typeof ReadChatEntriesSchema.body>;
 };
+
+export const BuyChatEntrySchema = {
+  tags: ['Chat'],
+  parameters: Type.Object({
+    chatId: Type.Integer(),
+    entryId: Type.Integer(),
+  }),
+  body: Type.Object({
+    modelId: Type.Integer(),
+  }),
+};
+
+export type BuyChatEntrySchemaType = {
+  Body: Static<typeof BuyChatEntrySchema.body>;
+  Params: Static<typeof BuyChatEntrySchema.parameters>;
+};
