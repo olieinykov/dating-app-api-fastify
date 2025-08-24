@@ -25,6 +25,8 @@ export const CreateChatEntrySchema = {
     fromModelId: Type.String(),
     participantsIds: Type.Array(Type.String()),
     telegramId: Type.Integer(),
+    isPremiumMessage: Optional(Type.Boolean()),
+    entryPrice: Optional(Type.Number()),
   }),
 };
 

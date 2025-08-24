@@ -1,4 +1,4 @@
-import { integer, pgTable, serial, text, timestamp, uuid, pgEnum } from 'drizzle-orm/pg-core';
+import { integer, pgTable, serial, text, timestamp, uuid, pgEnum, boolean } from 'drizzle-orm/pg-core';
 import { chats } from './chat.js';
 import { gifts } from './gift.js';
 
@@ -13,4 +13,6 @@ export const chat_entries = pgTable('chat_entries', {
   senderId: uuid('sender_id').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  isPremiumMessage: boolean('is_premium_message').notNull().default(false),
+  entryPrice: integer('entry_price'),
 });

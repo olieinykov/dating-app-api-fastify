@@ -10,4 +10,6 @@ export const files = pgTable('files', {
   mimeType: text('mime_type').notNull(),
   size: integer('size').notNull(),
   uploadedAt: timestamp('uploaded_at').defaultNow().notNull(),
+  blurredUrl: text('blurred_url'),
+  blurredFileName: text('blurred_file_name'),
 });
