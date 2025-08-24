@@ -613,7 +613,7 @@ export const buyChatEntry = async (
         .limit(1);
 
       const balance = balanceRow?.balance ?? 0;
-      const entryPrice = entry.entryPrice ?? 0;
+      const entryPrice = existingEntry.entryPrice ?? 0;
 
       if (balance < entryPrice) {
         throw new Error('Insufficient balance');
