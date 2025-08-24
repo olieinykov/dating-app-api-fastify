@@ -1,6 +1,6 @@
 import { pgTable, bigint, serial } from 'drizzle-orm/pg-core';
-import { models } from './model.js';
-import { gifts } from './gift.js';
+import { models } from './model';
+import { gifts } from './gift';
 
 export const model_gifts = pgTable('model_gifts', {
   id: serial('id').primaryKey(),

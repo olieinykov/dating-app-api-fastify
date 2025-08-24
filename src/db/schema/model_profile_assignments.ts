@@ -1,6 +1,6 @@
 import { pgTable, serial, integer, timestamp } from 'drizzle-orm/pg-core';
-import { profiles } from './profile.js';
-import { models } from './model.js';
+import { profiles } from './profile';
+import { models } from './model';
 
 export const model_profile_assignments = pgTable('model_profile_assignments', {
   id: serial('id').primaryKey(),
