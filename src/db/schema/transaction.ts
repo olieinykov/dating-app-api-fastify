@@ -3,6 +3,7 @@ import { profiles } from './profile.js';
 import { gifts } from './gift.js';
 import { models } from './model.js';
 import { tariffs } from './tariff.js';
+import { chat_entries } from './chat_entry.js';
 
 export const transactionOperationEnum = pgEnum('operation', [
   'gift',
@@ -23,6 +24,7 @@ export const transactions = pgTable('transactions', {
   status: transactionStatusEnum('status').notNull(),
   profileId: integer('profile_id').references(() => profiles.id, { onDelete: 'cascade' }),
   giftId: integer('gift_id').references(() => gifts.id),
+  chatEntryId: integer('chat_entry_id').references(() => chat_entries.id),
   modelId: integer('model_id').references(() => models.id),
   tariffId: integer('tariff_id').references(() => tariffs.id),
   tokensAmount: integer('tokens_amount'),

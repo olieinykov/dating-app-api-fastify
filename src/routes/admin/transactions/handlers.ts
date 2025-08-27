@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../../../db/index.js';
 import { asc, desc, eq, ilike, or, and, sql } from 'drizzle-orm';
-import { gifts, models, profiles } from '../../../db/schema/index.js';
+import { chat_entries, gifts, models, profiles } from '../../../db/schema/index.js';
 import { transactions, transactionStatusEnum } from '../../../db/schema/transaction.js';
 import { tariffs } from '../../../db/schema/tariff.js';
 import { GetTransactionSchemaType } from './schemas';
@@ -52,8 +52,9 @@ export const getTransactions = async (
         id: transactions.id,
         type: transactions.type,
         profile: profiles,
-        giftToModel: models,
+        model: models,
         gift: gifts,
+        chatEntry: chat_entries,
         tariff: tariffs,
         tokensAmount: transactions.tokensAmount,
         status: transactions.status,
@@ -64,6 +65,7 @@ export const getTransactions = async (
       .leftJoin(profiles, eq(transactions.profileId, profiles.id))
       .leftJoin(gifts, eq(transactions.giftId, gifts.id))
       .leftJoin(models, eq(transactions.modelId, models.id))
+      .leftJoin(chat_entries, eq(transactions.chatEntryId, chat_entries.id))
       .leftJoin(tariffs, eq(transactions.tariffId, tariffs.id))
       .where(whereCondition)
       .orderBy(sortOrder === 'asc' ? asc(sortBy) : desc(sortBy))
