@@ -582,7 +582,7 @@ export const buyChatEntry = async (
 ) => {
   try {
     const { modelId } = request.body;
-    const { entryId, chatId } = request.params;
+    const { entryId } = request.params;
     const profileId = request.profileId;
 
     const [existingEntry] = await db
@@ -625,12 +625,12 @@ export const buyChatEntry = async (
         .where(eq(profile_balances.profileId, profileId as number));
 
       const [entry] = await tx
-          .update(chat_entries)
-          .set({
-            isPremiumMessage: false,
-          })
-          .where(eq(chat_entries.id, entryId))
-          .returning();
+        .update(chat_entries)
+        .set({
+          isPremiumMessage: false,
+        })
+        .where(eq(chat_entries.id, entryId))
+        .returning();
 
       const blurredFiles = await tx
         .select({
@@ -645,24 +645,21 @@ export const buyChatEntry = async (
       await tx.insert(transactions).values({
         profileId,
         modelId,
+        chatEntryId: entryId,
         tokensAmount: entryPrice,
         status: 'completed',
         type: 'paid-chat-entry',
       });
 
       const adminChannel = ablyClient.channels.get(`admin-updates-entries`);
-      const usersChannel = ablyClient.channels.get(`user-updates-entries:${request.userId}`);
+
       await adminChannel.publish('entry-bought', {
         blurredFiles,
-        chatId,
+        chatId: entry.chatId,
         modelId,
-        entryId,
-      });
-      await usersChannel.publish('entry-bought', {
-        blurredFiles,
-        chatId,
-        modelId,
-        entryId,
+        profileId,
+        entryId: entry.id,
+        type: 'paid-chat-entry',
       });
 
       const { error } = await supabase.storage
@@ -685,8 +682,62 @@ export const buyChatEntry = async (
             blurredFiles.map((file) => file.id)
           )
         );
+      const [updatedEntry] = await tx
+        .select({
+          id: chat_entries.id,
+          body: chat_entries.body,
+          type: chat_entries.type,
+          chatId: chat_entries.chatId,
+          gift: {
+            id: gifts.id,
+            title: gifts.title,
+            price: gifts.price,
+            image: gifts.image,
+          },
+          createdAt: chat_entries.createdAt,
+          updatedAt: chat_entries.updatedAt,
+          fromModel: models,
+          unreadUserId: chat_entries_unread.userId,
+          isPremiumMessage: chat_entries.isPremiumMessage,
+          entryPrice: chat_entries.entryPrice,
+        })
+        .from(chat_entries)
+        .where(eq(chat_entries.id, entryId))
+        .innerJoin(models, eq(chat_entries.senderId, models.userId))
+        .leftJoin(gifts, eq(chat_entries.giftId, gifts.id))
+        .leftJoin(
+          chat_entries_unread,
+          and(
+            eq(chat_entries_unread.chatEntryId, chat_entries.id),
+            eq(chat_entries_unread.userId, request.userId!)
+          )
+        )
+        .limit(1);
 
-      return entry;
+      const filesList = await tx
+        .select({
+          chatEntryId: chat_entry_files.chatEntryId,
+          file: files,
+        })
+        .from(chat_entry_files)
+        .leftJoin(files, eq(chat_entry_files.fileId, files.id))
+        .where(eq(chat_entry_files.chatEntryId, entryId));
+
+      const entryFiles = filesList.map((file) => file.file);
+
+      const formattedEntry = {
+        ...updatedEntry,
+        attachments: entryFiles,
+        isRead: updatedEntry.unreadUserId == null,
+        sender: {
+          id: updatedEntry.fromModel.id,
+          senderId: updatedEntry.fromModel.userId,
+          name: updatedEntry.fromModel.name,
+          avatar: updatedEntry.fromModel.avatar,
+        },
+      };
+
+      return formattedEntry;
     });
 
     reply.code(200).send({

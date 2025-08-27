@@ -16,7 +16,7 @@ import {
   GetAllModelsType,
   CreateChatEntrySchemaType,
   GetChatModelsSchemaType,
-  GetGiftsInChatSchemaType,
+  GetChatTransactionsSchemaType,
 } from './schemas.js';
 import { GetChatEntriesSchemaType } from '../../app/chat/schemas.js';
 import ablyClient from '../../../services/ably.js';
@@ -264,7 +264,12 @@ export const createChatEntry = async (
                 fileBuffer = fileData;
               }
 
-              const blurredFile = await createBlurredVersion(fileBuffer, originalFile.fileName, 50);
+              const blurredFile = await createBlurredVersion(
+                fileBuffer,
+                originalFile.fileName,
+                originalFile.mimeType,
+                50
+              );
 
               await tx
                 .update(files)
@@ -640,8 +645,8 @@ export const getChatsModels = async (
   }
 };
 
-export const getGiftsInChat = async (
-  request: FastifyRequest<GetGiftsInChatSchemaType>,
+export const getChatTransactions = async (
+  request: FastifyRequest<GetChatTransactionsSchemaType>,
   reply: FastifyReply
 ) => {
   try {
@@ -663,8 +668,8 @@ export const getGiftsInChat = async (
     const whereCondition = and(
       eq(transactions.modelId, modelId),
       eq(transactions.profileId, profileId),
-      eq(transactions.type, 'gift'),
-      eq(transactions.status, 'completed')
+      eq(transactions.status, 'completed'),
+      inArray(transactions.type, ['gift', 'paid-chat-entry'])
     );
 
     const totalResult = await db
@@ -675,15 +680,38 @@ export const getGiftsInChat = async (
 
     const data = await db
       .select({
-        id: transactions.id,
-        giftId: gifts.id,
-        title: gifts.title,
-        image: gifts.image,
-        createdAt: transactions.createdAt,
+        transaction: {
+          id: transactions.id,
+          type: transactions.type,
+          createdAt: transactions.createdAt,
+        },
+
+        gift: {
+          id: gifts.id,
+          title: gifts.title,
+          image: gifts.image,
+        },
+        chatEntry: {
+          id: chat_entries.id,
+          body: chat_entries.body,
+        },
+
+        files: sql<any[]>`json_agg(
+          json_build_object(
+            'id', ${files.id},
+            'fileName', ${files.fileName},
+            'url', ${files.url},
+            'fileType', ${files.mimeType}
+          )
+        )`.as('files'),
       })
       .from(transactions)
-      .innerJoin(gifts, eq(transactions.giftId, gifts.id))
+      .leftJoin(gifts, eq(transactions.giftId, gifts.id))
+      .leftJoin(chat_entries, eq(transactions.chatEntryId, chat_entries.id))
+      .leftJoin(chat_entry_files, eq(chat_entries.id, chat_entry_files.chatEntryId))
+      .leftJoin(files, eq(chat_entry_files.fileId, files.id))
       .where(whereCondition)
+      .groupBy(transactions.id, gifts.id, chat_entries.id)
       .orderBy(desc(transactions.createdAt))
       .limit(limit)
       .offset(offset);
@@ -701,9 +729,27 @@ export const getGiftsInChat = async (
       });
     }
 
+    const formattedData = data.map((item) => ({
+      id: item.transaction.id,
+      transactionType: item.transaction.type,
+      createdAt: item.transaction.createdAt,
+      data:
+        item.transaction.type === 'gift'
+          ? {
+              giftId: item.gift?.id,
+              title: item.gift?.title,
+              image: item.gift?.image,
+            }
+          : {
+              chatEntryId: item.chatEntry?.id,
+              body: item.chatEntry?.body,
+              attachments: item.files ?? [],
+            },
+    }));
+
     reply.send({
       success: true,
-      data,
+      data: formattedData,
       pagination: {
         page: currentPage,
         pageSize: limit,
