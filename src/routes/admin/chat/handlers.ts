@@ -701,7 +701,7 @@ export const getChatTransactions = async (
             'id', ${files.id},
             'fileName', ${files.fileName},
             'url', ${files.url},
-            'fileType', ${files.mimeType}
+            'mimeType', ${files.mimeType}
           )
         )`.as('files'),
       })
