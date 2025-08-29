@@ -58,6 +58,33 @@ export const buyTokens = async (
   }
 };
 
+export const getBalance = async (
+  request: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const profileId = request.profileId;
+
+    const [balanceRow] = await db
+        .select({ balance: profile_balances.balance })
+        .from(profile_balances)
+        .where(eq(profile_balances.profileId, profileId))
+        .limit(1);
+
+    reply.code(200).send({
+      success: true,
+      data: {
+        balance: balanceRow.balance,
+      },
+    });
+  } catch (error) {
+    reply.code(404).send({
+      success: false,
+      message: 'Failed to fetch user balance',
+    });
+  }
+};
+
 export const telegramPaymentWebhook = async (request: FastifyRequest, reply: FastifyReply) => {
   const update = request.body;
   // @ts-ignore
