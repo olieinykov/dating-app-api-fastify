@@ -63,7 +63,7 @@ export const getBalance = async (
   reply: FastifyReply
 ) => {
   try {
-    const profileId = request.profileId;
+    const profileId = request.profileId as number;
 
     const [balanceRow] = await db
         .select({ balance: profile_balances.balance })
