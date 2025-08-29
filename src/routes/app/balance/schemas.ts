@@ -7,6 +7,10 @@ export const BuyTokensSchema = {
   }),
 };
 
+export const GetBalanceSchema = {
+  tags: ['App / Balance'],
+};
+
 export type BuyTokensSchemaType = {
   Body: Static<typeof BuyTokensSchema.body>;
 };
