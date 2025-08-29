@@ -116,25 +116,24 @@ export const getGiftsSentFromMe = async (
   try {
     const { modelId } = request.params;
     const profileId = request.profileId;
-
     const data = await db
-      .select({
-        id: gifts.id,
-        title: gifts.title,
-        price: gifts.price,
-        image: gifts.image,
-        createdAt: gifts.createdAt,
-        updatedAt: gifts.updatedAt,
-      })
-      .from(profile_gift_transactions)
-      .where(
-        and(
-          eq(profile_gift_transactions.profileId, profileId as number),
-          eq(profile_gift_transactions.modelId, modelId as number)
+        .select({
+          id: gifts.id,
+          title: gifts.title,
+          price: gifts.price,
+          image: gifts.image,
+          createdAt: gifts.createdAt,
+          updatedAt: gifts.updatedAt,
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.profileId, profileId as number),
+            eq(transactions.modelId, modelId as number)
+          )
         )
-      )
-      .innerJoin(gifts, eq(profile_gift_transactions.giftId, gifts.id))
-      .groupBy(gifts.id);
+        .innerJoin(gifts, eq(transactions.giftId, gifts.id))
+        .groupBy(gifts.id);
 
     return reply.send({
       status: 'success',

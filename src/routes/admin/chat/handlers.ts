@@ -369,7 +369,7 @@ export const createChatEntry = async (
               [
                 {
                   text: 'Open App',
-                  web_app: { url: 'https://dating-mini-app.vercel.app' },
+                  web_app: { url: 'https://amorium-local.vercel.app' },
                 },
               ],
             ],
