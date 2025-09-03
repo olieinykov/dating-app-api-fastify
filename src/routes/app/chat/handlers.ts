@@ -359,13 +359,32 @@ export const createChatEntry = async (
       };
     });
 
+    const participantIds = await db
+      .select({ userId: chat_participants.userId })
+      .from(chat_participants)
+      .where(eq(chat_participants.chatId, request.params.chatId));
+
+    const [modelIds] = await db
+      .select({ userId: models.userId, id: models.id })
+      .from(models)
+      .where(
+        inArray(
+          models.userId,
+          participantIds.map((p) => p.userId)
+        )
+      )
+      .limit(1);
+
     if (data) {
       const usersChannel = ablyClient.channels.get(`user-events:${request.userId}`);
       const adminChannel = ablyClient.channels.get(`admin-events`);
       const eventData = { ...data, localEntryId };
 
       await usersChannel.publish('entry-created', eventData);
-      await adminChannel.publish('entry-created', eventData);
+      await adminChannel.publish('entry-created', {
+        ...eventData,
+        modelIds: modelIds,
+      });
     }
 
     reply.code(200).send({
@@ -547,10 +566,9 @@ export const readChatEntries = async (
   }
 };
 
-
 export const getTotalUnreadEntries = async (
-  request: FastifyRequest,
-  reply: FastifyReply
+    request: FastifyRequest,
+    reply: FastifyReply
 ) => {
   try {
     const currentUserId = request.userId as string;

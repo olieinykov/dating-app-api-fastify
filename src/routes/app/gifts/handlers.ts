@@ -204,6 +204,7 @@ export const sendGiftToModel = async (
           profileId,
           giftId,
           modelId,
+          tokensAmount: giftPrice,
           status: 'completed',
           type: 'gift',
         })
@@ -256,7 +257,10 @@ export const sendGiftToModel = async (
         const adminChannel = ablyClient.channels.get(`admin-events`);
         const eventData = { ...entryWithSender, localEntryId };
         await usersChannel.publish('entry-created', eventData);
-        await adminChannel.publish('entry-created', eventData);
+        await adminChannel.publish('entry-created', {
+          ...eventData,
+          modelIds: { id: modelId, userId: model.userId },
+        });
       }
 
       return entryWithSender;
