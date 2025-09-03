@@ -351,11 +351,17 @@ export const createChatEntry = async (
       const usersChannel = ablyClient.channels.get(`user-events:${userId}`);
       const adminChannel = ablyClient.channels.get(`admin-events`);
       await usersChannel.publish('entry-created', eventData);
-      await adminChannel.publish('entry-created', eventData);
-      let notificationText = request?.body?.body;
+      await adminChannel.publish('entry-created', {
+        ...eventData,
+        modelIds: {
+          id: data?.sender?.id,
+          userId: data?.sender?.senderId,
+        },
+      });
+      let notificationText = `${data?.sender?.name} "${request?.body?.body}"`;
 
-      if (!notificationText?.length && request?.body?.attachmentIds?.length) {
-        notificationText = 'Файл добавлено';
+      if (!request?.body?.body?.length && request?.body?.attachmentIds?.length) {
+        notificationText = `${data?.sender?.name} отправила вложение`;
       }
 
       await axios.post(
@@ -683,6 +689,7 @@ export const getChatTransactions = async (
         transaction: {
           id: transactions.id,
           type: transactions.type,
+          tokensAmount: transactions.tokensAmount,
           createdAt: transactions.createdAt,
         },
 
@@ -732,6 +739,7 @@ export const getChatTransactions = async (
     const formattedData = data.map((item) => ({
       id: item.transaction.id,
       transactionType: item.transaction.type,
+      tokensAmount: item.transaction.tokensAmount,
       createdAt: item.transaction.createdAt,
       data:
         item.transaction.type === 'gift'
