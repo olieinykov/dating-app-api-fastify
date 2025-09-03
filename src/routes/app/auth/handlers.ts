@@ -257,11 +257,12 @@ export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
   const userId = request.userId!;
   try {
     await db.transaction(async (tx) => {
-      await supabaseAdmin.auth.admin.signOut(userId);
       await tx
-        .update(profiles)
-        .set({ lastActiveTime: new Date() })
-        .where(eq(profiles.userId, userId));
+          .update(profiles)
+          .set({ lastActiveTime: new Date() })
+          .where(eq(profiles.userId, userId));
+
+      await supabaseAdmin.auth.admin.signOut(userId);
     });
 
     return reply.code(200).send({ success: true, message: 'Logged out' });
