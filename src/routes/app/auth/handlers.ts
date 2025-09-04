@@ -258,14 +258,24 @@ export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     console.log("Debug11: userId", userId);
     console.log("Debug11: user", JSON.stringify(request?.profile ?? {}));
-    await db.transaction(async (tx) => {
-      await tx
-          .update(profiles)
-          .set({ lastActiveTime: new Date() })
-          .where(eq(profiles.userId, userId));
+    // await db.transaction(async (tx) => {
+    //   await tx
+    //       .update(profiles)
+    //       .set({ lastActiveTime: new Date() })
+    //       .where(eq(profiles.userId, userId));
+    //
+    //   await supabaseAdmin.auth.admin.signOut(userId);
+    // });
 
-      await supabaseAdmin.auth.admin.signOut(userId);
-    });
+    const result = await db
+        .update(profiles)
+        .set({ lastActiveTime: new Date() })
+        .where(eq(profiles.userId, userId));
+
+    console.log("result1", result);
+    await supabaseAdmin.auth.admin.signOut(userId);
+
+    console.log("final");
 
     return reply.code(200).send({ success: true, message: 'Logged out' });
   } catch (error) {
