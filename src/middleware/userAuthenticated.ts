@@ -37,6 +37,8 @@ export function userAuthenticated(allowWithoutSubscription = false) {
       return reply.status(403).send({ success: false, message: 'User deactivated' });
     }
 
+    console.log("LOGOUT: PROFILE =>", profile);
+
     if (!allowWithoutSubscription) {
       const subscription = await db.query.profiles_subscriptions.findFirst({
         where: eq(profiles_subscriptions.profileId, profile.id),
