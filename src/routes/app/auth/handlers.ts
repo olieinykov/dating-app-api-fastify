@@ -256,8 +256,8 @@ export const activateProfile = async (
 export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
   const userId = request.userId!;
   try {
-    console.log("LOGOUT: userId", userId);
-    console.log("LOGOUT: user", JSON.stringify(request?.profile ?? {}));
+    console.log("Debug11: userId", userId);
+    console.log("Debug11: user", JSON.stringify(request?.profile ?? {}));
     await db.transaction(async (tx) => {
       await tx
           .update(profiles)
