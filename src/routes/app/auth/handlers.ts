@@ -256,6 +256,7 @@ export const activateProfile = async (
 export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
   const userId = request.userId!;
   try {
+    console.log("LOGOUT: userId", userId);
     await db.transaction(async (tx) => {
       await tx
           .update(profiles)
@@ -267,6 +268,7 @@ export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
 
     return reply.code(200).send({ success: true, message: 'Logged out' });
   } catch (error) {
+    console.log("LOGOUT: error", error);
     reply.code(400).send({
       success: false,
       error: (error as Error).message,
