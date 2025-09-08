@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { getProfile, updateProfile } from './handlers.js';
+import {getProfile, updateProfile, updateProfileActivity} from './handlers.js';
 import { GetProfileSchema, UpdateProfileSchema } from './schemas.js';
 import { userAuthenticated } from '../../../middleware/userAuthenticated.js';
 
@@ -14,6 +14,12 @@ const routes = async (fastify: FastifyInstance) => {
     schema: UpdateProfileSchema,
     preHandler: [userAuthenticated(true)],
     handler: updateProfile,
+  });
+
+  fastify.post('/last-activity', {
+    schema: GetProfileSchema,
+    preHandler: [userAuthenticated(true)],
+    handler: updateProfileActivity,
   });
 };
 

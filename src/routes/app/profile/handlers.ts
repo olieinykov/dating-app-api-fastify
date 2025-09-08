@@ -153,3 +153,21 @@ export const updateProfile = async (
     });
   }
 };
+
+export const updateProfileActivity = async (request: FastifyRequest, reply: FastifyReply) => {
+  try {
+    const userId = request.userId as string;
+
+    await db
+        .update(profiles)
+        .set({ lastActiveTime: new Date() })
+        .where(eq(profiles.userId, userId)).returning();
+
+    return reply.code(200).send({ success: true, message: 'Activity updated' });
+  } catch (error) {
+    reply.code(500).send({
+      success: false,
+      message: 'Failed to update activity for this user',
+    });
+  }
+};

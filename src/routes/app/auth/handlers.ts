@@ -256,24 +256,11 @@ export const activateProfile = async (
 export const logout = async (request: FastifyRequest, reply: FastifyReply) => {
   const userId = request.userId!;
   try {
-    console.log("Debug22: userId", userId);
-    console.log("Debug22: profileId", request.profileId);
-    console.log("Debug22: user", JSON.stringify(request?.profile ?? {}));
-    // await db.transaction(async (tx) => {
-    //   await tx
-    //       .update(profiles)
-    //       .set({ lastActiveTime: new Date() })
-    //       .where(eq(profiles.userId, userId));
-    //
-    //   await supabaseAdmin.auth.admin.signOut(userId);
-    // });
-
-    const result = await db
+    await db
         .update(profiles)
         .set({ lastActiveTime: new Date() })
         .where(eq(profiles.userId, userId)).returning();
 
-    console.log("result22", result);
     await supabaseAdmin.auth.admin.signOut(userId);
 
     return reply.code(200).send({ success: true, message: 'Logged out' });
