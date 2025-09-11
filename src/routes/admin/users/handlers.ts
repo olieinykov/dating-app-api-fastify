@@ -416,6 +416,8 @@ export const getUserDetails = async (
       .where(eq(profilesPreferences.profileId, profileData.id))
       .limit(1);
 
+    const [telegramData] = await db.select().from(profilesTelegram).where(eq(profilesTelegram.telegramId!, profileData.telegramId!)).limit(1)
+
     const photos = await db
       .select({
         id: profiles_photos.fileId,
@@ -449,6 +451,7 @@ export const getUserDetails = async (
       },
       profile: {
         ...profileDetails,
+        ...(telegramData ?? {}),
         balance: balanceRow.balance,
         photos,
       },
