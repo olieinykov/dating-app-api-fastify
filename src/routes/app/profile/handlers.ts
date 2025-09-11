@@ -55,12 +55,12 @@ export const getProfile = async (request: FastifyRequest, reply: FastifyReply) =
       .limit(1);
 
     const now = new Date();
-    const isExpired = !profileSubscription.expirationAt || profileSubscription.expirationAt < now;
+    const isExpired = !profileSubscription?.expirationAt || profileSubscription?.expirationAt < now;
 
     reply.code(200).send({
       ...profileData,
       subscription: {
-        expirationAt: profileSubscription.expirationAt,
+        expirationAt: profileSubscription?.expirationAt,
         isExpired,
       },
       profile: {
