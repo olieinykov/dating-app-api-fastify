@@ -23,6 +23,7 @@ export const LoginSchema = {
         telegram_name: Type.String(),
         language_code: Type.String(),
         username: Type.String(),
+        clickId: Type.Optional(Type.String()),
         id: Type.Integer(),
       })
     ),

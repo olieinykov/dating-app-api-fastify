@@ -108,8 +108,8 @@ export const createOrLogin = async (
             lastName: telegram?.last_name,
             telegramName: telegram?.username,
             languageCode: telegram?.language_code,
-            telegramId: telegram?.id,
-            clickId: telegram?.clickId,
+            telegramId: telegram.id,
+            clickId: telegram?.clickId as string,
           })
           .returning();
 
