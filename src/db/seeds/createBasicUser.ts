@@ -34,7 +34,7 @@ export const seedRootUser = async () => {
 
         if (authError) {
             console.error('❌ Failed to create root user:');
-            console.error(error);
+            console.error(authError);
             process.exit(1);
         }
 
