@@ -11,7 +11,9 @@
     "format": "prettier --write .",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:seed-tariffs": "npx tsx src/db/seeds/createBasicTariffs.ts",
+    "db:seed-root-admin": "npx tsx src/db/seeds/createBasicUser.ts"
   },
   "author": "",
   "license": "ISC",
