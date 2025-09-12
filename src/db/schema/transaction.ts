@@ -1,9 +1,9 @@
 ﻿import { integer, pgTable, serial, timestamp, pgEnum } from 'drizzle-orm/pg-core';
-import { profiles } from './profile.js';
-import { gifts } from './gift.js';
-import { models } from './model.js';
-import { tariffs } from './tariff.js';
-import { chat_entries } from './chat_entry.js';
+import { profiles } from './profile';
+import { gifts } from './gift';
+import { models } from './model';
+import { tariffs } from './tariff';
+import { chat_entries } from './chat_entry';
 
 export const transactionOperationEnum = pgEnum('operation', [
   'gift',

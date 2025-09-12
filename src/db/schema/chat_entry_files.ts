@@ -1,6 +1,6 @@
 import { integer, pgTable, primaryKey, uuid } from 'drizzle-orm/pg-core';
-import { chat_entries } from './chat_entry.js';
-import { files } from './file.js';
+import { chat_entries } from './chat_entry';
+import { files } from './file';
 
 export const chat_entry_files = pgTable(
   'chat_entry_files',
