@@ -1,6 +1,6 @@
 import { pgTable, serial, boolean, uuid } from 'drizzle-orm/pg-core';
-import { files } from './file';
-import { models } from './model';
+import { files } from './file.js';
+import { models } from './model.js';
 
 export const models_photos = pgTable('models_photos', {
   id: serial('id').primaryKey(),

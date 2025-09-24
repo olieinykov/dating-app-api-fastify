@@ -1,5 +1,5 @@
 import { pgTable, serial, text, timestamp, pgEnum, date, json, integer } from 'drizzle-orm/pg-core';
-import { profiles } from './profile';
+import { profiles } from './profile.js';
 import { tariffs } from './tariff';
 
 export const genderEnum = pgEnum('gender', ['male', 'female']);

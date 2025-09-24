@@ -1,6 +1,6 @@
 import { pgTable, uuid, integer, timestamp, primaryKey } from 'drizzle-orm/pg-core';
-import { chat_entries } from './chat_entry';
-import { chats } from './chat';
+import { chat_entries } from './chat_entry.js';
+import { chats } from './chat.js';
 
 export const chat_entries_unread = pgTable(
   'chat_entries_unread',

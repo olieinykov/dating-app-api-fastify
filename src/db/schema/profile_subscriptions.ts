@@ -1,5 +1,5 @@
 import { boolean, pgTable, serial, timestamp, unique } from 'drizzle-orm/pg-core';
-import { profiles } from './profile';
+import { profiles } from './profile.js';
 
 export const profiles_subscriptions = pgTable(
   'profiles_subscription',

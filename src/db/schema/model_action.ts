@@ -1,6 +1,6 @@
 import { pgTable, serial, integer, uuid, timestamp } from 'drizzle-orm/pg-core';
-import { models } from './model';
-import { actionTypeEnum } from './enum';
+import { models } from './model.js';
+import { actionTypeEnum } from './enum.js';
 
 export const models_actions = pgTable('models_actions', {
   id: serial('id').primaryKey(),

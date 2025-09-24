@@ -8,8 +8,8 @@ import {
   pgEnum,
   boolean,
 } from 'drizzle-orm/pg-core';
-import { chats } from './chat';
-import { gifts } from './gift';
+import { chats } from './chat.js';
+import { gifts } from './gift.js';
 
 export const chatTypeEnum = pgEnum('message_type', ['text', 'gift']);
 
