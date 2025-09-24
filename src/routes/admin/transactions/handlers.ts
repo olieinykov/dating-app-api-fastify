@@ -5,6 +5,7 @@ import { chat_entries, gifts, models, profiles } from '../../../db/schema/index.
 import { transactions, transactionStatusEnum } from '../../../db/schema/transaction.js';
 import { tariffs } from '../../../db/schema/tariff.js';
 import { GetTransactionSchemaType } from './schemas';
+import {integer} from "drizzle-orm/pg-core/index";
 
 export const getTransactions = async (
   request: FastifyRequest<GetTransactionSchemaType>,
@@ -55,7 +56,8 @@ export const getTransactions = async (
         model: models,
         gift: gifts,
         chatEntry: chat_entries,
-        tariff: tariffs,
+        tariffPeriod: transactions.tariffPeriod,
+        tariffPrice: transactions.tariffPrice,
         tokensAmount: transactions.tokensAmount,
         status: transactions.status,
         createdAt: transactions.createdAt,
