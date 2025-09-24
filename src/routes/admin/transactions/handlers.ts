@@ -66,7 +66,7 @@ export const getTransactions = async (
       .leftJoin(gifts, eq(transactions.giftId, gifts.id))
       .leftJoin(models, eq(transactions.modelId, models.id))
       .leftJoin(chat_entries, eq(transactions.chatEntryId, chat_entries.id))
-      .leftJoin(tariffs, eq(transactions.tariffId, tariffs.id))
+      // .leftJoin(tariffs, eq(transactions.tariffId, tariffs.id))
       .where(whereCondition)
       .orderBy(sortOrder === 'asc' ? asc(sortBy) : desc(sortBy))
       .limit(limit)

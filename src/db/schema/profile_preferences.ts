@@ -27,7 +27,7 @@ export const profilesPreferences = pgTable('profiles_preferences', {
   paramsBustSize: paramsBustSizeEnum('params_bust_size'),
   paramsHairColor: paramsHairColorEnum('params_hair_color'),
   paramsBodyType: paramsBodyTypeEnum('params_body_type'),
-  tariffId: integer('tariff_id').references(() => tariffs.id),
+  // tariffId: integer('tariff_id').references(() => tariffs.id),
   entriesSentToday: integer('entries_sent_today').default(0),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),

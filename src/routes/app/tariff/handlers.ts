@@ -92,7 +92,8 @@ export const buyTariff = async (
         .insert(transactions)
         .values({
           profileId: request.profileId,
-          tariffId: tariff.id,
+          tariffPeriod: tariff.daysPeriod,
+          tariffPrice: tariff.price,
           type: 'tariff',
           status: 'completed',
         })

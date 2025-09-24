@@ -1,6 +1,6 @@
 {
-  "id": "4b765e8d-7fbc-4f5b-95ec-3b408581325d",
-  "prevId": "d35a8fa8-0c00-49a5-ad1b-a04d56c7d9e0",
+  "id": "ddc63bae-167d-4436-989f-b11e7a090f8b",
+  "prevId": "4b765e8d-7fbc-4f5b-95ec-3b408581325d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -973,12 +973,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "tariff_id": {
-          "name": "tariff_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
         "entries_sent_today": {
           "name": "entries_sent_today",
           "type": "integer",
@@ -1014,19 +1008,6 @@
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "profiles_preferences_tariff_id_tariffs_id_fk": {
-          "name": "profiles_preferences_tariff_id_tariffs_id_fk",
-          "tableFrom": "profiles_preferences",
-          "tableTo": "tariffs",
-          "columnsFrom": [
-            "tariff_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -1481,8 +1462,14 @@
           "primaryKey": false,
           "notNull": false
         },
-        "tariff_id": {
-          "name": "tariff_id",
+        "tariff_period": {
+          "name": "tariff_period",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tariff_price": {
+          "name": "tariff_price",
           "type": "integer",
           "primaryKey": false,
           "notNull": false
@@ -1555,19 +1542,6 @@
           "tableTo": "models",
           "columnsFrom": [
             "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "transactions_tariff_id_tariffs_id_fk": {
-          "name": "transactions_tariff_id_tariffs_id_fk",
-          "tableFrom": "transactions",
-          "tableTo": "tariffs",
-          "columnsFrom": [
-            "tariff_id"
           ],
           "columnsTo": [
             "id"
