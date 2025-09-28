@@ -38,7 +38,12 @@ export type UpdateGiftType = {
 
 export const GetAllGiftsSchema = {
   tags: ['Admin / Gifts'],
-  querystring: PaginationSchema,
+  querystring: Type.Intersect([
+    PaginationSchema,
+    Type.Object({
+      deactivated: Optional(Type.Boolean()),
+    }),
+  ]),
 };
 export type GetAllGiftsType = {
   Querystring: Static<typeof GetAllGiftsSchema.querystring>;

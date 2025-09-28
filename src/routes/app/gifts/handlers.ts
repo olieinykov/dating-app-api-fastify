@@ -42,14 +42,17 @@ export const getGifts = async (request: FastifyRequest, reply: FastifyReply) => 
       .select()
       .from(gifts)
       .where(
-        or(
-          isNull(gifts.restrictedCountries),
-          sql`NOT EXISTS (
-        SELECT 1 FROM json_array_elements_text(${gifts.restrictedCountries}) AS country 
-        WHERE country = ${userCountry?.country}
-      )`
-        )
-      );
+          and(
+              isNull(gifts.deactivatedAt),
+              or(
+                  isNull(gifts.restrictedCountries),
+                  sql`NOT EXISTS (
+          SELECT 1 FROM json_array_elements_text(${gifts.restrictedCountries}) AS country 
+          WHERE country = ${userCountry?.country}
+        )`
+              )
+          )
+      )
 
     return reply.send({
       status: 'success',
@@ -89,6 +92,7 @@ export const getModelFavoriteGifts = async (
       .where(
         and(
           eq(model_gifts.modelId, modelId!),
+          isNull(gifts.deactivatedAt),
           sql`NOT EXISTS (
         SELECT 1 FROM json_array_elements_text(${gifts.restrictedCountries}) AS country 
         WHERE country = ${userCountry?.country ?? ''}
@@ -129,7 +133,8 @@ export const getGiftsSentFromMe = async (
         .where(
           and(
             eq(transactions.profileId, profileId as number),
-            eq(transactions.modelId, modelId as number)
+            eq(transactions.modelId, modelId as number),
+            isNull(gifts.deactivatedAt),
           )
         )
         .innerJoin(gifts, eq(transactions.giftId, gifts.id))

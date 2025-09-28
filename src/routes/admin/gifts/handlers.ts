@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../../../db/index.js';
-import { gifts, gifts_actions, profiles } from '../../../db/schema/index.js';
-import { asc, desc, eq, ilike, and, sql } from 'drizzle-orm';
+import {gifts, gifts_actions, profiles} from '../../../db/schema/index.js';
+import {asc, desc, eq, ilike, and, sql, isNotNull, isNull} from 'drizzle-orm';
 import {
   CreateGiftType,
   DeleteGiftType,
@@ -23,6 +23,7 @@ export const getAllGifts = async (
       pageSize = 10,
       sortField = 'createdAt',
       sortOrder = 'desc',
+      deactivated = undefined,
     } = request.query;
 
     const sortBy = gifts[sortField as keyof typeof gifts];
@@ -34,6 +35,12 @@ export const getAllGifts = async (
 
     if (search.trim()) {
       whereClauses.push(ilike(gifts.title, `%${search}%`));
+    }
+    if (deactivated === true) {
+      whereClauses.push(isNotNull(gifts.deactivatedAt));
+    }
+    if (deactivated === false) {
+      whereClauses.push(isNull(gifts.deactivatedAt));
     }
 
     const whereCondition = whereClauses.length ? and(...whereClauses) : undefined;
