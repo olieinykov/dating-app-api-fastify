@@ -14,7 +14,6 @@ import {
 } from './schemas.js';
 import { gifts } from '../../../db/schema/gift.js';
 import { and, eq, isNull, or, sql } from 'drizzle-orm';
-import { profile_gift_transactions } from '../../../db/schema/profile_gift_transactions.js';
 import { profile_balances } from '../../../db/schema/profile_balances.js';
 import { profilesPreferences } from '../../../db/schema/profile_preferences.js';
 import ablyClient from '../../../services/ably.js';

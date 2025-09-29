@@ -7,6 +7,7 @@ import {
   activateGift,
   getOneGift,
   getGiftActions,
+  getModelGifts,
 } from './handlers.js';
 import {
   CreateGiftSchema,
@@ -55,7 +56,7 @@ const routes = async (fastify: FastifyInstance) => {
   fastify.get('/models/:modelId/favorite-gifts', {
     schema: GetModelFavoritesSchema,
     preHandler: [adminAuthenticated],
-    handler: getModelFavoriteGifts,
+    handler: getModelGifts,
   });
   fastify.get('/gifts-actions', {
     schema: GetGiftActionsSchema,

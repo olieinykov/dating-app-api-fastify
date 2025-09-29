@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../../../db/index.js';
-import {gifts, gifts_actions, profiles} from '../../../db/schema/index.js';
+import {gifts, gifts_actions, model_gifts, profiles} from '../../../db/schema/index.js';
 import {asc, desc, eq, ilike, and, sql, isNotNull, isNull} from 'drizzle-orm';
 import {
   CreateGiftType,
@@ -11,6 +11,7 @@ import {
   UpdateGiftType,
   GetGiftActionsType,
 } from './schemas.js';
+import {GetModelFavoritesSchemaType} from "../../app/gifts/schemas";
 
 export const getAllGifts = async (
   request: FastifyRequest<GetAllGiftsType>,
@@ -309,6 +310,43 @@ export const getGiftActions = async (
   } catch (error) {
     reply.status(400).send({
       success: false,
+      error: (error as Error)?.message,
+    });
+  }
+};
+
+export const getModelGifts = async (
+    request: FastifyRequest<GetModelFavoritesSchemaType>,
+    reply: FastifyReply
+) => {
+  try {
+    const { modelId } = request.params;
+
+    const data = await db
+        .select({
+          id: gifts.id,
+          title: gifts.title,
+          price: gifts.price,
+          image: gifts.image,
+          createdAt: gifts.createdAt,
+          updatedAt: gifts.updatedAt,
+        })
+        .from(model_gifts)
+        .where(
+            and(
+                eq(model_gifts.modelId, modelId!),
+                isNull(gifts.deactivatedAt),
+            )
+        )
+        .innerJoin(gifts, eq(model_gifts.giftId, gifts.id));
+
+    return reply.send({
+      status: 'success',
+      data,
+    });
+  } catch (error) {
+    reply.status(400).send({
+      status: 'error',
       error: (error as Error)?.message,
     });
   }
