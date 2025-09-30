@@ -189,11 +189,13 @@ export const activateGift = async (
 export const createGift = async (request: FastifyRequest<CreateGiftType>, reply: FastifyReply) => {
   try {
     const currentUserId = request.userId;
+    const { restrictedCountries, ...payload } = request.body;
     const result = await db.transaction(async (tx) => {
       const [createdGift] = await db
         .insert(gifts)
         .values({
-          ...request.body,
+          ...payload,
+          restrictedCountries: restrictedCountries?.length ? restrictedCountries : undefined,
         })
         .returning();
 
@@ -221,10 +223,15 @@ export const createGift = async (request: FastifyRequest<CreateGiftType>, reply:
 export const updateGift = async (request: FastifyRequest<UpdateGiftType>, reply: FastifyReply) => {
   try {
     const currentUserId = request.userId;
+    const { restrictedCountries, ...payload } = request.body;
+
     const result = await db.transaction(async (tx) => {
       const [updatedGift] = await db
         .update(gifts)
-        .set(request.body as any)
+        .set({
+          ...payload,
+          restrictedCountries: restrictedCountries?.length ? restrictedCountries : undefined,
+        })
         .where(eq(gifts.id, request.params.giftId))
         .returning();
 
