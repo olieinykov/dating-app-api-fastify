@@ -30,7 +30,7 @@ export const getGifts = async (request: FastifyRequest, reply: FastifyReply) => 
       .limit(1);
 
     if (!userCountry?.country) {
-      const allGifts = await db.select().from(gifts);
+      const allGifts = await db.select().from(gifts).where(isNull(gifts.deactivatedAt));
       return reply.send({
         status: 'success',
         data: allGifts,
